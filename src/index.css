@@ -69,6 +69,14 @@
 
     --radius: 1rem;
 
+    /* Medal colors */
+    --medal-gold: 43 90% 55%;
+    --medal-gold-bg: 43 90% 55% / 0.15;
+    --medal-silver: 220 10% 70%;
+    --medal-silver-bg: 220 10% 70% / 0.15;
+    --medal-bronze: 25 60% 45%;
+    --medal-bronze-bg: 25 60% 45% / 0.15;
+
     /* Glass effect variables */
     --glass-bg: 220 25% 15% / 0.6;
     --glass-border: 45 20% 90% / 0.1;
@@ -81,7 +89,7 @@
     --gradient-hero: linear-gradient(180deg, hsl(220 30% 8%) 0%, hsl(220 25% 12%) 100%);
 
     /* Animation timing */
-    --transition-smooth: 240ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-smooth: 200ms cubic-bezier(0.4, 0, 0.2, 1);
     --transition-bounce: 300ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     /* Sidebar */
