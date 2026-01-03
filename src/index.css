@@ -314,3 +314,58 @@
     transform: translateX(0);
   }
 }
+
+/* Kiosk Mode Security Styles */
+.kiosk-mode {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.kiosk-mode img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+.kiosk-mode a,
+.kiosk-mode button {
+  pointer-events: auto;
+}
+
+/* 55-inch Kiosk Optimization (1920px+) */
+@media (min-width: 1920px) {
+  html {
+    font-size: 20px;
+  }
+  
+  .glass-button,
+  .gold-button {
+    padding: 1rem 1.5rem;
+    font-size: 1.1rem;
+  }
+  
+  .glass-input {
+    padding: 1rem 1.25rem;
+    font-size: 1.1rem;
+  }
+}
+
+/* 4K Display Optimization (2560px+) */
+@media (min-width: 2560px) {
+  html {
+    font-size: 24px;
+  }
+  
+  .glass-button,
+  .gold-button {
+    padding: 1.25rem 2rem;
+    font-size: 1.25rem;
+  }
+  
+  .glass-input {
+    padding: 1.25rem 1.5rem;
+    font-size: 1.25rem;
+  }
+}
