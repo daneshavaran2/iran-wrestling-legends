@@ -1,0 +1,84 @@
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+
+interface UploadProgress {
+  fileName: string;
+  progress: number;
+}
+
+export function useMediaUpload() {
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const uploadFile = async (file: File, wrestlerId: string): Promise<string> => {
+    setIsUploading(true);
+    setError(null);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${wrestlerId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      setUploadProgress(prev => [...prev, { fileName: file.name, progress: 0 }]);
+
+      const { data, error: uploadError } = await supabase.storage
+        .from('wrestler-media')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      setUploadProgress(prev => 
+        prev.map(p => p.fileName === file.name ? { ...p, progress: 100 } : p)
+      );
+
+      const { data: urlData } = supabase.storage
+        .from('wrestler-media')
+        .getPublicUrl(data.path);
+
+      return urlData.publicUrl;
+    } catch (err: any) {
+      console.error('Upload error:', err);
+      setError(err.message || 'خطا در آپلود فایل');
+      throw err;
+    } finally {
+      setIsUploading(false);
+      setTimeout(() => {
+        setUploadProgress([]);
+      }, 2000);
+    }
+  };
+
+  const deleteFile = async (fileUrl: string): Promise<void> => {
+    try {
+      // Extract path from URL
+      const url = new URL(fileUrl);
+      const pathParts = url.pathname.split('/wrestler-media/');
+      if (pathParts.length < 2) return;
+      
+      const filePath = pathParts[1];
+
+      const { error } = await supabase.storage
+        .from('wrestler-media')
+        .remove([filePath]);
+
+      if (error) throw error;
+    } catch (err: any) {
+      console.error('Delete error:', err);
+      throw err;
+    }
+  };
+
+  const clearError = () => setError(null);
+
+  return {
+    uploadFile,
+    deleteFile,
+    isUploading,
+    uploadProgress,
+    error,
+    clearError,
+  };
+}

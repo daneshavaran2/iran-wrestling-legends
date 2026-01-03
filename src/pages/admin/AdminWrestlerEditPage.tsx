@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight, Save, Trash2, Plus, Upload, X } from 'lucide-react';
+import { ArrowRight, Save, Trash2, Plus, X, Image as ImageIcon } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GlassInput } from '@/components/ui/GlassInput';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { SkeletonProfile } from '@/components/ui/skeleton-cards';
+import { UploadDropzone } from '@/components/UploadDropzone';
+import { LazyImage } from '@/components/ui/LazyImage';
 import { useWrestlers } from '@/contexts/WrestlerContext';
+import { useMediaUpload } from '@/hooks/useMediaUpload';
 import { Wrestler, Achievement, wrestlingStyles, iranianProvinces, medalTypes } from '@/data/wrestlers';
 import { cn } from '@/lib/utils';
 
@@ -28,10 +31,15 @@ export default function AdminWrestlerEditPage() {
     addWrestler, 
     updateWrestler,
     getAchievementsByWrestlerId,
+    getMediaByWrestlerId,
     addAchievement,
     deleteAchievement,
+    addMedia,
+    deleteMedia,
     isLoading 
   } = useWrestlers();
+
+  const { uploadFile, deleteFile, isUploading, uploadProgress, error: uploadError } = useMediaUpload();
 
   const [currentStep, setCurrentStep] = useState<WizardStep>('basic');
   const [isSaving, setIsSaving] = useState(false);
@@ -49,6 +57,7 @@ export default function AdminWrestlerEditPage() {
   });
 
   const [achievements, setAchievements] = useState<Omit<Achievement, 'id'>[]>([]);
+  const [existingMedia, setExistingMedia] = useState<{ id: string; type: 'image' | 'video'; url: string; title: string | null }[]>([]);
 
   // Load existing data
   useEffect(() => {
@@ -73,9 +82,17 @@ export default function AdminWrestlerEditPage() {
           medal_type: a.medal_type,
           description: a.description,
         })));
+
+        const existingMediaItems = getMediaByWrestlerId(id);
+        setExistingMedia(existingMediaItems.map(m => ({
+          id: m.id,
+          type: m.type,
+          url: m.url,
+          title: m.title,
+        })));
       }
     }
-  }, [id, isNew, getWrestlerById, getAchievementsByWrestlerId]);
+  }, [id, isNew, getWrestlerById, getAchievementsByWrestlerId, getMediaByWrestlerId]);
 
   const handleInputChange = (field: keyof Wrestler, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -147,6 +164,52 @@ export default function AdminWrestlerEditPage() {
 
   const removeAchievement = (index: number) => {
     setAchievements(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleFilesSelected = async (files: File[]) => {
+    if (!id || isNew) return;
+    
+    for (const file of files) {
+      try {
+        const url = await uploadFile(file, id);
+        const type = file.type.startsWith('video/') ? 'video' : 'image';
+        
+        const newMedia = await addMedia({
+          wrestler_id: id,
+          type,
+          url,
+          thumbnail: null,
+          title: file.name,
+          display_order: existingMedia.length,
+        });
+        
+        setExistingMedia(prev => [...prev, {
+          id: newMedia.id,
+          type: newMedia.type,
+          url: newMedia.url,
+          title: newMedia.title,
+        }]);
+      } catch (err) {
+        console.error('Failed to upload file:', err);
+      }
+    }
+  };
+
+  const handleDeleteMedia = async (mediaId: string) => {
+    const mediaItem = existingMedia.find(m => m.id === mediaId);
+    if (!mediaItem) return;
+
+    try {
+      await deleteFile(mediaItem.url);
+      await deleteMedia(mediaId);
+      setExistingMedia(prev => prev.filter(m => m.id !== mediaId));
+    } catch (err) {
+      console.error('Failed to delete media:', err);
+    }
+  };
+
+  const setAsProfileImage = (url: string) => {
+    setFormData(prev => ({ ...prev, image_url: url }));
   };
 
   if (isLoading && !isNew) {
@@ -405,21 +468,77 @@ export default function AdminWrestlerEditPage() {
               <h3 className="text-lg font-bold">تصاویر و رسانه‌ها</h3>
             </div>
 
-            {/* Drag & Drop Area */}
-            <div className="border-2 border-dashed border-border rounded-2xl p-12 text-center hover:border-primary/50 transition-colors cursor-pointer">
-              <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-lg font-medium mb-2">فایل‌ها را اینجا رها کنید</p>
-              <p className="text-sm text-muted-foreground">
-                یا کلیک کنید تا فایل انتخاب شود
-              </p>
-              <p className="text-xs text-muted-foreground mt-4">
-                پشتیبانی از JPG, PNG, MP4 (حداکثر ۱۰ مگابایت)
-              </p>
-            </div>
+            {isNew ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>ابتدا کشتی‌گیر را ذخیره کنید، سپس می‌توانید رسانه اضافه کنید</p>
+              </div>
+            ) : (
+              <>
+                {/* Upload Dropzone */}
+                <UploadDropzone
+                  onFilesSelected={handleFilesSelected}
+                  isUploading={isUploading}
+                  uploadProgress={uploadProgress}
+                />
 
-            <div className="text-center py-8 text-muted-foreground">
-              <p>برای فعال‌سازی آپلود رسانه، Lovable Cloud را متصل کنید</p>
-            </div>
+                {uploadError && (
+                  <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+                    {uploadError}
+                  </div>
+                )}
+
+                {/* Existing Media */}
+                {existingMedia.length > 0 && (
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-medium text-muted-foreground">رسانه‌های موجود</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {existingMedia.map(item => (
+                        <div key={item.id} className="relative group">
+                          <div className={cn(
+                            'aspect-square rounded-xl overflow-hidden ring-2 transition-all',
+                            formData.image_url === item.url 
+                              ? 'ring-primary' 
+                              : 'ring-transparent'
+                          )}>
+                            <LazyImage
+                              src={item.url}
+                              alt={item.title || 'رسانه'}
+                              className="w-full h-full"
+                            />
+                          </div>
+                          
+                          {/* Actions */}
+                          <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleDeleteMedia(item.id)}
+                              className="p-2 rounded-full bg-destructive/90 text-white hover:bg-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                          
+                          {/* Set as profile */}
+                          {item.type === 'image' && (
+                            <button
+                              onClick={() => setAsProfileImage(item.url)}
+                              className={cn(
+                                'absolute bottom-2 right-2 px-2 py-1 rounded-lg text-xs font-medium transition-all',
+                                formData.image_url === item.url
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'bg-black/50 text-white opacity-0 group-hover:opacity-100'
+                              )}
+                            >
+                              {formData.image_url === item.url ? '✓ پروفایل' : 'تصویر پروفایل'}
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
       </GlassCard>
