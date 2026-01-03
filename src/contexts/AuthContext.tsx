@@ -1,13 +1,10 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-
-// Mock auth context - will be replaced with Supabase Auth
-interface User {
-  id: string;
-  email: string;
-}
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { User, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
+  session: Session | null;
   isAdmin: boolean;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -15,69 +12,179 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   makeAdmin: () => Promise<{ error: Error | null }>;
   hasAnyAdmin: boolean;
+  checkAdminStatus: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [hasAnyAdmin, setHasAnyAdmin] = useState(false);
 
-  const signIn = async (email: string, password: string) => {
-    setIsLoading(true);
+  const checkAdminStatus = async () => {
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
+
     try {
-      // Mock sign in - will be replaced with Supabase
-      await new Promise(resolve => setTimeout(resolve, 500));
-      if (email && password.length >= 6) {
-        const mockUser = { id: crypto.randomUUID(), email };
-        setUser(mockUser);
-        // Check if this user is admin (mock)
-        if (email === 'admin@museum.ir') {
-          setIsAdmin(true);
-          setHasAnyAdmin(true);
-        }
-        return { error: null };
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+        return;
       }
-      return { error: new Error('ایمیل یا رمز عبور نادرست است') };
-    } finally {
+
+      setIsAdmin(!!data);
+    } catch (err) {
+      console.error('Error checking admin status:', err);
+      setIsAdmin(false);
+    }
+  };
+
+  const checkAnyAdminExists = async () => {
+    try {
+      const { data, error } = await supabase.rpc('admin_exists');
+      
+      if (error) {
+        console.error('Error checking admin exists:', error);
+        setHasAnyAdmin(false);
+        return;
+      }
+
+      setHasAnyAdmin(!!data);
+    } catch (err) {
+      console.error('Error checking admin exists:', err);
+      setHasAnyAdmin(false);
+    }
+  };
+
+  useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // Defer admin check to avoid deadlock
+        if (session?.user) {
+          setTimeout(() => {
+            checkAdminStatus();
+          }, 0);
+        } else {
+          setIsAdmin(false);
+        }
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
       setIsLoading(false);
+      
+      if (session?.user) {
+        checkAdminStatus();
+      }
+    });
+
+    // Check if any admin exists
+    checkAnyAdminExists();
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      checkAdminStatus();
+    }
+  }, [user]);
+
+  const signIn = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        return { error: new Error(error.message) };
+      }
+
+      return { error: null };
+    } catch (err) {
+      return { error: err as Error };
     }
   };
 
   const signUp = async (email: string, password: string) => {
-    setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      if (email && password.length >= 6) {
-        const mockUser = { id: crypto.randomUUID(), email };
-        setUser(mockUser);
-        return { error: null };
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+        },
+      });
+
+      if (error) {
+        return { error: new Error(error.message) };
       }
-      return { error: new Error('اطلاعات نامعتبر است') };
-    } finally {
-      setIsLoading(false);
+
+      return { error: null };
+    } catch (err) {
+      return { error: err as Error };
     }
   };
 
   const signOut = async () => {
+    await supabase.auth.signOut();
     setUser(null);
+    setSession(null);
     setIsAdmin(false);
   };
 
   const makeAdmin = async () => {
-    if (user && !hasAnyAdmin) {
+    if (!user) {
+      return { error: new Error('کاربر وارد نشده است') };
+    }
+
+    try {
+      const { error } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: user.id,
+          role: 'admin',
+        });
+
+      if (error) {
+        console.error('Error making admin:', error);
+        return { error: new Error(error.message) };
+      }
+
       setIsAdmin(true);
       setHasAnyAdmin(true);
       return { error: null };
+    } catch (err) {
+      return { error: err as Error };
     }
-    return { error: new Error('امکان ایجاد ادمین وجود ندارد') };
   };
 
   return (
     <AuthContext.Provider value={{
       user,
+      session,
       isAdmin,
       isLoading,
       signIn,
@@ -85,6 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut,
       makeAdmin,
       hasAnyAdmin,
+      checkAdminStatus,
     }}>
       {children}
     </AuthContext.Provider>
