@@ -7,6 +7,21 @@ export function useKioskMode() {
   const navigate = useNavigate();
   const location = useLocation();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fullscreenTriggeredRef = useRef(false);
+
+  // Auto fullscreen on first user interaction
+  const enterFullscreen = useCallback(() => {
+    if (fullscreenTriggeredRef.current) return;
+    if (location.pathname.startsWith('/admin')) return;
+    
+    fullscreenTriggeredRef.current = true;
+    
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.log('Fullscreen request failed:', err);
+      });
+    }
+  }, [location.pathname]);
 
   const resetTimer = useCallback(() => {
     if (timeoutRef.current) {
@@ -35,6 +50,7 @@ export function useKioskMode() {
     const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
     
     const handleActivity = () => {
+      enterFullscreen();
       resetTimer();
     };
 

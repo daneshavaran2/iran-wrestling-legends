@@ -1,75 +1,101 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
-type Theme = 'light' | 'dark' | 'system';
+type Theme = 'light' | 'dark';
 
 interface ThemeContextType {
   theme: Theme;
-  resolvedTheme: 'light' | 'dark';
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
+  isLoading: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'wrestling-museum-theme';
-
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
-      return stored || 'dark';
-    }
-    return 'dark';
-  });
+  const [theme, setThemeState] = useState<Theme>('dark');
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('dark');
+  // Fetch theme from database
+  useEffect(() => {
+    const fetchTheme = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('app_settings')
+          .select('theme')
+          .eq('id', 'main')
+          .single();
 
+        if (error) throw error;
+        if (data?.theme) {
+          setThemeState(data.theme as Theme);
+        }
+      } catch (err) {
+        console.error('Error fetching theme:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTheme();
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel('app_settings_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'app_settings',
+          filter: 'id=eq.main',
+        },
+        (payload) => {
+          if (payload.new && 'theme' in payload.new) {
+            setThemeState(payload.new.theme as Theme);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // Apply theme to document
   useEffect(() => {
     const root = document.documentElement;
     
-    const getSystemTheme = (): 'light' | 'dark' => {
-      return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-    };
-
-    const applyTheme = (t: Theme) => {
-      const resolved = t === 'system' ? getSystemTheme() : t;
-      setResolvedTheme(resolved);
-      
-      if (resolved === 'light') {
-        root.classList.add('light');
-        root.classList.remove('dark');
-      } else {
-        root.classList.add('dark');
-        root.classList.remove('light');
-      }
-    };
-
-    applyTheme(theme);
-
-    // Listen for system theme changes
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
-    const handleChange = () => {
-      if (theme === 'system') {
-        applyTheme('system');
-      }
-    };
-    
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    if (theme === 'light') {
+      root.classList.add('light');
+      root.classList.remove('dark');
+    } else {
+      root.classList.add('dark');
+      root.classList.remove('light');
+    }
   }, [theme]);
 
-  const setTheme = (newTheme: Theme) => {
+  const setTheme = async (newTheme: Theme) => {
     setThemeState(newTheme);
-    localStorage.setItem(STORAGE_KEY, newTheme);
+    
+    try {
+      await supabase
+        .from('app_settings')
+        .update({ theme: newTheme, updated_at: new Date().toISOString() })
+        .eq('id', 'main');
+    } catch (err) {
+      console.error('Error updating theme:', err);
+    }
   };
 
   const toggleTheme = () => {
-    const newTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme, isLoading }}>
       {children}
     </ThemeContext.Provider>
   );

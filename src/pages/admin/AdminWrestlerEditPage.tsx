@@ -43,6 +43,7 @@ export default function AdminWrestlerEditPage() {
 
   const [currentStep, setCurrentStep] = useState<WizardStep>('basic');
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingProfile, setIsUploadingProfile] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Form state
@@ -94,8 +95,28 @@ export default function AdminWrestlerEditPage() {
     }
   }, [id, isNew, getWrestlerById, getAchievementsByWrestlerId, getMediaByWrestlerId]);
 
-  const handleInputChange = (field: keyof Wrestler, value: string) => {
+  const handleInputChange = (field: keyof Wrestler, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Handle profile image upload
+  const handleProfileImageUpload = async (files: File[]) => {
+    if (files.length === 0) return;
+    
+    const file = files[0];
+    setIsUploadingProfile(true);
+    
+    try {
+      // Use a temporary ID for new wrestlers or actual ID for existing
+      const uploadId = isNew ? `temp-${Date.now()}` : id!;
+      const url = await uploadFile(file, uploadId);
+      setFormData(prev => ({ ...prev, image_url: url }));
+    } catch (err) {
+      console.error('Failed to upload profile image:', err);
+      setError('خطا در آپلود تصویر پروفایل');
+    } finally {
+      setIsUploadingProfile(false);
+    }
   };
 
   const handleSave = async () => {
@@ -344,18 +365,64 @@ export default function AdminWrestlerEditPage() {
                 </select>
               </div>
 
-              {/* Image URL */}
+              {/* Profile Image Upload */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium mb-2 text-muted-foreground">
-                  آدرس تصویر
+                  تصویر پروفایل
                 </label>
-                <GlassInput
-                  value={formData.image_url || ''}
-                  onChange={(e) => handleInputChange('image_url', e.target.value)}
-                  placeholder="https://..."
-                  dir="ltr"
-                  className="text-left"
-                />
+                <div className="flex flex-col md:flex-row gap-4">
+                  {/* Preview */}
+                  <div className="w-32 h-32 flex-shrink-0 rounded-xl overflow-hidden bg-muted border border-border/50">
+                    {formData.image_url ? (
+                      <img 
+                        src={formData.image_url} 
+                        alt="پیش‌نمایش"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                        <ImageIcon className="h-10 w-10 opacity-50" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Upload Area */}
+                  <div className="flex-1">
+                    <UploadDropzone
+                      onFilesSelected={handleProfileImageUpload}
+                      isUploading={isUploadingProfile}
+                      uploadProgress={uploadProgress}
+                      accept="image/jpeg,image/png,image/webp"
+                      maxFiles={1}
+                      maxSizeMB={5}
+                      multiple={false}
+                      showLimits={false}
+                    />
+                    {formData.image_url && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, image_url: '' }))}
+                        className="mt-2 text-sm text-destructive hover:underline"
+                      >
+                        حذف تصویر
+                      </button>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Or manual URL */}
+                <div className="mt-4">
+                  <label className="block text-xs text-muted-foreground mb-1">
+                    یا آدرس مستقیم تصویر:
+                  </label>
+                  <GlassInput
+                    value={formData.image_url || ''}
+                    onChange={(e) => handleInputChange('image_url', e.target.value)}
+                    placeholder="https://..."
+                    dir="ltr"
+                    className="text-left text-sm"
+                  />
+                </div>
               </div>
             </div>
           </div>

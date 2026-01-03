@@ -7,7 +7,7 @@ interface ThemeToggleProps {
 }
 
 const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
-  const { resolvedTheme, toggleTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <button
@@ -19,9 +19,9 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
         active:scale-95
         ${className}
       `}
-      aria-label={resolvedTheme === 'dark' ? 'فعال کردن حالت روز' : 'فعال کردن حالت شب'}
+      aria-label={theme === 'dark' ? 'فعال کردن حالت روز' : 'فعال کردن حالت شب'}
     >
-      {resolvedTheme === 'dark' ? (
+      {theme === 'dark' ? (
         <Sun className="w-5 h-5 2xl:w-6 2xl:h-6 text-gold" />
       ) : (
         <Moon className="w-5 h-5 2xl:w-6 2xl:h-6 text-gold" />

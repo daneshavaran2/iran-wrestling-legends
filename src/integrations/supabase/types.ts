@@ -55,6 +55,24 @@ export type Database = {
           },
         ]
       }
+      app_settings: {
+        Row: {
+          id: string
+          theme: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          theme?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          theme?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -124,6 +142,7 @@ export type Database = {
           full_story: string | null
           id: string
           image_url: string | null
+          is_visible: boolean
           name: string
           province: string | null
           style: Database["public"]["Enums"]["wrestling_style"]
@@ -136,6 +155,7 @@ export type Database = {
           full_story?: string | null
           id?: string
           image_url?: string | null
+          is_visible?: boolean
           name: string
           province?: string | null
           style?: Database["public"]["Enums"]["wrestling_style"]
@@ -148,6 +168,7 @@ export type Database = {
           full_story?: string | null
           id?: string
           image_url?: string | null
+          is_visible?: boolean
           name?: string
           province?: string | null
           style?: Database["public"]["Enums"]["wrestling_style"]

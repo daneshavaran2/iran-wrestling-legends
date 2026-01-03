@@ -8,27 +8,27 @@ import { SkeletonCard } from '@/components/ui/skeleton-cards';
 import { EmptyState, ErrorState } from '@/components/ui/StateComponents';
 import { useWrestlers } from '@/contexts/WrestlerContext';
 import { useKioskMode } from '@/hooks/useKioskMode';
-import { wrestlingStyles, iranianProvinces } from '@/data/wrestlers';
+import { iranianProvinces } from '@/data/wrestlers';
 import { cn } from '@/lib/utils';
-import ThemeToggle from '@/components/ThemeToggle';
 
 export default function HomePage() {
   useKioskMode();
   
-  const { wrestlers, isLoading, error } = useWrestlers();
+  const { getVisibleWrestlers, isLoading, error } = useWrestlers();
+  const visibleWrestlers = getVisibleWrestlers();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStyle, setSelectedStyle] = useState<'all' | 'freestyle' | 'greco-roman'>('all');
   const [selectedProvince, setSelectedProvince] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
 
   const filteredWrestlers = useMemo(() => {
-    return wrestlers.filter(wrestler => {
+    return visibleWrestlers.filter(wrestler => {
       const matchesSearch = wrestler.name.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStyle = selectedStyle === 'all' || wrestler.style === selectedStyle;
       const matchesProvince = selectedProvince === 'all' || wrestler.province === selectedProvince;
       return matchesSearch && matchesStyle && matchesProvince;
     });
-  }, [wrestlers, searchQuery, selectedStyle, selectedProvince]);
+  }, [visibleWrestlers, searchQuery, selectedStyle, selectedProvince]);
 
   if (error) {
     return <ErrorState message={error} onRetry={() => window.location.reload()} />;
@@ -165,11 +165,6 @@ export default function HomePage() {
           </div>
         )}
       </main>
-
-      {/* Theme Toggle */}
-      <div className="fixed top-4 left-4 z-50">
-        <ThemeToggle />
-      </div>
 
       {/* Admin Link (subtle) */}
       <footer className="fixed bottom-4 left-4">
