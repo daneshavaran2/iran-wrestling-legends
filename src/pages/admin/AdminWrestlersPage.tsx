@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Search, Users } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Users, Eye, EyeOff } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { SearchInput } from '@/components/ui/GlassInput';
 import { GoldButton } from '@/components/ui/GoldButton';
@@ -11,9 +11,19 @@ import { wrestlingStyles } from '@/data/wrestlers';
 import { cn } from '@/lib/utils';
 
 export default function AdminWrestlersPage() {
-  const { wrestlers, isLoading, error, deleteWrestler } = useWrestlers();
+  const { wrestlers, isLoading, error, deleteWrestler, toggleWrestlerVisibility } = useWrestlers();
   const [searchQuery, setSearchQuery] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  const handleToggleVisibility = async (id: string) => {
+    setTogglingId(id);
+    try {
+      await toggleWrestlerVisibility(id);
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   const filteredWrestlers = wrestlers.filter(w => 
     w.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -98,6 +108,9 @@ export default function AdminWrestlersPage() {
                   <th className="text-right px-6 py-4 text-sm font-medium text-muted-foreground">
                     استان
                   </th>
+                  <th className="text-center px-6 py-4 text-sm font-medium text-muted-foreground">
+                    وضعیت
+                  </th>
                   <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">
                     عملیات
                   </th>
@@ -141,6 +154,25 @@ export default function AdminWrestlersPage() {
                     </td>
                     <td className="px-6 py-4 text-muted-foreground">
                       {wrestler.province || '—'}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <button
+                        onClick={() => handleToggleVisibility(wrestler.id)}
+                        disabled={togglingId === wrestler.id}
+                        className={cn(
+                          'p-2 rounded-lg transition-colors',
+                          wrestler.is_visible
+                            ? 'text-green-500 hover:bg-green-500/10'
+                            : 'text-muted-foreground hover:bg-muted/50'
+                        )}
+                        title={wrestler.is_visible ? 'نمایش داده می‌شود' : 'مخفی است'}
+                      >
+                        {wrestler.is_visible ? (
+                          <Eye className="h-4 w-4" />
+                        ) : (
+                          <EyeOff className="h-4 w-4" />
+                        )}
+                      </button>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">

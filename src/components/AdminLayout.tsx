@@ -6,11 +6,13 @@ import {
   LogOut, 
   Menu,
   X,
-  Home
+  Home,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { GoldButton } from '@/components/ui/GoldButton';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 
 interface AdminLayoutProps {
@@ -26,6 +28,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
 
   const handleSignOut = async () => {
@@ -87,6 +90,21 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
             {/* Footer */}
             <div className="space-y-2 pt-4 border-t border-border/50">
+              {/* Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-240"
+              >
+                {theme === 'dark' ? (
+                  <Sun className="h-5 w-5 flex-shrink-0 text-gold" />
+                ) : (
+                  <Moon className="h-5 w-5 flex-shrink-0 text-gold" />
+                )}
+                {sidebarOpen && (
+                  <span>{theme === 'dark' ? 'حالت روز' : 'حالت شب'}</span>
+                )}
+              </button>
+
               <Link
                 to="/"
                 className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-240"

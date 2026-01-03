@@ -11,6 +11,7 @@ export interface Wrestler {
   image_url: string | null;
   bio: string | null;
   full_story: string | null;
+  is_visible: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -45,8 +46,10 @@ interface WrestlerContextType {
   getWrestlerById: (id: string) => Wrestler | undefined;
   getAchievementsByWrestlerId: (id: string) => Achievement[];
   getMediaByWrestlerId: (id: string) => WrestlerMedia[];
-  addWrestler: (wrestler: Omit<Wrestler, 'id' | 'created_at' | 'updated_at'>) => Promise<Wrestler>;
+  getVisibleWrestlers: () => Wrestler[];
+  addWrestler: (wrestler: Omit<Wrestler, 'id' | 'created_at' | 'updated_at' | 'is_visible'>) => Promise<Wrestler>;
   updateWrestler: (id: string, updates: Partial<Wrestler>) => Promise<Wrestler>;
+  toggleWrestlerVisibility: (id: string) => Promise<void>;
   deleteWrestler: (id: string) => Promise<void>;
   addAchievement: (achievement: Omit<Achievement, 'id'>) => Promise<Achievement>;
   updateAchievement: (id: string, updates: Partial<Achievement>) => Promise<Achievement>;
@@ -77,6 +80,7 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
       const mappedData = (data || []).map(w => ({
         ...w,
         style: w.style as 'freestyle' | 'greco-roman',
+        is_visible: w.is_visible ?? true,
       }));
       
       setWrestlers(mappedData);
@@ -138,13 +142,15 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
 
   const getWrestlerById = (id: string) => wrestlers.find(w => w.id === id);
   
+  const getVisibleWrestlers = () => wrestlers.filter(w => w.is_visible);
+  
   const getAchievementsByWrestlerId = (id: string) => 
     achievements.filter(a => a.wrestler_id === id);
   
   const getMediaByWrestlerId = (id: string) => 
     media.filter(m => m.wrestler_id === id).sort((a, b) => a.display_order - b.display_order);
 
-  const addWrestler = async (wrestler: Omit<Wrestler, 'id' | 'created_at' | 'updated_at'>): Promise<Wrestler> => {
+  const addWrestler = async (wrestler: Omit<Wrestler, 'id' | 'created_at' | 'updated_at' | 'is_visible'>): Promise<Wrestler> => {
     const { data, error } = await supabase
       .from('wrestlers')
       .insert({
@@ -155,6 +161,7 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
         bio: wrestler.bio,
         full_story: wrestler.full_story,
         image_url: wrestler.image_url,
+        is_visible: true,
       })
       .select()
       .single();
@@ -164,6 +171,7 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
     const newWrestler = {
       ...data,
       style: data.style as 'freestyle' | 'greco-roman',
+      is_visible: data.is_visible ?? true,
     };
     
     setWrestlers(prev => [...prev, newWrestler]);
@@ -171,17 +179,19 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
   };
 
   const updateWrestler = async (id: string, updates: Partial<Wrestler>): Promise<Wrestler> => {
+    const updateData: Record<string, unknown> = {};
+    if (updates.name !== undefined) updateData.name = updates.name;
+    if (updates.style !== undefined) updateData.style = updates.style;
+    if (updates.weight_class !== undefined) updateData.weight_class = updates.weight_class;
+    if (updates.province !== undefined) updateData.province = updates.province;
+    if (updates.bio !== undefined) updateData.bio = updates.bio;
+    if (updates.full_story !== undefined) updateData.full_story = updates.full_story;
+    if (updates.image_url !== undefined) updateData.image_url = updates.image_url;
+    if (updates.is_visible !== undefined) updateData.is_visible = updates.is_visible;
+
     const { data, error } = await supabase
       .from('wrestlers')
-      .update({
-        name: updates.name,
-        style: updates.style,
-        weight_class: updates.weight_class,
-        province: updates.province,
-        bio: updates.bio,
-        full_story: updates.full_story,
-        image_url: updates.image_url,
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
@@ -191,10 +201,18 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
     const updated = {
       ...data,
       style: data.style as 'freestyle' | 'greco-roman',
+      is_visible: data.is_visible ?? true,
     };
     
     setWrestlers(prev => prev.map(w => w.id === id ? updated : w));
     return updated;
+  };
+
+  const toggleWrestlerVisibility = async (id: string): Promise<void> => {
+    const wrestler = wrestlers.find(w => w.id === id);
+    if (!wrestler) return;
+
+    await updateWrestler(id, { is_visible: !wrestler.is_visible });
   };
 
   const deleteWrestler = async (id: string): Promise<void> => {
@@ -310,11 +328,13 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
       error,
       refreshWrestlers,
       getWrestlerById,
+      getVisibleWrestlers,
       getAchievementsByWrestlerId,
       getMediaByWrestlerId,
       addWrestler,
       updateWrestler,
       deleteWrestler,
+      toggleWrestlerVisibility,
       addAchievement,
       updateAchievement,
       deleteAchievement,
