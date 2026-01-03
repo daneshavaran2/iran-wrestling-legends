@@ -8,8 +8,11 @@ interface UploadDropzoneProps {
   isUploading?: boolean;
   uploadProgress?: { fileName: string; progress: number }[];
   accept?: string;
+  minSizeMB?: number;
   maxSizeMB?: number;
+  maxFiles?: number;
   multiple?: boolean;
+  showLimits?: boolean;
   className?: string;
 }
 
@@ -18,8 +21,11 @@ export function UploadDropzone({
   isUploading = false,
   uploadProgress = [],
   accept = 'image/jpeg,image/png,image/webp,video/mp4',
+  minSizeMB = 0.01,
   maxSizeMB = 10,
+  maxFiles = 20,
   multiple = true,
+  showLimits = false,
   className,
 }: UploadDropzoneProps) {
   const [isDragging, setIsDragging] = useState(false);
@@ -37,15 +43,23 @@ export function UploadDropzone({
 
   const validateFiles = (files: File[]): File[] => {
     const maxSize = maxSizeMB * 1024 * 1024;
+    const minSize = minSizeMB * 1024 * 1024;
     const acceptedTypes = accept.split(',').map(t => t.trim());
     
-    return files.filter(file => {
+    // Limit number of files
+    const limitedFiles = files.slice(0, maxFiles);
+    
+    return limitedFiles.filter(file => {
       if (file.size > maxSize) {
-        console.warn(`File ${file.name} is too large`);
+        console.warn(`فایل ${file.name} بزرگتر از ${maxSizeMB} مگابایت است`);
+        return false;
+      }
+      if (file.size < minSize) {
+        console.warn(`فایل ${file.name} کوچکتر از ${minSizeMB * 1024} کیلوبایت است`);
         return false;
       }
       if (!acceptedTypes.some(type => file.type.match(type.replace('*', '.*')))) {
-        console.warn(`File ${file.name} has invalid type`);
+        console.warn(`فایل ${file.name} فرمت نامعتبر دارد`);
         return false;
       }
       return true;
@@ -138,9 +152,25 @@ export function UploadDropzone({
         <p className="text-sm text-muted-foreground">
           یا کلیک کنید تا فایل انتخاب شود
         </p>
-        <p className="text-xs text-muted-foreground mt-3">
-          JPG, PNG, WebP, MP4 (حداکثر {maxSizeMB} مگابایت)
-        </p>
+        
+        {/* Upload Limits Display */}
+        {showLimits && (
+          <div className="mt-4 p-4 rounded-xl bg-muted/30 text-sm text-right w-full max-w-sm">
+            <h5 className="font-medium mb-2 text-foreground">📋 محدودیت‌های آپلود:</h5>
+            <ul className="space-y-1 text-muted-foreground">
+              <li>• حداقل سایز: {minSizeMB >= 1 ? `${minSizeMB} مگابایت` : `${Math.round(minSizeMB * 1024)} کیلوبایت`}</li>
+              <li>• حداکثر سایز: {maxSizeMB} مگابایت</li>
+              <li>• حداکثر تعداد فایل: {maxFiles} عدد</li>
+              <li>• فرمت‌های مجاز: JPG, PNG, WebP, MP4</li>
+            </ul>
+          </div>
+        )}
+        
+        {!showLimits && (
+          <p className="text-xs text-muted-foreground mt-3">
+            JPG, PNG, WebP, MP4 (حداکثر {maxSizeMB} مگابایت)
+          </p>
+        )}
       </label>
 
       {/* Upload Progress */}

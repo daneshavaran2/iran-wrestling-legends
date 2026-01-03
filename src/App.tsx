@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { WrestlerProvider } from "@/contexts/WrestlerContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import AdminLayout from "@/components/AdminLayout";
 import HomePage from "./pages/HomePage";
@@ -21,9 +22,10 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <WrestlerProvider>
+    <ThemeProvider>
+      <TooltipProvider>
+        <AuthProvider>
+          <WrestlerProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -63,9 +65,10 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
-        </WrestlerProvider>
-      </AuthProvider>
-    </TooltipProvider>
+          </WrestlerProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

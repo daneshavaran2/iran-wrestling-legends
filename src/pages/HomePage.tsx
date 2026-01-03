@@ -10,6 +10,7 @@ import { useWrestlers } from '@/contexts/WrestlerContext';
 import { useKioskMode } from '@/hooks/useKioskMode';
 import { wrestlingStyles, iranianProvinces } from '@/data/wrestlers';
 import { cn } from '@/lib/utils';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function HomePage() {
   useKioskMode();
@@ -164,6 +165,11 @@ export default function HomePage() {
           </div>
         )}
       </main>
+
+      {/* Theme Toggle */}
+      <div className="fixed top-4 left-4 z-50">
+        <ThemeToggle />
+      </div>
 
       {/* Admin Link (subtle) */}
       <footer className="fixed bottom-4 left-4">
