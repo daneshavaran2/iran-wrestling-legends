@@ -27,27 +27,63 @@ export function useKioskMode() {
   }, [navigate, location.pathname]);
 
   useEffect(() => {
-    const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+    // Don't apply kiosk restrictions to admin routes
+    if (location.pathname.startsWith('/admin')) {
+      return;
+    }
+
+    const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
     
     const handleActivity = () => {
       resetTimer();
     };
 
-    events.forEach(event => {
+    // Disable right-click context menu
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      return false;
+    };
+
+    // Disable keyboard shortcuts (F12, Ctrl+Shift+I, etc.)
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === 'F12' || 
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) ||
+        (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c')) ||
+        (e.ctrlKey && (e.key === 'U' || e.key === 'u'))
+      ) {
+        e.preventDefault();
+        return false;
+      }
+      handleActivity();
+    };
+
+    // Add activity listeners
+    activityEvents.forEach(event => {
       document.addEventListener(event, handleActivity, { passive: true });
     });
+
+    // Add kiosk security listeners
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Add kiosk-mode class to body for CSS restrictions
+    document.body.classList.add('kiosk-mode');
 
     resetTimer();
 
     return () => {
-      events.forEach(event => {
+      activityEvents.forEach(event => {
         document.removeEventListener(event, handleActivity);
       });
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.classList.remove('kiosk-mode');
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [resetTimer]);
+  }, [resetTimer, location.pathname]);
 
   return { resetTimer };
 }

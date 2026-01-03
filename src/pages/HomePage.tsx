@@ -36,15 +36,15 @@ export default function HomePage() {
   return (
     <div className="min-h-screen">
       {/* Hero Header */}
-      <header className="relative py-12 px-6">
+      <header className="relative py-12 px-6 2xl:py-16">
         <div className="container mx-auto">
           {/* Logo / Title */}
-          <div className="text-center mb-12 animate-fade-in">
-            <h1 className="text-5xl md:text-6xl font-bold mb-4">
+          <div className="text-center mb-12 2xl:mb-16 animate-fade-in">
+            <h1 className="text-5xl md:text-6xl 2xl:text-7xl font-bold mb-4 2xl:mb-6">
               <span className="text-gold">موزه کشتی</span>
               <span className="text-foreground"> ایران</span>
             </h1>
-            <p className="text-xl text-muted-foreground">
+            <p className="text-xl 2xl:text-2xl text-muted-foreground">
               مرور زندگی و افتخارات بزرگان کشتی ایران
             </p>
           </div>
@@ -139,19 +139,19 @@ export default function HomePage() {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            {[...Array(10)].map((_, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6 2xl:gap-8">
+            {[...Array(12)].map((_, i) => (
               <SkeletonCard key={i} />
             ))}
           </div>
         ) : filteredWrestlers.length === 0 ? (
           <EmptyState
-            icon={<Search className="h-16 w-16" />}
+            icon={<Search className="h-16 w-16 2xl:h-20 2xl:w-20" />}
             title="کشتی‌گیری یافت نشد"
             description="با تغییر فیلترها یا عبارت جستجو، نتایج بیشتری پیدا کنید"
           />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6 2xl:gap-8">
             {filteredWrestlers.map((wrestler, index) => (
               <div
                 key={wrestler.id}
