@@ -9,8 +9,10 @@ import { EmptyState, ErrorState } from '@/components/ui/StateComponents';
 import { MediaGallery } from '@/components/MediaGallery';
 import { useWrestlers } from '@/contexts/WrestlerContext';
 import { useKioskMode } from '@/hooks/useKioskMode';
+import { useAutoScroll } from '@/hooks/useAutoScroll';
 import { wrestlingStyles, medalTypes } from '@/data/wrestlers';
 import { cn } from '@/lib/utils';
+import ThemeToggle from '@/components/ThemeToggle';
 
 const medalEmojis = {
   gold: '🥇',
@@ -28,6 +30,10 @@ export default function WrestlerProfilePage() {
   const { getWrestlerById, getAchievementsByWrestlerId, getMediaByWrestlerId, isLoading } = useWrestlers();
   
   const [activeTab, setActiveTab] = useState<TabType>('bio');
+  
+  // Auto-scroll for long text content
+  const { containerRef: bioScrollRef } = useAutoScroll({ speed: 35, enabled: activeTab === 'bio' });
+  const { containerRef: storyScrollRef } = useAutoScroll({ speed: 35, enabled: activeTab === 'story' });
 
   const wrestler = getWrestlerById(id || '');
   const achievements = getAchievementsByWrestlerId(id || '');
@@ -61,6 +67,11 @@ export default function WrestlerProfilePage() {
 
   return (
     <div className="min-h-screen">
+      {/* Theme Toggle */}
+      <div className="fixed top-4 left-4 z-50">
+        <ThemeToggle />
+      </div>
+
       {/* Sticky Back Button */}
       <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
         <div className="container mx-auto px-6 py-4">
@@ -180,7 +191,12 @@ export default function WrestlerProfilePage() {
           {activeTab === 'bio' && (
             <div className="prose prose-invert max-w-none">
               {wrestler.bio ? (
-                <p className="text-lg leading-relaxed">{wrestler.bio}</p>
+                <div 
+                  ref={bioScrollRef}
+                  className="max-h-[60vh] overflow-y-auto scrollbar-hide"
+                >
+                  <p className="text-lg leading-relaxed">{wrestler.bio}</p>
+                </div>
               ) : (
                 <EmptyState
                   icon={<User className="h-16 w-16" />}
@@ -195,9 +211,14 @@ export default function WrestlerProfilePage() {
             <div className="prose prose-invert max-w-none">
               {wrestler.full_story ? (
                 <div 
-                  className="text-lg leading-relaxed whitespace-pre-wrap"
-                  dangerouslySetInnerHTML={{ __html: wrestler.full_story }}
-                />
+                  ref={storyScrollRef}
+                  className="max-h-[60vh] overflow-y-auto scrollbar-hide"
+                >
+                  <div 
+                    className="text-lg leading-relaxed whitespace-pre-wrap"
+                    dangerouslySetInnerHTML={{ __html: wrestler.full_story }}
+                  />
+                </div>
               ) : (
                 <EmptyState
                   icon={<BookOpen className="h-16 w-16" />}

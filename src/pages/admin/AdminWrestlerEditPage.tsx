@@ -480,6 +480,10 @@ export default function AdminWrestlerEditPage() {
                   onFilesSelected={handleFilesSelected}
                   isUploading={isUploading}
                   uploadProgress={uploadProgress}
+                  minSizeMB={0.01}
+                  maxSizeMB={10}
+                  maxFiles={20}
+                  showLimits={true}
                 />
 
                 {uploadError && (
