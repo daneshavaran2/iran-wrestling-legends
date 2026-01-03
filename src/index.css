@@ -105,56 +105,71 @@
     --sidebar-ring: 43 56% 55%;
   }
 
-  /* Light Mode */
+  /* Light Mode - Elegant Warm Theme */
   .light {
-    --background: 45 25% 96%;
-    --foreground: 220 30% 15%;
-    --card: 0 0% 100%;
-    --card-foreground: 220 30% 15%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 30% 15%;
-    --primary: 43 80% 42%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 15% 90%;
-    --secondary-foreground: 220 30% 15%;
-    --muted: 220 15% 92%;
-    --muted-foreground: 220 15% 40%;
-    --accent: 43 80% 42%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 85% 55%;
+    /* پس‌زمینه کرم گرم */
+    --background: 40 35% 95%;
+    --foreground: 220 30% 18%;
+    
+    /* کارت‌ها - سفید با سایه گرم */
+    --card: 40 30% 99%;
+    --card-foreground: 220 30% 18%;
+    
+    --popover: 40 30% 99%;
+    --popover-foreground: 220 30% 18%;
+    
+    /* طلایی تیره‌تر برای خوانایی بهتر */
+    --primary: 38 75% 35%;
+    --primary-foreground: 40 30% 98%;
+    
+    /* ثانویه - خاکستری گرم */
+    --secondary: 40 20% 90%;
+    --secondary-foreground: 220 30% 18%;
+    
+    /* muted - خاکستری ملایم */
+    --muted: 40 15% 88%;
+    --muted-foreground: 220 20% 40%;
+    
+    /* accent - طلایی */
+    --accent: 38 75% 35%;
+    --accent-foreground: 40 30% 98%;
+    
+    --destructive: 0 75% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 15% 85%;
-    --input: 220 15% 88%;
-    --ring: 43 80% 42%;
+    
+    /* border تیره‌تر برای کنتراست بهتر */
+    --border: 220 20% 78%;
+    --input: 40 25% 92%;
+    --ring: 38 75% 35%;
 
-    /* Medal colors light */
-    --medal-gold: 45 90% 45%;
-    --medal-gold-bg: 45 80% 92% / 1;
-    --medal-silver: 220 10% 55%;
-    --medal-silver-bg: 220 15% 92% / 1;
-    --medal-bronze: 30 70% 40%;
-    --medal-bronze-bg: 30 50% 92% / 1;
+    /* رنگ مدال‌ها در حالت روشن */
+    --medal-gold: 43 85% 40%;
+    --medal-gold-bg: 43 70% 88%;
+    --medal-silver: 220 15% 50%;
+    --medal-silver-bg: 220 20% 90%;
+    --medal-bronze: 28 65% 38%;
+    --medal-bronze-bg: 28 45% 88%;
 
-    /* Glass effect variables light */
-    --glass-bg: 0 0% 100% / 0.7;
-    --glass-border: 220 15% 85% / 0.5;
-    --glass-blur: 24px;
-    --glass-shadow: 0 8px 32px 0 hsl(220 30% 50% / 0.1);
+    /* Glass effects برای حالت روشن */
+    --glass-bg: 40 30% 99% / 0.9;
+    --glass-border: 220 20% 70% / 0.4;
+    --glass-blur: 20px;
+    --glass-shadow: 0 8px 32px 0 hsl(220 30% 40% / 0.08);
 
-    /* Gradients light */
-    --gradient-gold: linear-gradient(135deg, hsl(43 80% 42%) 0%, hsl(38 85% 35%) 50%, hsl(43 80% 42%) 100%);
-    --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.9) 0%, hsl(0 0% 98% / 0.7) 100%);
-    --gradient-hero: linear-gradient(180deg, hsl(45 25% 96%) 0%, hsl(45 20% 94%) 100%);
+    /* گرادیان‌ها */
+    --gradient-gold: linear-gradient(135deg, hsl(38 75% 40%) 0%, hsl(35 80% 32%) 50%, hsl(38 75% 40%) 100%);
+    --gradient-glass: linear-gradient(135deg, hsl(40 30% 99% / 0.95) 0%, hsl(40 25% 96% / 0.85) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(40 35% 95%) 0%, hsl(40 30% 92%) 100%);
 
-    /* Sidebar light */
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 220 30% 15%;
-    --sidebar-primary: 43 80% 42%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 15% 92%;
-    --sidebar-accent-foreground: 220 30% 15%;
-    --sidebar-border: 220 15% 90%;
-    --sidebar-ring: 43 80% 42%;
+    /* Sidebar */
+    --sidebar-background: 40 30% 97%;
+    --sidebar-foreground: 220 30% 18%;
+    --sidebar-primary: 38 75% 35%;
+    --sidebar-primary-foreground: 40 30% 98%;
+    --sidebar-accent: 40 20% 92%;
+    --sidebar-accent-foreground: 220 30% 18%;
+    --sidebar-border: 220 20% 85%;
+    --sidebar-ring: 38 75% 35%;
   }
 }
 
@@ -204,10 +219,10 @@
   }
 
   .glass-button:hover {
-    background: hsl(220 25% 18% / 0.8);
-    border-color: hsl(43 56% 55% / 0.3);
+    background: hsl(var(--secondary));
+    border-color: hsl(var(--primary) / 0.4);
     transform: translateY(-2px);
-    box-shadow: 0 12px 40px -12px hsl(43 56% 55% / 0.3);
+    box-shadow: 0 12px 40px -12px hsl(var(--primary) / 0.3);
   }
 
   /* Gold Accent Button */
@@ -228,16 +243,17 @@
   /* Glass Input */
   .glass-input {
     @apply w-full rounded-xl px-4 py-3 outline-none transition-all placeholder:text-muted-foreground;
-    background: hsl(220 25% 12% / 0.8);
+    background: hsl(var(--input));
+    color: hsl(var(--foreground));
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid hsl(var(--glass-border));
+    border: 1px solid hsl(var(--border));
     transition: var(--transition-smooth);
   }
 
   .glass-input:focus {
-    border-color: hsl(43 56% 55% / 0.5);
-    box-shadow: 0 0 0 3px hsl(43 56% 55% / 0.1);
+    border-color: hsl(var(--primary) / 0.5);
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
   }
 
   /* Gold Text */
@@ -256,13 +272,13 @@
   /* Skeleton Loading */
   .skeleton {
     @apply relative overflow-hidden rounded-lg;
-    background: hsl(220 20% 18%);
+    background: hsl(var(--muted));
   }
 
   .skeleton::after {
     content: '';
     @apply absolute inset-0;
-    background: linear-gradient(90deg, transparent, hsl(220 20% 25% / 0.4), transparent);
+    background: linear-gradient(90deg, transparent, hsl(var(--foreground) / 0.06), transparent);
     animation: shimmer 2s infinite;
   }
 }
