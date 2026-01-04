@@ -46,7 +46,7 @@ export default function HomePage() {
               <img 
                 src={logo} 
                 alt="لوگو موزه کشتی ایران" 
-                className="h-20 md:h-24 2xl:h-28 dark:invert dark:brightness-100 brightness-0"
+                className="h-20 md:h-24 2xl:h-28"
               />
               <h1 className="text-5xl md:text-6xl 2xl:text-7xl font-bold">
                 <span className="text-gold">موزه کشتی</span>
