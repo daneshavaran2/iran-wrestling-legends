@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight, Trophy, Image as ImageIcon, BookOpen, User } from 'lucide-react';
+import { ArrowRight, Trophy, Image as ImageIcon, BookOpen, User, X } from 'lucide-react';
 import sampleWrestlerImage from '@/assets/sample-wrestler.jpg';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GoldButton } from '@/components/ui/GoldButton';
@@ -28,6 +28,7 @@ export default function WrestlerProfilePage() {
   const { getWrestlerById, getAchievementsByWrestlerId, getMediaByWrestlerId, isLoading } = useWrestlers();
   
   const [activeTab, setActiveTab] = useState<TabType>('achievements');
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   const wrestler = getWrestlerById(id || '');
   const achievements = getAchievementsByWrestlerId(id || '');
@@ -83,8 +84,11 @@ export default function WrestlerProfilePage() {
 
         {/* Centered Content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center px-8 pt-12">
-          {/* Wrestler Image - Centered & Large */}
-          <div className="w-28 h-28 md:w-36 md:h-36 xl:w-44 xl:h-44 rounded-full overflow-hidden border-4 border-gold/50 shadow-2xl mb-4 flex-shrink-0">
+          {/* Wrestler Image - Centered & Large with Animation */}
+          <div 
+            className="w-28 h-28 md:w-36 md:h-36 xl:w-44 xl:h-44 rounded-full overflow-hidden border-4 border-gold/50 shadow-2xl mb-4 flex-shrink-0 animate-scale-in cursor-pointer hover:scale-105 hover:shadow-gold/30 transition-all duration-300"
+            onClick={() => setIsImageModalOpen(true)}
+          >
             <img
               src={wrestler.image_url || sampleWrestlerImage}
               alt={wrestler.name}
@@ -275,6 +279,38 @@ export default function WrestlerProfilePage() {
           )}
         </div>
       </main>
+      {/* Image Modal */}
+      {isImageModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setIsImageModalOpen(false)}
+        >
+          <div 
+            className="relative max-w-3xl max-h-[90vh] animate-scale-in"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setIsImageModalOpen(false)}
+              className="absolute -top-12 left-1/2 -translate-x-1/2 text-white/70 hover:text-white transition-colors"
+            >
+              <X className="h-8 w-8" />
+            </button>
+            
+            {/* Large Image */}
+            <img
+              src={wrestler.image_url || sampleWrestlerImage}
+              alt={wrestler.name}
+              className="w-full h-full object-contain rounded-2xl border-4 border-gold/30 shadow-2xl"
+            />
+            
+            {/* Wrestler Name */}
+            <p className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 px-6 py-2 rounded-full text-gold font-bold">
+              {wrestler.name}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
