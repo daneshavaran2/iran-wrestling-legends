@@ -10,6 +10,7 @@ import { useWrestlers } from '@/contexts/WrestlerContext';
 import { useKioskMode } from '@/hooks/useKioskMode';
 import { iranianProvinces } from '@/data/wrestlers';
 import { cn } from '@/lib/utils';
+import logo from '@/assets/logo.png';
 
 export default function HomePage() {
   useKioskMode();
@@ -41,10 +42,17 @@ export default function HomePage() {
         <div className="container mx-auto">
           {/* Logo / Title */}
           <div className="text-center mb-12 2xl:mb-16 animate-fade-in">
-            <h1 className="text-5xl md:text-6xl 2xl:text-7xl font-bold mb-4 2xl:mb-6">
-              <span className="text-gold">موزه کشتی</span>
-              <span className="text-foreground"> ایران</span>
-            </h1>
+            <div className="flex items-center justify-center gap-4 mb-4 2xl:mb-6">
+              <img 
+                src={logo} 
+                alt="لوگو موزه کشتی ایران" 
+                className="h-20 md:h-24 2xl:h-28 dark:invert dark:brightness-100 brightness-0"
+              />
+              <h1 className="text-5xl md:text-6xl 2xl:text-7xl font-bold">
+                <span className="text-gold">موزه کشتی</span>
+                <span className="text-foreground"> ایران</span>
+              </h1>
+            </div>
             <p className="text-xl 2xl:text-2xl text-muted-foreground">
               مرور زندگی و افتخارات بزرگان کشتی ایران
             </p>
