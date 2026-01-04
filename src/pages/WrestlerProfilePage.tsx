@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowRight, Trophy, Image as ImageIcon, BookOpen, User } from 'lucide-react';
+import sampleWrestlerImage from '@/assets/sample-wrestler.jpg';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { SkeletonProfile } from '@/components/ui/skeleton-cards';
@@ -80,8 +81,19 @@ export default function WrestlerProfilePage() {
           بازگشت
         </GoldButton>
 
-        {/* Centered Content */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center px-8">
+        {/* Wrestler Image - Right Side */}
+        <div className="absolute left-8 top-1/2 -translate-y-1/2 h-[80%]">
+          <div className="h-full aspect-[3/4] rounded-2xl overflow-hidden border-2 border-gold/30 shadow-2xl">
+            <img
+              src={wrestler.image_url || sampleWrestlerImage}
+              alt={wrestler.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+
+        {/* Content - Center/Right */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center px-8 pr-[35%]">
           {/* Wrestler Name */}
           <h1 className="text-5xl md:text-6xl xl:text-7xl font-bold text-gold text-center mb-6">
             {wrestler.name}
@@ -121,22 +133,20 @@ export default function WrestlerProfilePage() {
               })}
             </div>
           )}
-        </div>
 
-        {/* Province Card - Bottom Left */}
-        {wrestler.province && (
-          <div className="absolute bottom-6 left-6">
+          {/* Province */}
+          {wrestler.province && (
             <GlassCard className="px-5 py-3">
               <span className="text-muted-foreground text-sm">استان</span>
               <p className="font-bold text-lg">{wrestler.province}</p>
             </GlassCard>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Bio Summary - Bottom Center */}
         {wrestler.bio && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 max-w-2xl px-8">
-            <p className="text-center text-muted-foreground line-clamp-2">
+          <div className="absolute bottom-6 right-8 max-w-xl">
+            <p className="text-right text-muted-foreground line-clamp-2">
               {wrestler.bio}
             </p>
           </div>
