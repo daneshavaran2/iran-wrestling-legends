@@ -81,31 +81,29 @@ export default function WrestlerProfilePage() {
           بازگشت
         </GoldButton>
 
-        {/* Wrestler Image - Right Side */}
-        <div className="absolute left-8 top-1/2 -translate-y-1/2 h-[80%]">
-          <div className="h-full aspect-[3/4] rounded-2xl overflow-hidden border-2 border-gold/30 shadow-2xl">
+        {/* Centered Content */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center px-8 pt-12">
+          {/* Wrestler Image - Centered & Large */}
+          <div className="w-28 h-28 md:w-36 md:h-36 xl:w-44 xl:h-44 rounded-full overflow-hidden border-4 border-gold/50 shadow-2xl mb-4 flex-shrink-0">
             <img
               src={wrestler.image_url || sampleWrestlerImage}
               alt={wrestler.name}
               className="w-full h-full object-cover"
             />
           </div>
-        </div>
 
-        {/* Content - Center/Right */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center px-8 pr-[35%]">
           {/* Wrestler Name */}
-          <h1 className="text-5xl md:text-6xl xl:text-7xl font-bold text-gold text-center mb-6">
+          <h1 className="text-4xl md:text-5xl xl:text-6xl font-bold text-gold text-center mb-4">
             {wrestler.name}
           </h1>
           
           {/* Style & Weight Badges */}
-          <div className="flex gap-4 mb-6">
-            <span className="glass-card px-6 py-2.5 text-lg font-bold">
+          <div className="flex gap-3 mb-4">
+            <span className="glass-card px-5 py-2 text-base font-bold">
               {wrestlingStyles[wrestler.style]}
             </span>
             {wrestler.weight_class && (
-              <span className="glass-card px-6 py-2.5 text-lg font-bold">
+              <span className="glass-card px-5 py-2 text-base font-bold">
                 {wrestler.weight_class}
               </span>
             )}
@@ -113,21 +111,21 @@ export default function WrestlerProfilePage() {
 
           {/* Medal Summary */}
           {achievements.length > 0 && (
-            <div className="flex gap-4 mb-6">
+            <div className="flex gap-3 mb-4">
               {(['gold', 'silver', 'bronze'] as const).map(type => {
                 if (medalCounts[type] === 0) return null;
                 return (
                   <div 
                     key={type}
                     className={cn(
-                      'flex items-center gap-2 px-5 py-2.5 rounded-xl',
+                      'flex items-center gap-2 px-4 py-2 rounded-xl',
                       type === 'gold' && 'bg-[hsl(var(--medal-gold-bg))]',
                       type === 'silver' && 'bg-[hsl(var(--medal-silver-bg))]',
                       type === 'bronze' && 'bg-[hsl(var(--medal-bronze-bg))]'
                     )}
                   >
-                    <span className="text-2xl">{medalEmojis[type]}</span>
-                    <span className="font-bold text-xl">{medalCounts[type]}</span>
+                    <span className="text-xl">{medalEmojis[type]}</span>
+                    <span className="font-bold text-lg">{medalCounts[type]}</span>
                   </div>
                 );
               })}
@@ -136,17 +134,17 @@ export default function WrestlerProfilePage() {
 
           {/* Province */}
           {wrestler.province && (
-            <GlassCard className="px-5 py-3">
-              <span className="text-muted-foreground text-sm">استان</span>
-              <p className="font-bold text-lg">{wrestler.province}</p>
+            <GlassCard className="px-4 py-2">
+              <span className="text-muted-foreground text-xs">استان</span>
+              <p className="font-bold text-base">{wrestler.province}</p>
             </GlassCard>
           )}
         </div>
 
         {/* Bio Summary - Bottom Center */}
         {wrestler.bio && (
-          <div className="absolute bottom-6 right-8 max-w-xl">
-            <p className="text-right text-muted-foreground line-clamp-2">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 max-w-2xl px-8">
+            <p className="text-center text-muted-foreground text-sm line-clamp-2">
               {wrestler.bio}
             </p>
           </div>
