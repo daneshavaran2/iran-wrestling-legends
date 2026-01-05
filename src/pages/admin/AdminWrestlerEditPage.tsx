@@ -7,16 +7,17 @@ import { GoldButton } from '@/components/ui/GoldButton';
 import { SkeletonProfile } from '@/components/ui/skeleton-cards';
 import { UploadDropzone } from '@/components/UploadDropzone';
 import { LazyImage } from '@/components/ui/LazyImage';
-import { useWrestlers } from '@/contexts/WrestlerContext';
+import { useWrestlers, Wrestler } from '@/contexts/WrestlerContext';
 import { useMediaUpload } from '@/hooks/useMediaUpload';
-import { Wrestler, Achievement, wrestlingStyles, iranianProvinces, medalTypes } from '@/data/wrestlers';
+import { Achievement, wrestlingStyles, iranianProvinces, medalTypes } from '@/data/wrestlers';
 import { cn } from '@/lib/utils';
 
-type WizardStep = 'basic' | 'bio' | 'achievements' | 'media';
+type WizardStep = 'basic' | 'bio' | 'video' | 'achievements' | 'media';
 
 const steps: { id: WizardStep; label: string }[] = [
   { id: 'basic', label: 'اطلاعات پایه' },
-  { id: 'bio', label: 'بیوگرافی' },
+  { id: 'bio', label: 'بیوگرافی و داستان' },
+  { id: 'video', label: 'ویدیو معرفی' },
   { id: 'achievements', label: 'افتخارات' },
   { id: 'media', label: 'رسانه‌ها' },
 ];
@@ -55,6 +56,9 @@ export default function AdminWrestlerEditPage() {
     bio: '',
     full_story: '',
     image_url: '',
+    intro_video_url: '',
+    success_path: '',
+    social_activities: '',
   });
 
   const [achievements, setAchievements] = useState<Omit<Achievement, 'id'>[]>([]);
@@ -73,6 +77,9 @@ export default function AdminWrestlerEditPage() {
           bio: wrestler.bio || '',
           full_story: wrestler.full_story || '',
           image_url: wrestler.image_url || '',
+          intro_video_url: wrestler.intro_video_url || '',
+          success_path: wrestler.success_path || '',
+          social_activities: wrestler.social_activities || '',
         });
         const existingAchievements = getAchievementsByWrestlerId(id);
         setAchievements(existingAchievements.map(a => ({
@@ -139,6 +146,9 @@ export default function AdminWrestlerEditPage() {
           bio: formData.bio || null,
           full_story: formData.full_story || null,
           image_url: formData.image_url || null,
+          intro_video_url: formData.intro_video_url || null,
+          success_path: formData.success_path || null,
+          social_activities: formData.social_activities || null,
         });
         
         // Add achievements
@@ -156,6 +166,9 @@ export default function AdminWrestlerEditPage() {
           bio: formData.bio || null,
           full_story: formData.full_story || null,
           image_url: formData.image_url || null,
+          intro_video_url: formData.intro_video_url || null,
+          success_path: formData.success_path || null,
+          social_activities: formData.social_activities || null,
         });
         navigate('/admin/wrestlers');
       }
@@ -430,20 +443,23 @@ export default function AdminWrestlerEditPage() {
 
         {currentStep === 'bio' && (
           <div className="space-y-6 animate-fade-in">
-            {/* Bio */}
+            {/* روایت من (Bio) - First person narrative */}
             <div>
               <label className="block text-sm font-medium mb-2 text-muted-foreground">
-                بیوگرافی کوتاه
+                روایت من (بیوگرافی اول شخص)
               </label>
+              <p className="text-xs text-muted-foreground mb-2">
+                این متن به زبان اول شخص نوشته شود، انگار کشتی‌گیر خودش صحبت می‌کند.
+              </p>
               <textarea
                 value={formData.bio || ''}
                 onChange={(e) => handleInputChange('bio', e.target.value)}
-                placeholder="خلاصه‌ای از زندگی و افتخارات..."
-                className="glass-input min-h-[120px] resize-y"
+                placeholder="من از کودکی عاشق کشتی بودم..."
+                className="glass-input min-h-[150px] resize-y"
               />
             </div>
 
-            {/* Full Story */}
+            {/* زندگی‌نامه کامل */}
             <div>
               <label className="block text-sm font-medium mb-2 text-muted-foreground">
                 زندگی‌نامه کامل
@@ -452,9 +468,65 @@ export default function AdminWrestlerEditPage() {
                 value={formData.full_story || ''}
                 onChange={(e) => handleInputChange('full_story', e.target.value)}
                 placeholder="شرح کامل زندگی‌نامه..."
-                className="glass-input min-h-[300px] resize-y"
+                className="glass-input min-h-[200px] resize-y"
               />
             </div>
+
+            {/* مسیر موفقیت */}
+            <div>
+              <label className="block text-sm font-medium mb-2 text-muted-foreground">
+                مسیر موفقیت
+              </label>
+              <textarea
+                value={formData.success_path || ''}
+                onChange={(e) => handleInputChange('success_path', e.target.value)}
+                placeholder="داستان مسیر موفقیت و چالش‌ها..."
+                className="glass-input min-h-[150px] resize-y"
+              />
+            </div>
+
+            {/* فعالیت‌های اجتماعی */}
+            <div>
+              <label className="block text-sm font-medium mb-2 text-muted-foreground">
+                فعالیت‌های اجتماعی
+              </label>
+              <textarea
+                value={formData.social_activities || ''}
+                onChange={(e) => handleInputChange('social_activities', e.target.value)}
+                placeholder="فعالیت‌های خیریه، اجتماعی و فرهنگی..."
+                className="glass-input min-h-[120px] resize-y"
+              />
+            </div>
+          </div>
+        )}
+
+        {currentStep === 'video' && (
+          <div className="space-y-6 animate-fade-in">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-muted-foreground">
+                آدرس ویدیوی معرفی (حداکثر ۳۰ ثانیه)
+              </label>
+              <p className="text-xs text-muted-foreground mb-2">
+                این ویدیو در بالای صفحه پروفایل نمایش داده می‌شود. از Storage آپلود کنید یا لینک مستقیم وارد کنید.
+              </p>
+              <GlassInput
+                value={formData.intro_video_url || ''}
+                onChange={(e) => handleInputChange('intro_video_url', e.target.value)}
+                placeholder="https://..."
+                dir="ltr"
+                className="text-left"
+              />
+            </div>
+            
+            {formData.intro_video_url && (
+              <div className="rounded-xl overflow-hidden border border-border/50">
+                <video
+                  src={formData.intro_video_url}
+                  controls
+                  className="w-full max-h-[300px]"
+                />
+              </div>
+            )}
           </div>
         )}
 
