@@ -44,103 +44,82 @@ export default function BooksListPage() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="h-screen flex flex-col overflow-hidden p-4 md:p-6">
       {/* Header */}
-      <header className="relative py-8 px-6 2xl:py-12">
-        <div className="container mx-auto">
-          {/* Back Button & Title */}
-          <div className="flex items-center gap-4 mb-8 animate-fade-in">
-            <GoldButton
-              variant="ghost"
-              size="lg"
-              onClick={() => navigate('/')}
-              className="flex items-center gap-2"
-            >
-              <ArrowRight className="h-5 w-5" />
-              بازگشت
-            </GoldButton>
-            <div>
-              <h1 className="text-3xl md:text-4xl xl:text-5xl font-bold">
-                <span className="text-gold">تألیفات</span>
-              </h1>
-              <p className="text-muted-foreground text-sm md:text-base mt-1">
-                کتاب‌ها و آثار مکتوب درباره کشتی
-              </p>
-            </div>
-          </div>
+      <header className="flex items-center gap-4 mb-4 animate-fade-in shrink-0">
+        <GoldButton
+          variant="ghost"
+          size="lg"
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2"
+        >
+          <ArrowRight className="h-5 w-5" />
+          بازگشت
+        </GoldButton>
+        <div>
+          <h1 className="text-2xl md:text-3xl xl:text-4xl font-bold">
+            <span className="text-gold">تألیفات</span>
+          </h1>
         </div>
       </header>
 
       {/* Books Grid */}
-      <main className="container mx-auto px-6 pb-12">
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-            {[...Array(8)].map((_, i) => (
-              <Skeleton key={i} className="h-96 w-full rounded-2xl" />
-            ))}
-          </div>
-        ) : books.length === 0 ? (
-          <GlassCard className="p-12 text-center max-w-2xl mx-auto">
-            <BookOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-xl font-bold mb-2">محتوایی وجود ندارد</h3>
-            <p className="text-muted-foreground">
-              کتاب‌ها و تألیفات توسط مدیر اضافه خواهند شد
-            </p>
-          </GlassCard>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-            {books.map((book, index) => (
-              <div
-                key={book.id}
-                className="animate-scale-in"
-                style={{ animationDelay: `${index * 80}ms` }}
-              >
-                <GlassCard className="overflow-hidden h-full">
-                  {/* Cover Image */}
-                  <div className="aspect-[3/4] bg-muted overflow-hidden">
-                    {book.cover_image_url ? (
-                      <LazyImage
-                        src={book.cover_image_url}
-                        alt={book.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-                        <BookOpen className="h-20 w-20 text-primary/30" />
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Content */}
-                  <div className="p-6">
-                    <h2 className="text-lg md:text-xl font-bold mb-2 line-clamp-2">
-                      {book.title}
-                    </h2>
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-3">
-                      <User className="h-4 w-4" />
-                      <span>{book.author}</span>
+      <main className="flex-1 flex items-center overflow-hidden">
+        <div className="w-full max-w-7xl mx-auto">
+          {isLoading ? (
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <Skeleton key={i} className="aspect-[3/4] w-full rounded-2xl" />
+              ))}
+            </div>
+          ) : books.length === 0 ? (
+            <GlassCard className="p-12 text-center max-w-md mx-auto">
+              <BookOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-xl font-bold mb-2">محتوایی وجود ندارد</h3>
+              <p className="text-muted-foreground">
+                کتاب‌ها و تألیفات توسط مدیر اضافه خواهند شد
+              </p>
+            </GlassCard>
+          ) : (
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
+              {books.map((book, index) => (
+                <div
+                  key={book.id}
+                  className="animate-scale-in"
+                  style={{ animationDelay: `${index * 60}ms` }}
+                >
+                  <GlassCard className="overflow-hidden h-full group cursor-pointer hover:border-primary/40 transition-all">
+                    {/* Cover Image */}
+                    <div className="aspect-[3/4] bg-muted overflow-hidden">
+                      {book.cover_image_url ? (
+                        <LazyImage
+                          src={book.cover_image_url}
+                          alt={book.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                          <BookOpen className="h-12 w-12 text-primary/30" />
+                        </div>
+                      )}
                     </div>
-                    {book.summary && (
-                      <p className="text-muted-foreground text-sm line-clamp-3">
-                        {book.summary}
-                      </p>
-                    )}
-                    {book.related_wrestler_id && (
-                      <GoldButton
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate(`/wrestler/${book.related_wrestler_id}`)}
-                        className="mt-4"
-                      >
-                        مشاهده کشتی‌گیر مرتبط
-                      </GoldButton>
-                    )}
-                  </div>
-                </GlassCard>
-              </div>
-            ))}
-          </div>
-        )}
+                    
+                    {/* Content */}
+                    <div className="p-3">
+                      <h2 className="text-sm md:text-base font-bold mb-1 line-clamp-2 group-hover:text-gold transition-colors">
+                        {book.title}
+                      </h2>
+                      <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                        <User className="h-3 w-3" />
+                        <span className="line-clamp-1">{book.author}</span>
+                      </div>
+                    </div>
+                  </GlassCard>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );

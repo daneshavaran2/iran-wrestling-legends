@@ -16,15 +16,6 @@ interface HistorySection {
   display_order: number;
 }
 
-// Initial seed data for history sections
-const defaultHistorySections: Omit<HistorySection, 'id'>[] = [
-  { parent_id: null, title: 'چراییِ کشتی', slug: 'why-wrestling', highlighted_quote: 'کشتی، مادر همه ورزش‌هاست', display_order: 1 },
-  { parent_id: null, title: 'ریشه‌شناسی کشتی', slug: 'etymology', highlighted_quote: 'از پهلوانی تا قهرمانی', display_order: 2 },
-  { parent_id: null, title: 'روایات دینی و اساطیری', slug: 'mythology', highlighted_quote: 'رستم، نماد پهلوانی ایرانی', display_order: 3 },
-  { parent_id: null, title: 'کشتی پهلوانی', slug: 'pahlavani', highlighted_quote: 'سنت زورخانه‌ای', display_order: 4 },
-  { parent_id: null, title: 'کشتی معاصر', slug: 'contemporary', highlighted_quote: 'از المپیک برلین تا امروز', display_order: 5 },
-];
-
 export default function HistoryListPage() {
   useKioskMode();
   const navigate = useNavigate();
@@ -53,42 +44,36 @@ export default function HistoryListPage() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="h-screen flex flex-col overflow-hidden p-4 md:p-6">
       {/* Header */}
-      <header className="relative py-8 px-6 2xl:py-12">
-        <div className="container mx-auto">
-          {/* Back Button & Title */}
-          <div className="flex items-center gap-4 mb-8 animate-fade-in">
-            <GoldButton
-              variant="ghost"
-              size="lg"
-              onClick={() => navigate('/')}
-              className="flex items-center gap-2"
-            >
-              <ArrowRight className="h-5 w-5" />
-              بازگشت
-            </GoldButton>
-            <div>
-              <h1 className="text-3xl md:text-4xl xl:text-5xl font-bold">
-                <span className="text-gold">تاریخچه</span>
-              </h1>
-              <p className="text-muted-foreground text-sm md:text-base mt-1">
-                سفر در تاریخ کشتی ایران
-              </p>
-            </div>
-          </div>
+      <header className="flex items-center gap-4 mb-4 animate-fade-in shrink-0">
+        <GoldButton
+          variant="ghost"
+          size="lg"
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2"
+        >
+          <ArrowRight className="h-5 w-5" />
+          بازگشت
+        </GoldButton>
+        <div>
+          <h1 className="text-2xl md:text-3xl xl:text-4xl font-bold">
+            <span className="text-gold">تاریخچه</span>
+          </h1>
         </div>
       </header>
 
-      {/* History Sections */}
-      <main className="container mx-auto px-6 pb-12">
-        <div className="max-w-4xl mx-auto space-y-4">
+      {/* History Sections - Horizontal Scroll or Grid */}
+      <main className="flex-1 flex items-center">
+        <div className="w-full max-w-7xl mx-auto">
           {isLoading ? (
-            [...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-32 w-full rounded-2xl" />
-            ))
+            <div className="grid grid-cols-5 gap-4">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-40 w-full rounded-2xl" />
+              ))}
+            </div>
           ) : sections.length === 0 ? (
-            <GlassCard className="p-12 text-center">
+            <GlassCard className="p-12 text-center max-w-md mx-auto">
               <History className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-xl font-bold mb-2">محتوایی وجود ندارد</h3>
               <p className="text-muted-foreground">
@@ -96,31 +81,31 @@ export default function HistoryListPage() {
               </p>
             </GlassCard>
           ) : (
-            sections.map((section, index) => (
-              <button
-                key={section.id}
-                onClick={() => navigate(`/history/${section.slug}`)}
-                className="w-full text-right focus:outline-none group animate-slide-up"
-                style={{ animationDelay: `${index * 80}ms` }}
-              >
-                <GlassCard 
-                  hover 
-                  className="p-6 md:p-8 flex items-center justify-between transition-all group-hover:border-primary/40"
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+              {sections.map((section, index) => (
+                <button
+                  key={section.id}
+                  onClick={() => navigate(`/history/${section.slug}`)}
+                  className="w-full text-right focus:outline-none group animate-scale-in"
+                  style={{ animationDelay: `${index * 60}ms` }}
                 >
-                  <div className="flex-1">
-                    <h2 className="text-xl md:text-2xl xl:text-3xl font-bold mb-2 group-hover:text-gold transition-colors">
+                  <GlassCard 
+                    hover 
+                    className="p-4 md:p-6 h-full flex flex-col justify-center min-h-[140px] md:min-h-[180px] transition-all group-hover:border-primary/40"
+                  >
+                    <h2 className="text-lg md:text-xl xl:text-2xl font-bold mb-2 group-hover:text-gold transition-colors">
                       {section.title}
                     </h2>
                     {section.highlighted_quote && (
-                      <p className="text-muted-foreground text-sm md:text-base italic">
+                      <p className="text-muted-foreground text-xs md:text-sm italic line-clamp-2">
                         «{section.highlighted_quote}»
                       </p>
                     )}
-                  </div>
-                  <ChevronLeft className="h-6 w-6 text-muted-foreground group-hover:text-primary group-hover:-translate-x-2 transition-all" />
-                </GlassCard>
-              </button>
-            ))
+                    <ChevronLeft className="h-5 w-5 text-muted-foreground mt-auto group-hover:text-primary group-hover:-translate-x-1 transition-all" />
+                  </GlassCard>
+                </button>
+              ))}
+            </div>
           )}
         </div>
       </main>
