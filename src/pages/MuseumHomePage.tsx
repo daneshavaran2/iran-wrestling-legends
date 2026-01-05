@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History, Users, Building2, BookOpen } from 'lucide-react';
+import { History, Users, Building2, BookOpen, Images, Info } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { useKioskMode } from '@/hooks/useKioskMode';
 import logo from '@/assets/logo.png';
@@ -22,15 +22,15 @@ function MenuCard({ title, icon, description, onClick, delay }: MenuCardProps) {
     >
       <GlassCard 
         hover 
-        className="p-8 md:p-10 xl:p-12 2xl:p-14 h-full flex flex-col items-center justify-center text-center min-h-[200px] md:min-h-[280px] xl:min-h-[320px] 2xl:min-h-[380px] transition-all duration-300 group-hover:border-primary/40 group-active:scale-[0.98]"
+        className="p-4 md:p-6 xl:p-8 h-full flex flex-col items-center justify-center text-center min-h-[140px] md:min-h-[180px] xl:min-h-[200px] 2xl:min-h-[240px] transition-all duration-300 group-hover:border-primary/40 group-active:scale-[0.98]"
       >
-        <div className="mb-6 p-4 rounded-2xl bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+        <div className="mb-3 p-3 rounded-2xl bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
           {icon}
         </div>
-        <h2 className="text-2xl md:text-3xl xl:text-4xl 2xl:text-5xl font-bold mb-3 text-foreground group-hover:text-gold transition-all">
+        <h2 className="text-lg md:text-xl xl:text-2xl 2xl:text-3xl font-bold mb-1 text-foreground group-hover:text-gold transition-all">
           {title}
         </h2>
-        <p className="text-muted-foreground text-base md:text-lg xl:text-xl 2xl:text-2xl">
+        <p className="text-muted-foreground text-sm md:text-base xl:text-lg 2xl:text-xl">
           {description}
         </p>
       </GlassCard>
@@ -45,53 +45,65 @@ export default function MuseumHomePage() {
   const menuItems = [
     {
       title: 'تاریخچه',
-      icon: <History className="h-10 w-10 md:h-12 md:w-12 xl:h-14 xl:w-14 2xl:h-16 2xl:w-16" />,
+      icon: <History className="h-8 w-8 md:h-10 md:w-10 xl:h-12 xl:w-12" />,
       description: 'سفر در تاریخ کشتی ایران',
       path: '/history',
     },
     {
       title: 'کشتی‌گیران',
-      icon: <Users className="h-10 w-10 md:h-12 md:w-12 xl:h-14 xl:w-14 2xl:h-16 2xl:w-16" />,
+      icon: <Users className="h-8 w-8 md:h-10 md:w-10 xl:h-12 xl:w-12" />,
       description: 'پهلوانان و قهرمانان',
       path: '/wrestlers',
     },
     {
       title: 'بناها و اماکن',
-      icon: <Building2 className="h-10 w-10 md:h-12 md:w-12 xl:h-14 xl:w-14 2xl:h-16 2xl:w-16" />,
+      icon: <Building2 className="h-8 w-8 md:h-10 md:w-10 xl:h-12 xl:w-12" />,
       description: 'مکان‌های تاریخی کشتی',
       path: '/buildings',
     },
     {
       title: 'تألیفات',
-      icon: <BookOpen className="h-10 w-10 md:h-12 md:w-12 xl:h-14 xl:w-14 2xl:h-16 2xl:w-16" />,
+      icon: <BookOpen className="h-8 w-8 md:h-10 md:w-10 xl:h-12 xl:w-12" />,
       description: 'کتاب‌ها و آثار مکتوب',
       path: '/books',
+    },
+    {
+      title: 'آلبوم تصاویر',
+      icon: <Images className="h-8 w-8 md:h-10 md:w-10 xl:h-12 xl:w-12" />,
+      description: 'مجموعه عکس‌های تاریخی',
+      path: '/albums',
+    },
+    {
+      title: 'درباره موزه',
+      icon: <Info className="h-8 w-8 md:h-10 md:w-10 xl:h-12 xl:w-12" />,
+      description: 'معرفی موزه کشتی ایران',
+      path: '/about',
     },
   ];
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 md:p-8 xl:p-12">
+    <div className="h-screen flex flex-col items-center justify-center p-4 md:p-6 xl:p-8 overflow-hidden">
       {/* Logo & Title */}
-      <header className="text-center mb-12 md:mb-16 xl:mb-20 animate-fade-in">
-        <div className="flex items-center justify-center gap-4 md:gap-6 mb-4 md:mb-6">
+      <header className="text-center mb-6 md:mb-8 xl:mb-10 animate-fade-in">
+        <div className="flex items-center justify-center gap-3 md:gap-4 mb-2 md:mb-3">
           <img 
             src={logo} 
             alt="لوگو موزه کشتی ایران" 
-            className="h-20 md:h-28 xl:h-32 2xl:h-40"
+            className="h-14 md:h-20 xl:h-24 2xl:h-28"
           />
-          <h1 className="text-4xl md:text-6xl xl:text-7xl 2xl:text-8xl font-bold">
+          <h1 className="text-3xl md:text-5xl xl:text-6xl 2xl:text-7xl font-bold">
             <span className="text-gold">موزه کشتی</span>
             <span className="text-foreground"> ایران</span>
           </h1>
         </div>
-        <p className="text-lg md:text-2xl xl:text-3xl 2xl:text-4xl text-muted-foreground">
+        <p className="text-base md:text-xl xl:text-2xl 2xl:text-3xl text-muted-foreground">
           میراث پهلوانی و افتخار ملی
         </p>
       </header>
 
-      {/* 4 Cards Grid */}
-      <main className="w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[1600px]">
-        <div className="grid grid-cols-2 gap-4 md:gap-6 xl:gap-8 2xl:gap-10">
+      {/* 6 Cards Grid - 3x2 */}
+      <main className="w-full max-w-5xl xl:max-w-6xl 2xl:max-w-7xl">
+        <div className="grid grid-cols-3 gap-3 md:gap-4 xl:gap-6">
           {menuItems.map((item, index) => (
             <MenuCard
               key={item.path}
@@ -99,7 +111,7 @@ export default function MuseumHomePage() {
               icon={item.icon}
               description={item.description}
               onClick={() => navigate(item.path)}
-              delay={100 + index * 80}
+              delay={100 + index * 60}
             />
           ))}
         </div>

@@ -8,7 +8,12 @@ import {
   X,
   Home,
   Sun,
-  Moon
+  Moon,
+  History,
+  Building2,
+  BookOpen,
+  Images,
+  Info
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,6 +27,11 @@ interface AdminLayoutProps {
 const navItems = [
   { path: '/admin', label: 'داشبورد', icon: LayoutDashboard },
   { path: '/admin/wrestlers', label: 'کشتی‌گیرها', icon: Users },
+  { path: '/admin/history', label: 'تاریخچه', icon: History },
+  { path: '/admin/buildings', label: 'بناها', icon: Building2 },
+  { path: '/admin/books', label: 'کتاب‌ها', icon: BookOpen },
+  { path: '/admin/albums', label: 'آلبوم‌ها', icon: Images },
+  { path: '/admin/about', label: 'درباره موزه', icon: Info },
 ];
 
 export default function AdminLayout({ children }: AdminLayoutProps) {

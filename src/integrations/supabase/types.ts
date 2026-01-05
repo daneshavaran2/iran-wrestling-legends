@@ -55,18 +55,92 @@ export type Database = {
           },
         ]
       }
+      album_photos: {
+        Row: {
+          album_id: string
+          caption: string | null
+          created_at: string | null
+          display_order: number | null
+          id: string
+          url: string
+        }
+        Insert: {
+          album_id: string
+          caption?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          url: string
+        }
+        Update: {
+          album_id?: string
+          caption?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "album_photos_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "albums"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      albums: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
+          about_content: string | null
+          about_image_url: string | null
+          about_title: string | null
           id: string
           theme: string
           updated_at: string
         }
         Insert: {
+          about_content?: string | null
+          about_image_url?: string | null
+          about_title?: string | null
           id?: string
           theme?: string
           updated_at?: string
         }
         Update: {
+          about_content?: string | null
+          about_image_url?: string | null
+          about_title?: string | null
           id?: string
           theme?: string
           updated_at?: string
