@@ -11,6 +11,9 @@ export interface Wrestler {
   image_url: string | null;
   bio: string | null;
   full_story: string | null;
+  intro_video_url: string | null;
+  success_path: string | null;
+  social_activities: string | null;
   is_visible: boolean;
   created_at: string;
   updated_at: string;
@@ -161,6 +164,9 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
         bio: wrestler.bio,
         full_story: wrestler.full_story,
         image_url: wrestler.image_url,
+        intro_video_url: wrestler.intro_video_url,
+        success_path: wrestler.success_path,
+        social_activities: wrestler.social_activities,
         is_visible: true,
       })
       .select()
@@ -187,6 +193,9 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
     if (updates.bio !== undefined) updateData.bio = updates.bio;
     if (updates.full_story !== undefined) updateData.full_story = updates.full_story;
     if (updates.image_url !== undefined) updateData.image_url = updates.image_url;
+    if (updates.intro_video_url !== undefined) updateData.intro_video_url = updates.intro_video_url;
+    if (updates.success_path !== undefined) updateData.success_path = updates.success_path;
+    if (updates.social_activities !== undefined) updateData.social_activities = updates.social_activities;
     if (updates.is_visible !== undefined) updateData.is_visible = updates.is_visible;
 
     const { data, error } = await supabase
