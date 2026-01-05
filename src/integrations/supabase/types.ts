@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      about_media: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          id: string
+          title: string | null
+          type: string
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          title?: string | null
+          type?: string
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          title?: string | null
+          type?: string
+          url?: string
+        }
+        Relationships: []
+      }
       achievements: {
         Row: {
           created_at: string
@@ -198,6 +225,7 @@ export type Database = {
           display_order: number | null
           id: string
           title: string | null
+          type: string
           url: string
         }
         Insert: {
@@ -206,6 +234,7 @@ export type Database = {
           display_order?: number | null
           id?: string
           title?: string | null
+          type?: string
           url: string
         }
         Update: {
@@ -214,6 +243,7 @@ export type Database = {
           display_order?: number | null
           id?: string
           title?: string | null
+          type?: string
           url?: string
         }
         Relationships: [
@@ -258,6 +288,44 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      history_media: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          id: string
+          section_id: string
+          title: string | null
+          type: string
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          section_id: string
+          title?: string | null
+          type?: string
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          section_id?: string
+          title?: string | null
+          type?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "history_media_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "history_sections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       history_sections: {
         Row: {

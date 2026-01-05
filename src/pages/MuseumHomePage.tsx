@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History, Users, Building2, BookOpen, Images, Info } from 'lucide-react';
+import { History, Users, Building2, BookOpen, Images, Info, Search } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { GoldButton } from '@/components/ui/GoldButton';
+import { GlobalSearch } from '@/components/GlobalSearch';
 import { useKioskMode } from '@/hooks/useKioskMode';
 import logo from '@/assets/logo.png';
 
@@ -41,6 +43,7 @@ function MenuCard({ title, icon, description, onClick, delay }: MenuCardProps) {
 export default function MuseumHomePage() {
   useKioskMode();
   const navigate = useNavigate();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const menuItems = [
     {
@@ -83,6 +86,19 @@ export default function MuseumHomePage() {
 
   return (
     <div className="h-screen flex flex-col items-center justify-center p-4 md:p-6 xl:p-8 overflow-hidden">
+      {/* Search Button - Top Right */}
+      <div className="fixed top-4 left-4 z-50 animate-fade-in">
+        <GoldButton
+          variant="ghost"
+          size="lg"
+          onClick={() => setIsSearchOpen(true)}
+          className="flex items-center gap-2"
+        >
+          <Search className="h-5 w-5" />
+          <span className="hidden md:inline">جستجو</span>
+        </GoldButton>
+      </div>
+
       {/* Logo & Title */}
       <header className="text-center mb-6 md:mb-8 xl:mb-10 animate-fade-in">
         <div className="flex items-center justify-center gap-3 md:gap-4 mb-2 md:mb-3">
@@ -126,6 +142,9 @@ export default function MuseumHomePage() {
           ورود مدیران
         </a>
       </footer>
+
+      {/* Global Search Modal */}
+      <GlobalSearch isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </div>
   );
 }
