@@ -18,6 +18,9 @@ import HistoryDetailPage from "./pages/HistoryDetailPage";
 import BuildingsListPage from "./pages/BuildingsListPage";
 import BuildingDetailPage from "./pages/BuildingDetailPage";
 import BooksListPage from "./pages/BooksListPage";
+import AlbumsListPage from "./pages/AlbumsListPage";
+import AlbumGalleryPage from "./pages/AlbumGalleryPage";
+import AboutMuseumPage from "./pages/AboutMuseumPage";
 
 // Admin Pages
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
@@ -26,6 +29,11 @@ import AdminSetupPage from "./pages/admin/AdminSetupPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import AdminWrestlersPage from "./pages/admin/AdminWrestlersPage";
 import AdminWrestlerEditPage from "./pages/admin/AdminWrestlerEditPage";
+import AdminHistoryPage from "./pages/admin/AdminHistoryPage";
+import AdminBuildingsPage from "./pages/admin/AdminBuildingsPage";
+import AdminBooksPage from "./pages/admin/AdminBooksPage";
+import AdminAlbumsPage from "./pages/admin/AdminAlbumsPage";
+import AdminAboutPage from "./pages/admin/AdminAboutPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,6 +66,13 @@ const App = () => (
               {/* Books */}
               <Route path="/books" element={<BooksListPage />} />
               
+              {/* Albums */}
+              <Route path="/albums" element={<AlbumsListPage />} />
+              <Route path="/albums/:id" element={<AlbumGalleryPage />} />
+              
+              {/* About */}
+              <Route path="/about" element={<AboutMuseumPage />} />
+              
               {/* Auth Routes */}
               <Route path="/admin/login" element={<AdminLoginPage />} />
               <Route path="/admin/signup" element={<AdminSignupPage />} />
@@ -82,6 +97,41 @@ const App = () => (
                 <ProtectedRoute>
                   <AdminLayout>
                     <AdminWrestlerEditPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/history" element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <AdminHistoryPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/buildings" element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <AdminBuildingsPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/books" element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <AdminBooksPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/albums" element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <AdminAlbumsPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/about" element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <AdminAboutPage />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
