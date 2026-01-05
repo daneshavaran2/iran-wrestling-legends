@@ -73,6 +73,162 @@ export type Database = {
         }
         Relationships: []
       }
+      books: {
+        Row: {
+          author: string
+          cover_image_url: string | null
+          created_at: string | null
+          display_order: number | null
+          id: string
+          related_wrestler_id: string | null
+          summary: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          author: string
+          cover_image_url?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          related_wrestler_id?: string | null
+          summary?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          author?: string
+          cover_image_url?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          related_wrestler_id?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "books_related_wrestler_id_fkey"
+            columns: ["related_wrestler_id"]
+            isOneToOne: false
+            referencedRelation: "wrestlers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      building_images: {
+        Row: {
+          building_id: string
+          created_at: string | null
+          display_order: number | null
+          id: string
+          title: string | null
+          url: string
+        }
+        Insert: {
+          building_id: string
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          title?: string | null
+          url: string
+        }
+        Update: {
+          building_id?: string
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          title?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "building_images_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      buildings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          hero_image_url: string | null
+          id: string
+          map_link: string | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          hero_image_url?: string | null
+          id?: string
+          map_link?: string | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          hero_image_url?: string | null
+          id?: string
+          map_link?: string | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      history_sections: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          display_order: number | null
+          highlighted_quote: string | null
+          id: string
+          parent_id: string | null
+          slug: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          highlighted_quote?: string | null
+          id?: string
+          parent_id?: string | null
+          slug: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          highlighted_quote?: string | null
+          id?: string
+          parent_id?: string | null
+          slug?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "history_sections_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "history_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -142,10 +298,13 @@ export type Database = {
           full_story: string | null
           id: string
           image_url: string | null
+          intro_video_url: string | null
           is_visible: boolean
           name: string
           province: string | null
+          social_activities: string | null
           style: Database["public"]["Enums"]["wrestling_style"]
+          success_path: string | null
           updated_at: string
           weight_class: string | null
         }
@@ -155,10 +314,13 @@ export type Database = {
           full_story?: string | null
           id?: string
           image_url?: string | null
+          intro_video_url?: string | null
           is_visible?: boolean
           name: string
           province?: string | null
+          social_activities?: string | null
           style?: Database["public"]["Enums"]["wrestling_style"]
+          success_path?: string | null
           updated_at?: string
           weight_class?: string | null
         }
@@ -168,10 +330,13 @@ export type Database = {
           full_story?: string | null
           id?: string
           image_url?: string | null
+          intro_video_url?: string | null
           is_visible?: boolean
           name?: string
           province?: string | null
+          social_activities?: string | null
           style?: Database["public"]["Enums"]["wrestling_style"]
+          success_path?: string | null
           updated_at?: string
           weight_class?: string | null
         }
