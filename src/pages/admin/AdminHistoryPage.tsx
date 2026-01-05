@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, ChevronDown, ChevronLeft, Loader2, Save, Image as ImageIcon, Video, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, ChevronDown, ChevronLeft, Loader2, Save, Image as ImageIcon, Video, X, GripVertical } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -9,6 +9,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UploadDropzone } from '@/components/UploadDropzone';
 import { useMediaUpload } from '@/hooks/useMediaUpload';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface HistorySection {
   id: string;
@@ -29,6 +46,68 @@ interface HistoryMedia {
   display_order: number;
 }
 
+function SortableSectionRow({ section, children, hasChildren, isExpanded, onToggle, onAdd, onEdit, onDelete }: {
+  section: HistorySection;
+  children?: React.ReactNode;
+  hasChildren: boolean;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onAdd: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: section.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <div className="flex items-center gap-2 p-3 border-b border-border/30 hover:bg-muted/30 transition-colors group">
+        <div
+          {...attributes}
+          {...listeners}
+          className="p-1 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+        
+        {hasChildren ? (
+          <button onClick={onToggle} className="p-1">
+            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </button>
+        ) : (
+          <div className="w-6" />
+        )}
+        
+        <span className="flex-1 font-medium">{section.title}</span>
+        <span className="text-xs text-muted-foreground">/{section.slug}</span>
+        
+        <GoldButton variant="ghost" size="sm" onClick={onAdd}>
+          <Plus className="h-4 w-4" />
+        </GoldButton>
+        <GoldButton variant="ghost" size="sm" onClick={onEdit}>
+          <Edit2 className="h-4 w-4" />
+        </GoldButton>
+        <GoldButton variant="ghost" size="sm" onClick={onDelete}>
+          <Trash2 className="h-4 w-4 text-destructive" />
+        </GoldButton>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export default function AdminHistoryPage() {
   const queryClient = useQueryClient();
   const { uploadFile, isUploading } = useMediaUpload();
@@ -36,6 +115,13 @@ export default function AdminHistoryPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const { data: sections, isLoading } = useQuery({
     queryKey: ['admin-history'],
@@ -125,6 +211,37 @@ export default function AdminHistoryPage() {
     },
   });
 
+  const updateOrderMutation = useMutation({
+    mutationFn: async (items: { id: string; display_order: number }[]) => {
+      for (const item of items) {
+        await supabase.from('history_sections').update({ display_order: item.display_order }).eq('id', item.id);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-history'] });
+    },
+  });
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !sections) return;
+
+    const rootSections = sections.filter(s => !s.parent_id);
+    const oldIndex = rootSections.findIndex((s) => s.id === active.id);
+    const newIndex = rootSections.findIndex((s) => s.id === over.id);
+    
+    if (oldIndex === -1 || newIndex === -1) return;
+    
+    const newSections = arrayMove(rootSections, oldIndex, newIndex);
+
+    const updates = newSections.map((section, index) => ({
+      id: section.id,
+      display_order: index + 1,
+    }));
+
+    updateOrderMutation.mutate(updates);
+  };
+
   const handleMediaUpload = async (files: File[], type: 'image' | 'video') => {
     if (!selectedSectionId || files.length === 0) return;
     try {
@@ -188,42 +305,25 @@ export default function AdminHistoryPage() {
 
     return (
       <div key={section.id} style={{ marginRight: level * 24 }}>
-        <div className="flex items-center gap-2 p-3 border-b border-border/30 hover:bg-muted/30 transition-colors">
-          {hasChildren ? (
-            <button onClick={() => toggleExpand(section.id)} className="p-1">
-              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-            </button>
-          ) : (
-            <div className="w-6" />
+        <SortableSectionRow
+          section={section}
+          hasChildren={hasChildren}
+          isExpanded={isExpanded}
+          onToggle={() => toggleExpand(section.id)}
+          onAdd={() => handleAdd(section.id)}
+          onEdit={() => handleEdit(section)}
+          onDelete={() => {
+            if (confirm('آیا از حذف مطمئن هستید؟')) {
+              deleteMutation.mutate(section.id);
+            }
+          }}
+        >
+          {hasChildren && isExpanded && (
+            <div className="border-r border-border/30">
+              {children.map(child => renderSection(child, level + 1))}
+            </div>
           )}
-          
-          <span className="flex-1 font-medium">{section.title}</span>
-          <span className="text-xs text-muted-foreground">/{section.slug}</span>
-          
-          <GoldButton variant="ghost" size="sm" onClick={() => handleAdd(section.id)}>
-            <Plus className="h-4 w-4" />
-          </GoldButton>
-          <GoldButton variant="ghost" size="sm" onClick={() => handleEdit(section)}>
-            <Edit2 className="h-4 w-4" />
-          </GoldButton>
-          <GoldButton
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              if (confirm('آیا از حذف مطمئن هستید؟')) {
-                deleteMutation.mutate(section.id);
-              }
-            }}
-          >
-            <Trash2 className="h-4 w-4 text-destructive" />
-          </GoldButton>
-        </div>
-        
-        {hasChildren && isExpanded && (
-          <div className="border-r border-border/30">
-            {children.map(child => renderSection(child, level + 1))}
-          </div>
-        )}
+        </SortableSectionRow>
       </div>
     );
   };
@@ -246,14 +346,20 @@ export default function AdminHistoryPage() {
         </GoldButton>
       </div>
 
+      <p className="text-xs text-muted-foreground mb-4">برای تغییر ترتیب، بخش‌ها را بکشید و رها کنید</p>
+
       <GlassCard>
-        {rootSections.length > 0 ? (
-          rootSections.map(section => renderSection(section))
-        ) : (
-          <div className="p-8 text-center text-muted-foreground">
-            بخشی وجود ندارد
-          </div>
-        )}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={rootSections.map(s => s.id)} strategy={verticalListSortingStrategy}>
+            {rootSections.length > 0 ? (
+              rootSections.map(section => renderSection(section))
+            ) : (
+              <div className="p-8 text-center text-muted-foreground">
+                بخشی وجود ندارد
+              </div>
+            )}
+          </SortableContext>
+        </DndContext>
       </GlassCard>
 
       {/* Edit Dialog with Tabs */}
@@ -303,15 +409,6 @@ export default function AdminHistoryPage() {
                   className="w-full p-3 rounded-lg bg-background/50 border border-border/50 focus:border-primary focus:outline-none"
                   value={editingSection?.highlighted_quote || ''}
                   onChange={(e) => setEditingSection(prev => prev ? { ...prev, highlighted_quote: e.target.value } : null)}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">ترتیب نمایش</label>
-                <input
-                  type="number"
-                  className="w-full p-3 rounded-lg bg-background/50 border border-border/50 focus:border-primary focus:outline-none"
-                  value={editingSection?.display_order?.toString() || '0'}
-                  onChange={(e) => setEditingSection(prev => prev ? { ...prev, display_order: parseInt(e.target.value) || 0 } : null)}
                 />
               </div>
             </TabsContent>

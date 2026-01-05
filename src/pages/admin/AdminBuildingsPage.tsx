@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Loader2, Save, Image as ImageIcon, Video, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Save, Image as ImageIcon, Video, X, GripVertical } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -9,6 +9,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UploadDropzone } from '@/components/UploadDropzone';
 import { useMediaUpload } from '@/hooks/useMediaUpload';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Building {
   id: string;
@@ -28,12 +45,75 @@ interface BuildingMedia {
   display_order: number;
 }
 
+function SortableBuildingCard({ building, onEdit, onDelete }: {
+  building: Building;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: building.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <GlassCard className="overflow-hidden group">
+        <div className="aspect-video relative">
+          {building.hero_image_url ? (
+            <img src={building.hero_image_url} alt={building.name} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-muted flex items-center justify-center">
+              <ImageIcon className="h-12 w-12 text-muted-foreground/30" />
+            </div>
+          )}
+          {/* Drag handle */}
+          <div
+            {...attributes}
+            {...listeners}
+            className="absolute top-2 right-2 p-2 bg-black/50 rounded-lg cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <GripVertical className="h-4 w-4 text-white" />
+          </div>
+        </div>
+        <div className="p-4">
+          <h3 className="font-bold text-lg mb-2">{building.name}</h3>
+          <div className="flex gap-2">
+            <GoldButton variant="ghost" size="sm" onClick={onEdit}>
+              <Edit2 className="h-4 w-4" />
+            </GoldButton>
+            <GoldButton variant="ghost" size="sm" onClick={onDelete}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </GoldButton>
+          </div>
+        </div>
+      </GlassCard>
+    </div>
+  );
+}
+
 export default function AdminBuildingsPage() {
   const queryClient = useQueryClient();
   const { uploadFile, isUploading } = useMediaUpload();
   const [editingBuilding, setEditingBuilding] = useState<Building | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const { data: buildings, isLoading } = useQuery({
     queryKey: ['admin-buildings'],
@@ -115,6 +195,33 @@ export default function AdminBuildingsPage() {
     },
   });
 
+  const updateOrderMutation = useMutation({
+    mutationFn: async (items: { id: string; display_order: number }[]) => {
+      for (const item of items) {
+        await supabase.from('buildings').update({ display_order: item.display_order }).eq('id', item.id);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-buildings'] });
+    },
+  });
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !buildings) return;
+
+    const oldIndex = buildings.findIndex((b) => b.id === active.id);
+    const newIndex = buildings.findIndex((b) => b.id === over.id);
+    const newBuildings = arrayMove(buildings, oldIndex, newIndex);
+
+    const updates = newBuildings.map((building, index) => ({
+      id: building.id,
+      display_order: index + 1,
+    }));
+
+    updateOrderMutation.mutate(updates);
+  };
+
   const handleAdd = () => {
     setEditingBuilding({
       id: '',
@@ -190,36 +297,22 @@ export default function AdminBuildingsPage() {
         </GoldButton>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {buildings?.map((building) => (
-          <GlassCard key={building.id} className="overflow-hidden">
-            <div className="aspect-video relative">
-              {building.hero_image_url ? (
-                <img src={building.hero_image_url} alt={building.name} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-muted flex items-center justify-center">
-                  <ImageIcon className="h-12 w-12 text-muted-foreground/30" />
-                </div>
-              )}
-            </div>
-            <div className="p-4">
-              <h3 className="font-bold text-lg mb-2">{building.name}</h3>
-              <div className="flex gap-2">
-                <GoldButton variant="ghost" size="sm" onClick={() => handleEdit(building)}>
-                  <Edit2 className="h-4 w-4" />
-                </GoldButton>
-                <GoldButton
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => { if (confirm('حذف شود؟')) deleteMutation.mutate(building.id); }}
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </GoldButton>
-              </div>
-            </div>
-          </GlassCard>
-        ))}
-      </div>
+      <p className="text-xs text-muted-foreground mb-4">برای تغییر ترتیب، بناها را بکشید و رها کنید</p>
+
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={buildings?.map(b => b.id) || []} strategy={rectSortingStrategy}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {buildings?.map((building) => (
+              <SortableBuildingCard
+                key={building.id}
+                building={building}
+                onEdit={() => handleEdit(building)}
+                onDelete={() => { if (confirm('حذف شود؟')) deleteMutation.mutate(building.id); }}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       {/* Edit Dialog with Tabs */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -274,15 +367,6 @@ export default function AdminBuildingsPage() {
                   value={editingBuilding?.map_link || ''}
                   onChange={(e) => setEditingBuilding(prev => prev ? { ...prev, map_link: e.target.value } : null)}
                   dir="ltr"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">ترتیب نمایش</label>
-                <input
-                  type="number"
-                  className="w-full p-3 rounded-lg bg-background/50 border border-border/50 focus:border-primary focus:outline-none"
-                  value={editingBuilding?.display_order?.toString() || '0'}
-                  onChange={(e) => setEditingBuilding(prev => prev ? { ...prev, display_order: parseInt(e.target.value) || 0 } : null)}
                 />
               </div>
             </TabsContent>

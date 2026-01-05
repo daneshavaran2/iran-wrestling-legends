@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Loader2, Save, BookOpen, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Save, BookOpen, X, GripVertical } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -8,6 +8,23 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { UploadDropzone } from '@/components/UploadDropzone';
 import { useMediaUpload } from '@/hooks/useMediaUpload';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Book {
   id: string;
@@ -18,11 +35,75 @@ interface Book {
   display_order: number;
 }
 
+function SortableBookCard({ book, onEdit, onDelete }: {
+  book: Book;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: book.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <GlassCard className="overflow-hidden group">
+        <div className="aspect-[3/4] relative">
+          {book.cover_image_url ? (
+            <img src={book.cover_image_url} alt={book.title} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-muted flex items-center justify-center">
+              <BookOpen className="h-12 w-12 text-muted-foreground/30" />
+            </div>
+          )}
+          {/* Drag handle */}
+          <div
+            {...attributes}
+            {...listeners}
+            className="absolute top-2 right-2 p-2 bg-black/50 rounded-lg cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <GripVertical className="h-4 w-4 text-white" />
+          </div>
+        </div>
+        <div className="p-4">
+          <h3 className="font-bold mb-1 line-clamp-1">{book.title}</h3>
+          <p className="text-sm text-muted-foreground mb-3">{book.author}</p>
+          <div className="flex gap-2">
+            <GoldButton variant="ghost" size="sm" onClick={onEdit}>
+              <Edit2 className="h-4 w-4" />
+            </GoldButton>
+            <GoldButton variant="ghost" size="sm" onClick={onDelete}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </GoldButton>
+          </div>
+        </div>
+      </GlassCard>
+    </div>
+  );
+}
+
 export default function AdminBooksPage() {
   const queryClient = useQueryClient();
   const { uploadFile, isUploading } = useMediaUpload();
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const { data: books, isLoading } = useQuery({
     queryKey: ['admin-books'],
@@ -78,6 +159,33 @@ export default function AdminBooksPage() {
     },
   });
 
+  const updateOrderMutation = useMutation({
+    mutationFn: async (items: { id: string; display_order: number }[]) => {
+      for (const item of items) {
+        await supabase.from('books').update({ display_order: item.display_order }).eq('id', item.id);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-books'] });
+    },
+  });
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !books) return;
+
+    const oldIndex = books.findIndex((b) => b.id === active.id);
+    const newIndex = books.findIndex((b) => b.id === over.id);
+    const newBooks = arrayMove(books, oldIndex, newIndex);
+
+    const updates = newBooks.map((book, index) => ({
+      id: book.id,
+      display_order: index + 1,
+    }));
+
+    updateOrderMutation.mutate(updates);
+  };
+
   const handleAdd = () => {
     setEditingBook({
       id: '',
@@ -127,37 +235,22 @@ export default function AdminBooksPage() {
         </GoldButton>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {books?.map((book) => (
-          <GlassCard key={book.id} className="overflow-hidden">
-            <div className="aspect-[3/4] relative">
-              {book.cover_image_url ? (
-                <img src={book.cover_image_url} alt={book.title} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-muted flex items-center justify-center">
-                  <BookOpen className="h-12 w-12 text-muted-foreground/30" />
-                </div>
-              )}
-            </div>
-            <div className="p-4">
-              <h3 className="font-bold mb-1 line-clamp-1">{book.title}</h3>
-              <p className="text-sm text-muted-foreground mb-3">{book.author}</p>
-              <div className="flex gap-2">
-                <GoldButton variant="ghost" size="sm" onClick={() => { setEditingBook(book); setIsDialogOpen(true); }}>
-                  <Edit2 className="h-4 w-4" />
-                </GoldButton>
-                <GoldButton
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => { if (confirm('حذف شود؟')) deleteMutation.mutate(book.id); }}
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </GoldButton>
-              </div>
-            </div>
-          </GlassCard>
-        ))}
-      </div>
+      <p className="text-xs text-muted-foreground mb-4">برای تغییر ترتیب، کتاب‌ها را بکشید و رها کنید</p>
+
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={books?.map(b => b.id) || []} strategy={rectSortingStrategy}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {books?.map((book) => (
+              <SortableBookCard
+                key={book.id}
+                book={book}
+                onEdit={() => { setEditingBook(book); setIsDialogOpen(true); }}
+                onDelete={() => { if (confirm('حذف شود؟')) deleteMutation.mutate(book.id); }}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       {/* Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -205,15 +298,6 @@ export default function AdminBooksPage() {
               ) : (
                 <UploadDropzone onFilesSelected={handleCoverUpload} isUploading={isUploading} accept="image/*" multiple={false} />
               )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">ترتیب نمایش</label>
-              <input
-                type="number"
-                className="w-full p-3 rounded-lg bg-background/50 border border-border/50 focus:border-primary focus:outline-none"
-                value={editingBook?.display_order?.toString() || '0'}
-                onChange={(e) => setEditingBook(prev => prev ? { ...prev, display_order: parseInt(e.target.value) || 0 } : null)}
-              />
             </div>
             <div className="flex justify-end gap-2 pt-4">
               <GoldButton variant="outline" onClick={() => setIsDialogOpen(false)}>انصراف</GoldButton>
