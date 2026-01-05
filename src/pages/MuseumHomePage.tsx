@@ -5,7 +5,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { useKioskMode } from '@/hooks/useKioskMode';
-import logo from '@/assets/logo.png';
+import federationLogo from '@/assets/federation-logo.png';
 
 interface MenuCardProps {
   title: string;
@@ -79,7 +79,7 @@ export default function MuseumHomePage() {
     {
       title: 'درباره موزه',
       icon: <Info className="h-8 w-8 md:h-10 md:w-10 xl:h-12 xl:w-12" />,
-      description: 'معرفی موزه کشتی ایران',
+      description: 'معرفی موزه افتخارات کشتی',
       path: '/about',
     },
   ];
@@ -99,18 +99,28 @@ export default function MuseumHomePage() {
         </GoldButton>
       </div>
 
-      {/* Logo & Title */}
+      {/* Logo & Title - Logos on both sides */}
       <header className="text-center mb-6 md:mb-8 xl:mb-10 animate-fade-in">
-        <div className="flex items-center justify-center gap-3 md:gap-4 mb-2 md:mb-3">
+        <div className="flex items-center justify-center gap-4 md:gap-6 xl:gap-8 mb-2 md:mb-3">
+          {/* Right Logo */}
           <img 
-            src={logo} 
-            alt="لوگو موزه کشتی ایران" 
-            className="h-14 md:h-20 xl:h-24 2xl:h-28"
+            src={federationLogo} 
+            alt="لوگو فدراسیون کشتی" 
+            className="h-16 md:h-24 xl:h-28 2xl:h-32 object-contain"
           />
+          
+          {/* Title */}
           <h1 className="text-3xl md:text-5xl xl:text-6xl 2xl:text-7xl font-bold">
-            <span className="text-gold">موزه کشتی</span>
-            <span className="text-foreground"> ایران</span>
+            <span className="text-gold">موزه افتخارات</span>
+            <span className="text-foreground"> کشتی</span>
           </h1>
+          
+          {/* Left Logo */}
+          <img 
+            src={federationLogo} 
+            alt="لوگو فدراسیون کشتی" 
+            className="h-16 md:h-24 xl:h-28 2xl:h-32 object-contain"
+          />
         </div>
         <p className="text-base md:text-xl xl:text-2xl 2xl:text-3xl text-muted-foreground">
           میراث پهلوانی و افتخار ملی

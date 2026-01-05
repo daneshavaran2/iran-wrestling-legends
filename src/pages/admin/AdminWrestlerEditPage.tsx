@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight, Save, Trash2, Plus, X, Image as ImageIcon } from 'lucide-react';
+import { ArrowRight, Save, Trash2, Plus, X, Image as ImageIcon, Video, Upload } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GlassInput } from '@/components/ui/GlassInput';
 import { GoldButton } from '@/components/ui/GoldButton';
@@ -45,6 +45,7 @@ export default function AdminWrestlerEditPage() {
   const [currentStep, setCurrentStep] = useState<WizardStep>('basic');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Form state
@@ -123,6 +124,25 @@ export default function AdminWrestlerEditPage() {
       setError('خطا در آپلود تصویر پروفایل');
     } finally {
       setIsUploadingProfile(false);
+    }
+  };
+
+  // Handle intro video upload
+  const handleVideoUpload = async (files: File[]) => {
+    if (files.length === 0) return;
+    
+    const file = files[0];
+    setIsUploadingVideo(true);
+    
+    try {
+      const uploadId = isNew ? `temp-video-${Date.now()}` : id!;
+      const url = await uploadFile(file, uploadId);
+      setFormData(prev => ({ ...prev, intro_video_url: url }));
+    } catch (err) {
+      console.error('Failed to upload video:', err);
+      setError('خطا در آپلود ویدیو');
+    } finally {
+      setIsUploadingVideo(false);
     }
   };
 
@@ -502,13 +522,39 @@ export default function AdminWrestlerEditPage() {
 
         {currentStep === 'video' && (
           <div className="space-y-6 animate-fade-in">
+            <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Video className="h-5 w-5 text-primary" />
+                <h3 className="font-bold text-primary">ویدیو معرفی کشتی‌گیر</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                این ویدیو (حداکثر ۳۰ ثانیه) در بالای صفحه پروفایل نمایش داده می‌شود.
+                کشتی‌گیر می‌تواند خودش را معرفی کند.
+              </p>
+            </div>
+
+            {/* Video Upload */}
             <div>
               <label className="block text-sm font-medium mb-2 text-muted-foreground">
-                آدرس ویدیوی معرفی (حداکثر ۳۰ ثانیه)
+                آپلود ویدیو معرفی
               </label>
-              <p className="text-xs text-muted-foreground mb-2">
-                این ویدیو در بالای صفحه پروفایل نمایش داده می‌شود. از Storage آپلود کنید یا لینک مستقیم وارد کنید.
-              </p>
+              <UploadDropzone
+                onFilesSelected={handleVideoUpload}
+                isUploading={isUploadingVideo}
+                uploadProgress={uploadProgress}
+                accept="video/mp4,video/webm,video/quicktime"
+                maxFiles={1}
+                maxSizeMB={50}
+                multiple={false}
+                showLimits={true}
+              />
+            </div>
+
+            {/* Or manual URL */}
+            <div>
+              <label className="block text-sm font-medium mb-2 text-muted-foreground">
+                یا آدرس مستقیم ویدیو
+              </label>
               <GlassInput
                 value={formData.intro_video_url || ''}
                 onChange={(e) => handleInputChange('intro_video_url', e.target.value)}
@@ -518,13 +564,27 @@ export default function AdminWrestlerEditPage() {
               />
             </div>
             
+            {/* Video Preview */}
             {formData.intro_video_url && (
-              <div className="rounded-xl overflow-hidden border border-border/50">
-                <video
-                  src={formData.intro_video_url}
-                  controls
-                  className="w-full max-h-[300px]"
-                />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-muted-foreground">پیش‌نمایش</label>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, intro_video_url: '' }))}
+                    className="text-sm text-destructive hover:underline flex items-center gap-1"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    حذف ویدیو
+                  </button>
+                </div>
+                <div className="rounded-xl overflow-hidden border border-border/50 bg-black">
+                  <video
+                    src={formData.intro_video_url}
+                    controls
+                    className="w-full max-h-[400px]"
+                  />
+                </div>
               </div>
             )}
           </div>
