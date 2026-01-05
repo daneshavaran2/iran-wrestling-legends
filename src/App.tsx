@@ -8,8 +8,18 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import AdminLayout from "@/components/AdminLayout";
-import HomePage from "./pages/HomePage";
+
+// Public Pages
+import MuseumHomePage from "./pages/MuseumHomePage";
+import WrestlersListPage from "./pages/WrestlersListPage";
 import WrestlerProfilePage from "./pages/WrestlerProfilePage";
+import HistoryListPage from "./pages/HistoryListPage";
+import HistoryDetailPage from "./pages/HistoryDetailPage";
+import BuildingsListPage from "./pages/BuildingsListPage";
+import BuildingDetailPage from "./pages/BuildingDetailPage";
+import BooksListPage from "./pages/BooksListPage";
+
+// Admin Pages
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
 import AdminSignupPage from "./pages/admin/AdminSignupPage";
 import AdminSetupPage from "./pages/admin/AdminSetupPage";
@@ -30,9 +40,23 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<HomePage />} />
+              {/* Public Routes - Museum */}
+              <Route path="/" element={<MuseumHomePage />} />
+              
+              {/* Wrestlers */}
+              <Route path="/wrestlers" element={<WrestlersListPage />} />
               <Route path="/wrestler/:id" element={<WrestlerProfilePage />} />
+              
+              {/* History */}
+              <Route path="/history" element={<HistoryListPage />} />
+              <Route path="/history/:slug" element={<HistoryDetailPage />} />
+              
+              {/* Buildings */}
+              <Route path="/buildings" element={<BuildingsListPage />} />
+              <Route path="/buildings/:id" element={<BuildingDetailPage />} />
+              
+              {/* Books */}
+              <Route path="/books" element={<BooksListPage />} />
               
               {/* Auth Routes */}
               <Route path="/admin/login" element={<AdminLoginPage />} />
