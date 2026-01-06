@@ -152,6 +152,10 @@ export type Database = {
           about_content: string | null
           about_image_url: string | null
           about_title: string | null
+          bg_music_autoplay: boolean | null
+          bg_music_enabled: boolean | null
+          bg_music_url: string | null
+          bg_music_volume: number | null
           id: string
           theme: string
           updated_at: string
@@ -160,6 +164,10 @@ export type Database = {
           about_content?: string | null
           about_image_url?: string | null
           about_title?: string | null
+          bg_music_autoplay?: boolean | null
+          bg_music_enabled?: boolean | null
+          bg_music_url?: string | null
+          bg_music_volume?: number | null
           id?: string
           theme?: string
           updated_at?: string
@@ -168,6 +176,10 @@ export type Database = {
           about_content?: string | null
           about_image_url?: string | null
           about_title?: string | null
+          bg_music_autoplay?: boolean | null
+          bg_music_enabled?: boolean | null
+          bg_music_url?: string | null
+          bg_music_volume?: number | null
           id?: string
           theme?: string
           updated_at?: string

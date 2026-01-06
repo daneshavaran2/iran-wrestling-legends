@@ -13,7 +13,8 @@ import {
   Building2,
   BookOpen,
   Images,
-  Info
+  Info,
+  Music
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,6 +32,7 @@ const navItems = [
   { path: '/admin/buildings', label: 'بناها', icon: Building2 },
   { path: '/admin/books', label: 'کتاب‌ها', icon: BookOpen },
   { path: '/admin/albums', label: 'آلبوم‌ها', icon: Images },
+  { path: '/admin/audio', label: 'موسیقی', icon: Music },
   { path: '/admin/about', label: 'درباره موزه', icon: Info },
 ];
 
