@@ -51,14 +51,24 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
         gold: {
-          DEFAULT: "hsl(43 56% 55%)",
-          light: "hsl(43 56% 65%)",
-          dark: "hsl(38 60% 45%)",
+          DEFAULT: "hsl(25 65% 50%)",
+          light: "hsl(25 65% 60%)",
+          dark: "hsl(20 70% 40%)",
+        },
+        bronze: {
+          DEFAULT: "hsl(25 65% 50%)",
+          light: "hsl(30 60% 58%)",
+          dark: "hsl(20 70% 38%)",
+        },
+        copper: {
+          DEFAULT: "hsl(20 75% 45%)",
+          light: "hsl(25 70% 55%)",
+          dark: "hsl(18 80% 35%)",
         },
         navy: {
-          DEFAULT: "hsl(220 30% 8%)",
-          light: "hsl(220 25% 12%)",
-          lighter: "hsl(220 20% 18%)",
+          DEFAULT: "hsl(0 0% 4%)",
+          light: "hsl(0 0% 8%)",
+          lighter: "hsl(0 0% 14%)",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
@@ -79,10 +89,12 @@ export default {
         "3xl": "1.5rem",
       },
       boxShadow: {
-        'glass': '0 8px 32px 0 hsl(220 30% 5% / 0.4)',
-        'glass-lg': '0 16px 48px 0 hsl(220 30% 5% / 0.5)',
-        'gold': '0 4px 20px -4px hsl(43 56% 55% / 0.5)',
-        'gold-lg': '0 8px 30px -4px hsl(43 56% 55% / 0.6)',
+        'glass': '0 8px 32px 0 hsl(0 0% 0% / 0.5)',
+        'glass-lg': '0 16px 48px 0 hsl(0 0% 0% / 0.6)',
+        'gold': '0 4px 20px -4px hsl(25 65% 50% / 0.5)',
+        'gold-lg': '0 8px 30px -4px hsl(25 65% 50% / 0.6)',
+        'bronze': '0 4px 20px -4px hsl(25 65% 50% / 0.4)',
+        'bronze-lg': '0 8px 30px -4px hsl(25 65% 50% / 0.5)',
       },
       backdropBlur: {
         'glass': '24px',
