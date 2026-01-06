@@ -10,6 +10,7 @@ import { LazyImage } from '@/components/ui/LazyImage';
 import { useWrestlers, Wrestler } from '@/contexts/WrestlerContext';
 import { useMediaUpload } from '@/hooks/useMediaUpload';
 import { Achievement, wrestlingStyles, iranianProvinces, medalTypes } from '@/data/wrestlers';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 type WizardStep = 'basic' | 'bio' | 'video' | 'achievements' | 'media';
@@ -41,7 +42,7 @@ export default function AdminWrestlerEditPage() {
   } = useWrestlers();
 
   const { uploadFile, deleteFile, isUploading, uploadProgress, error: uploadError } = useMediaUpload();
-
+  const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState<WizardStep>('basic');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
@@ -177,6 +178,10 @@ export default function AdminWrestlerEditPage() {
           await addAchievement({ ...ach, wrestler_id: newWrestler.id });
         }
         
+        toast({
+          title: "✅ ذخیره شد",
+          description: "کشتی‌گیر جدید با موفقیت اضافه شد",
+        });
         navigate('/admin/wrestlers');
       } else {
         await updateWrestler(id!, {
@@ -217,6 +222,10 @@ export default function AdminWrestlerEditPage() {
           }
         }
 
+        toast({
+          title: "✅ ذخیره شد",
+          description: "اطلاعات کشتی‌گیر با موفقیت به‌روزرسانی شد",
+        });
         navigate('/admin/wrestlers');
       }
     } catch (err) {
