@@ -253,7 +253,7 @@ export default function AdminBuildingsPage() {
     if (!selectedBuildingId || files.length === 0) return;
     try {
       for (const file of files) {
-        const url = await uploadFile(file, selectedBuildingId);
+        const url = await uploadFile(file, selectedBuildingId, 'building-media');
         await supabase.from('building_images').insert({
           building_id: selectedBuildingId,
           type,
@@ -271,7 +271,7 @@ export default function AdminBuildingsPage() {
   const handleHeroImageUpload = async (files: File[]) => {
     if (!editingBuilding || files.length === 0) return;
     try {
-      const url = await uploadFile(files[0], editingBuilding.id || 'new');
+      const url = await uploadFile(files[0], editingBuilding.id || 'new', 'building-media');
       setEditingBuilding({ ...editingBuilding, hero_image_url: url });
       toast.success('تصویر آپلود شد');
     } catch {
