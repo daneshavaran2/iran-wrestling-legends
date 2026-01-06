@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight, MapPin, Image as ImageIcon, X } from 'lucide-react';
+import { ArrowRight, Image as ImageIcon, X } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GoldButton } from '@/components/ui/GoldButton';
+import { SparkParticles } from '@/components/ui/SparkParticles';
 import { useKioskMode } from '@/hooks/useKioskMode';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,7 +14,6 @@ interface Building {
   name: string;
   description: string | null;
   hero_image_url: string | null;
-  map_link: string | null;
 }
 
 interface BuildingImage {
@@ -44,7 +44,7 @@ export default function BuildingDetailPage() {
       // Fetch building
       const { data: buildingData, error: buildingError } = await supabase
         .from('buildings')
-        .select('*')
+        .select('id, name, description, hero_image_url')
         .eq('id', id)
         .single();
 
@@ -85,9 +85,12 @@ export default function BuildingDetailPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative">
+      {/* Spark Particles */}
+      <SparkParticles count={20} />
+
       {/* Header */}
-      <header className="relative py-8 px-6 2xl:py-12">
+      <header className="relative py-8 px-6 2xl:py-12 z-10">
         <div className="container mx-auto max-w-5xl">
           {/* Back Button */}
           <div className="flex items-center gap-4 mb-8 animate-fade-in">
@@ -95,7 +98,7 @@ export default function BuildingDetailPage() {
               variant="ghost"
               size="lg"
               onClick={() => navigate('/buildings')}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 cyber-button"
             >
               <ArrowRight className="h-5 w-5" />
               بازگشت به بناها
@@ -105,11 +108,11 @@ export default function BuildingDetailPage() {
       </header>
 
       {/* Content */}
-      <main className="container mx-auto px-6 pb-12 max-w-5xl">
+      <main className="container mx-auto px-6 pb-12 max-w-5xl relative z-10">
         {/* Hero Image */}
         {building.hero_image_url && (
           <div 
-            className="aspect-video rounded-2xl overflow-hidden mb-8 cursor-pointer animate-scale-in"
+            className="aspect-video rounded-2xl overflow-hidden mb-8 cursor-pointer animate-scale-in cyber-hud"
             onClick={() => setSelectedImage(building.hero_image_url)}
           >
             <LazyImage
@@ -122,28 +125,16 @@ export default function BuildingDetailPage() {
 
         {/* Title & Description */}
         <div className="animate-slide-up" style={{ animationDelay: '100ms' }}>
-          <h1 className="text-3xl md:text-4xl xl:text-5xl font-bold mb-4">
-            <span className="text-gold">{building.name}</span>
+          <h1 className="text-3xl md:text-4xl xl:text-5xl font-bold mb-6">
+            <span className="text-neon neon-glow">{building.name}</span>
           </h1>
 
-          {building.map_link && (
-            <a
-              href={building.map_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-primary hover:underline mb-6"
-            >
-              <MapPin className="h-5 w-5" />
-              مشاهده روی نقشه
-            </a>
-          )}
-
           {building.description && (
-            <GlassCard className="p-8 md:p-10 mb-8">
+            <div className="cyber-glass p-8 md:p-10 mb-8 rounded-3xl">
               <p className="text-lg md:text-xl leading-relaxed whitespace-pre-wrap" style={{ lineHeight: '2' }}>
                 {building.description}
               </p>
-            </GlassCard>
+            </div>
           )}
         </div>
 
@@ -159,7 +150,7 @@ export default function BuildingDetailPage() {
                 <button
                   key={image.id}
                   onClick={() => setSelectedImage(image.url)}
-                  className="aspect-square rounded-xl overflow-hidden focus:outline-none group"
+                  className="aspect-square rounded-xl overflow-hidden focus:outline-none group cyber-glass"
                 >
                   <LazyImage
                     src={image.url}
@@ -192,7 +183,7 @@ export default function BuildingDetailPage() {
             <img
               src={selectedImage}
               alt={building.name}
-              className="w-full h-full object-contain rounded-2xl"
+              className="w-full h-full object-contain rounded-2xl border-2 border-primary/30 shadow-[0_0_60px_hsl(20_100%_50%/0.3)]"
             />
           </div>
         </div>
