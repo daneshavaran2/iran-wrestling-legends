@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Info, Loader2, Play, X } from 'lucide-react';
-import { GlassCard } from '@/components/ui/GlassCard';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { LazyImage } from '@/components/ui/LazyImage';
 import { useQuery } from '@tanstack/react-query';
@@ -49,16 +48,18 @@ export default function AboutMuseumPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <div className="liquid-glass p-8 rounded-3xl">
+          <Loader2 className="h-12 w-12 animate-spin text-bronze" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
+    <div className="min-h-screen p-4 md:p-6 page-enter">
       {/* Back Button */}
       <div className="max-w-5xl mx-auto mb-6">
-        <GoldButton variant="ghost" onClick={() => navigate('/')}>
+        <GoldButton variant="ghost" onClick={() => navigate('/')} className="liquid-button">
           <ArrowRight className="h-5 w-5 ml-2" />
           بازگشت به صفحه اصلی
         </GoldButton>
@@ -66,7 +67,7 @@ export default function AboutMuseumPage() {
 
       {/* Content */}
       <main className="max-w-5xl mx-auto">
-        <GlassCard className="p-6 md:p-8">
+        <div className="liquid-glass p-6 md:p-8 rounded-3xl page-slide-up" style={{ animationDelay: '0.1s' }}>
           {/* Header */}
           <header className="text-center mb-8">
             <img
@@ -75,15 +76,17 @@ export default function AboutMuseumPage() {
               className="h-24 md:h-32 mx-auto mb-4"
             />
             <div className="inline-flex items-center gap-3 mb-2">
-              <Info className="h-6 w-6 text-gold" />
-              <h1 className="text-2xl md:text-3xl font-bold text-gold">
+              <div className="p-2 rounded-2xl liquid-glass">
+                <Info className="h-6 w-6 text-bronze" />
+              </div>
+              <h1 className="text-2xl md:text-3xl font-bold text-bronze bronze-glow">
                 {settings?.about_title || 'درباره موزه کشتی ایران'}
               </h1>
             </div>
           </header>
 
           {/* Content */}
-          <div className="prose prose-lg prose-invert max-w-none text-foreground mb-8">
+          <div className="prose prose-lg prose-invert max-w-none text-foreground mb-8 page-slide-up" style={{ animationDelay: '0.2s' }}>
             {settings?.about_content ? (
               <div className="whitespace-pre-wrap leading-relaxed">
                 {settings.about_content}
@@ -102,27 +105,30 @@ export default function AboutMuseumPage() {
 
           {/* Media Gallery */}
           {media && media.length > 0 && (
-            <div>
-              <h3 className="text-xl font-bold mb-4 text-gold">گالری رسانه</h3>
+            <div className="page-slide-up" style={{ animationDelay: '0.3s' }}>
+              <h3 className="text-xl font-bold mb-4 text-bronze">گالری رسانه</h3>
               <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                {media.map((item) => (
+                {media.map((item, index) => (
                   <button
                     key={item.id}
                     onClick={() => setLightboxMedia(item)}
-                    className="relative aspect-square rounded-lg overflow-hidden group"
+                    className="relative aspect-square rounded-2xl overflow-hidden group liquid-glass page-slide-up"
+                    style={{ animationDelay: `${0.35 + index * 0.05}s` }}
                   >
                     {item.type === 'video' ? (
                       <>
                         <video src={item.url} className="w-full h-full object-cover" />
                         <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors">
-                          <Play className="h-8 w-8 text-white" />
+                          <div className="p-3 rounded-full gold-button">
+                            <Play className="h-6 w-6" />
+                          </div>
                         </div>
                       </>
                     ) : (
                       <LazyImage
                         src={item.url}
                         alt={item.title || ''}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       />
                     )}
                   </button>
@@ -130,15 +136,15 @@ export default function AboutMuseumPage() {
               </div>
             </div>
           )}
-        </GlassCard>
+        </div>
       </main>
 
       {/* Lightbox */}
       <Dialog open={!!lightboxMedia} onOpenChange={() => setLightboxMedia(null)}>
-        <DialogContent className="max-w-4xl p-0 bg-black/95">
+        <DialogContent className="max-w-4xl p-0 bg-black/95 border-bronze/20">
           <button
             onClick={() => setLightboxMedia(null)}
-            className="absolute top-4 right-4 z-50 p-2 bg-black/50 rounded-full hover:bg-black/80"
+            className="absolute top-4 right-4 z-50 p-2 liquid-glass rounded-full hover:bg-bronze/20"
           >
             <X className="h-6 w-6 text-white" />
           </button>

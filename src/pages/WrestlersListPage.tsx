@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Filter, ArrowRight } from 'lucide-react';
-import { GlassCard } from '@/components/ui/GlassCard';
 import { SearchInput } from '@/components/ui/GlassInput';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { WrestlerCard } from '@/components/WrestlerCard';
@@ -37,24 +36,24 @@ export default function WrestlersListPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen page-enter">
       {/* Header */}
       <header className="relative py-8 px-6 2xl:py-12">
         <div className="container mx-auto">
           {/* Back Button & Title */}
-          <div className="flex items-center gap-4 mb-8 animate-fade-in">
+          <div className="flex items-center gap-4 mb-8">
             <GoldButton
               variant="ghost"
               size="lg"
               onClick={() => navigate('/')}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 liquid-button"
             >
               <ArrowRight className="h-5 w-5" />
               بازگشت
             </GoldButton>
-            <div>
+            <div className="page-slide-up" style={{ animationDelay: '0.1s' }}>
               <h1 className="text-3xl md:text-4xl xl:text-5xl font-bold">
-                <span className="text-gold">کشتی‌گیران</span>
+                <span className="text-bronze bronze-glow">کشتی‌گیران</span>
               </h1>
               <p className="text-muted-foreground text-sm md:text-base mt-1">
                 پهلوانان و قهرمانان کشتی ایران
@@ -63,7 +62,7 @@ export default function WrestlersListPage() {
           </div>
 
           {/* Search Section */}
-          <div className="max-w-3xl space-y-4 animate-slide-up" style={{ animationDelay: '100ms' }}>
+          <div className="max-w-3xl space-y-4 page-slide-up" style={{ animationDelay: '0.2s' }}>
             <SearchInput
               placeholder="جستجو بر اساس نام کشتی‌گیر..."
               value={searchQuery}
@@ -73,20 +72,18 @@ export default function WrestlersListPage() {
 
             {/* Filter Toggle */}
             <div className="flex">
-              <GoldButton
-                variant="ghost"
-                size="sm"
+              <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 liquid-button px-4 py-2 text-sm"
               >
                 <Filter className="h-4 w-4" />
                 فیلترها
-              </GoldButton>
+              </button>
             </div>
 
             {/* Filters */}
             {showFilters && (
-              <GlassCard className="p-6 animate-scale-in">
+              <div className="liquid-glass p-6 rounded-3xl page-slide-up">
                 <div className="grid md:grid-cols-2 gap-6">
                   {/* Style Filter */}
                   <div>
@@ -103,10 +100,10 @@ export default function WrestlersListPage() {
                           key={option.value}
                           onClick={() => setSelectedStyle(option.value as any)}
                           className={cn(
-                            'px-4 py-2 rounded-lg transition-all duration-240',
+                            'px-4 py-2 rounded-xl transition-all duration-300',
                             selectedStyle === option.value
-                              ? 'bg-primary text-primary-foreground'
-                              : 'glass-button'
+                              ? 'gold-button'
+                              : 'liquid-button'
                           )}
                         >
                           {option.label}
@@ -134,7 +131,7 @@ export default function WrestlersListPage() {
                     </select>
                   </div>
                 </div>
-              </GlassCard>
+              </div>
             )}
           </div>
         </div>
@@ -142,7 +139,7 @@ export default function WrestlersListPage() {
 
       {/* Wrestlers Grid */}
       <main className="container mx-auto px-6 pb-12">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-8 page-slide-up" style={{ animationDelay: '0.3s' }}>
           <p className="text-muted-foreground">
             {filteredWrestlers.length} کشتی‌گیر
           </p>
@@ -165,8 +162,8 @@ export default function WrestlersListPage() {
             {filteredWrestlers.map((wrestler, index) => (
               <div
                 key={wrestler.id}
-                className="animate-fade-in"
-                style={{ animationDelay: `${index * 50}ms` }}
+                className="page-slide-up"
+                style={{ animationDelay: `${0.3 + index * 0.05}s` }}
               >
                 <WrestlerCard wrestler={wrestler} />
               </div>
