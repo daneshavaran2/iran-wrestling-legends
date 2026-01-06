@@ -35,7 +35,9 @@ import AdminBuildingsPage from "./pages/admin/AdminBuildingsPage";
 import AdminBooksPage from "./pages/admin/AdminBooksPage";
 import AdminAlbumsPage from "./pages/admin/AdminAlbumsPage";
 import AdminAboutPage from "./pages/admin/AdminAboutPage";
+import AdminAudioPage from "./pages/admin/AdminAudioPage";
 import NotFound from "./pages/NotFound";
+import { BackgroundMusicPlayer } from "@/components/BackgroundMusicPlayer";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +49,7 @@ const App = () => (
           <WrestlerProvider>
           <Toaster />
           <Sonner />
+          <BackgroundMusicPlayer />
           <BrowserRouter>
             <PageTransition>
               <Routes>
@@ -134,6 +137,13 @@ const App = () => (
                 <ProtectedRoute>
                   <AdminLayout>
                     <AdminAboutPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/audio" element={
+                <ProtectedRoute>
+                  <AdminLayout>
+                    <AdminAudioPage />
                   </AdminLayout>
                 </ProtectedRoute>
               } />

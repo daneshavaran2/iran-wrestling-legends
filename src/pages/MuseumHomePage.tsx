@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { History, Users, Building2, BookOpen, Images, Info } from 'lucide-react';
 import { ParallaxCard } from '@/components/ui/ParallaxCard';
 import { SparkParticles } from '@/components/ui/SparkParticles';
-import { AudioController } from '@/components/AudioController';
 import { useKioskMode } from '@/hooks/useKioskMode';
 import federationLogo from '@/assets/federation-logo.png';
 
@@ -87,9 +86,6 @@ export default function MuseumHomePage() {
     <div className="h-screen flex flex-col items-center justify-center p-3 md:p-4 xl:p-6 overflow-hidden page-enter relative">
       {/* Spark Particles Background */}
       <SparkParticles count={40} />
-
-      {/* Audio Controller - Top Left */}
-      <AudioController />
 
       {/* Logo & Title - Optimized for 55-inch Kiosk */}
       <header className="text-center mb-6 md:mb-8 xl:mb-10 2xl:mb-12 flex-shrink-0 page-slide-up relative z-10" style={{ animationDelay: '0.1s' }}>
