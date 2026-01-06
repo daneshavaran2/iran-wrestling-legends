@@ -634,30 +634,65 @@
   }
 }
 
-/* Kiosk Portrait Mode (Vertical 9:16) */
+/* Kiosk Portrait Mode (Vertical 9:16) - 55-inch Optimized */
 @media (orientation: portrait) and (min-height: 1080px) {
+  html {
+    font-size: 22px;
+  }
+  
   .kiosk-menu-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     grid-template-rows: repeat(3, 1fr) !important;
-    gap: 1.5rem !important;
-    max-width: 90vw !important;
+    gap: 2rem !important;
+    max-width: 92vw !important;
+    padding: 1rem !important;
   }
   
   .kiosk-menu-grid > * {
-    min-height: 200px !important;
+    min-height: 280px !important;
+  }
+  
+  /* Larger touch targets for kiosk */
+  .liquid-button,
+  .gold-button {
+    min-height: 56px;
+    padding: 1rem 1.5rem;
   }
 }
 
-/* Kiosk Landscape Mode (Horizontal 16:9) */
+/* Kiosk Landscape Mode (Horizontal 16:9) - 55-inch Optimized */
 @media (orientation: landscape) and (min-width: 1920px) {
+  html {
+    font-size: 20px;
+  }
+  
   .kiosk-menu-grid {
     grid-template-columns: repeat(3, 1fr) !important;
     grid-template-rows: repeat(2, 1fr) !important;
-    gap: 2rem !important;
-    max-width: 85vw !important;
+    gap: 2.5rem !important;
+    max-width: 88vw !important;
+    padding: 1rem !important;
   }
   
   .kiosk-menu-grid > * {
-    min-height: 220px !important;
+    min-height: 280px !important;
+  }
+  
+  /* Larger touch targets for kiosk */
+  .liquid-button,
+  .gold-button {
+    min-height: 52px;
+    padding: 0.875rem 1.25rem;
+  }
+}
+
+/* 4K Kiosk (3840px+) */
+@media (min-width: 3840px) {
+  html {
+    font-size: 28px;
+  }
+  
+  .kiosk-menu-grid > * {
+    min-height: 360px !important;
   }
 }

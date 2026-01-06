@@ -67,41 +67,42 @@ function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }
   };
 
   return (
-    <div className="relative rounded-2xl overflow-hidden group max-h-[35vh] xl:max-h-[40vh]">
-      <video
-        ref={videoRef}
-        src={src}
-        autoPlay
-        muted
-        loop
-        playsInline
-        className="w-full h-full object-cover"
-        style={{ aspectRatio: '16/9', maxHeight: '35vh' }}
-        onClick={togglePlay}
-      />
+    <div className="relative rounded-3xl overflow-hidden group liquid-glass">
+      <div className="aspect-video w-full">
+        <video
+          ref={videoRef}
+          src={src}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="w-full h-full object-contain bg-black/50"
+          onClick={togglePlay}
+        />
+      </div>
       
       {/* Controls Overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+        <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
           <button
             onClick={togglePlay}
-            className="p-2 rounded-full bg-bronze/30 backdrop-blur-sm hover:bg-bronze/50 transition-colors"
+            className="p-3 xl:p-4 rounded-full liquid-glass hover:bg-bronze/30 transition-colors"
           >
-            {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+            {isPlaying ? <Pause className="h-6 w-6 xl:h-7 xl:w-7" /> : <Play className="h-6 w-6 xl:h-7 xl:w-7" />}
           </button>
           
           <button
             onClick={toggleMute}
-            className="p-2 rounded-full bg-bronze/30 backdrop-blur-sm hover:bg-bronze/50 transition-colors"
+            className="p-3 xl:p-4 rounded-full liquid-glass hover:bg-bronze/30 transition-colors"
           >
-            {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+            {isMuted ? <VolumeX className="h-6 w-6 xl:h-7 xl:w-7" /> : <Volume2 className="h-6 w-6 xl:h-7 xl:w-7" />}
           </button>
         </div>
       </div>
 
       {/* Video Title */}
-      <div className="absolute top-3 right-3">
-        <span className="px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm text-xs font-medium">
+      <div className="absolute top-4 right-4">
+        <span className="px-4 py-2 rounded-full liquid-glass text-sm xl:text-base font-medium">
           روایت {wrestlerName}
         </span>
       </div>
@@ -160,24 +161,24 @@ export default function WrestlerProfilePage() {
 
   return (
     <div className="h-screen overflow-hidden flex flex-col bg-background">
-      {/* Header Section - Compact 30% */}
-      <header className="h-[28vh] xl:h-[30vh] relative bg-gradient-to-b from-muted/30 to-background flex-shrink-0">
+      {/* Header Section - Compact for Kiosk */}
+      <header className="py-4 xl:py-6 relative bg-gradient-to-b from-muted/30 to-background flex-shrink-0">
         {/* Back Button */}
         <GoldButton
           variant="ghost"
-          size="sm"
+          size="md"
           onClick={() => navigate('/wrestlers')}
           className="absolute top-4 right-4 z-10 flex items-center gap-2"
         >
-          <ArrowRight className="h-4 w-4" />
-          بازگشت
+          <ArrowRight className="h-5 w-5 xl:h-6 xl:w-6" />
+          <span className="text-base xl:text-lg">بازگشت</span>
         </GoldButton>
 
-        {/* Centered Content */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center px-6 pt-8">
-          {/* Wrestler Image - Smaller for kiosk */}
+        {/* Centered Content - Horizontal Layout */}
+        <div className="flex items-center justify-center gap-6 xl:gap-8 px-6 pt-12 xl:pt-14">
+          {/* Wrestler Image */}
           <div 
-            className="w-16 h-16 md:w-20 md:h-20 xl:w-24 xl:h-24 rounded-full overflow-hidden border-3 border-bronze/50 shadow-bronze mb-2 flex-shrink-0 animate-scale-in cursor-pointer hover:scale-105 hover:shadow-bronze-lg transition-all duration-300"
+            className="w-20 h-20 md:w-24 md:h-24 xl:w-32 xl:h-32 2xl:w-36 2xl:h-36 rounded-full overflow-hidden border-4 border-bronze/50 shadow-bronze flex-shrink-0 animate-scale-in cursor-pointer hover:scale-105 hover:shadow-bronze-lg transition-all duration-300"
             onClick={() => setIsImageModalOpen(true)}
           >
             <img
@@ -187,51 +188,54 @@ export default function WrestlerProfilePage() {
             />
           </div>
 
-          {/* Wrestler Name */}
-          <h1 className="text-2xl md:text-3xl xl:text-4xl font-bold text-bronze text-center mb-2">
-            {wrestler.name}
-          </h1>
-          
-          {/* Style & Weight Badges */}
-          <div className="flex gap-2 mb-2">
-            <span className="bronze-card px-3 py-1 text-xs font-bold rounded-lg">
-              {wrestlingStyles[wrestler.style]}
-            </span>
-            {wrestler.weight_class && (
-              <span className="bronze-card px-3 py-1 text-xs font-bold rounded-lg">
-                {wrestler.weight_class}
+          {/* Info Section */}
+          <div className="flex flex-col items-start">
+            {/* Wrestler Name */}
+            <h1 className="text-2xl md:text-3xl xl:text-4xl 2xl:text-5xl font-bold text-bronze mb-2 xl:mb-3">
+              {wrestler.name}
+            </h1>
+            
+            {/* Style & Weight Badges */}
+            <div className="flex gap-2 xl:gap-3 mb-2 xl:mb-3">
+              <span className="liquid-glass px-4 py-2 text-sm xl:text-base font-bold rounded-xl">
+                {wrestlingStyles[wrestler.style]}
               </span>
+              {wrestler.weight_class && (
+                <span className="liquid-glass px-4 py-2 text-sm xl:text-base font-bold rounded-xl">
+                  {wrestler.weight_class}
+                </span>
+              )}
+            </div>
+
+            {/* Medal Summary */}
+            {achievements.length > 0 && (
+              <div className="flex gap-2 xl:gap-3">
+                {(['gold', 'silver', 'bronze'] as const).map(type => {
+                  if (medalCounts[type] === 0) return null;
+                  return (
+                    <div 
+                      key={type}
+                      className={cn(
+                        'flex items-center gap-2 px-3 xl:px-4 py-2 rounded-xl text-base xl:text-lg',
+                        type === 'gold' && 'bg-[hsl(var(--medal-gold-bg))]',
+                        type === 'silver' && 'bg-[hsl(var(--medal-silver-bg))]',
+                        type === 'bronze' && 'bg-[hsl(var(--medal-bronze-bg))]'
+                      )}
+                    >
+                      <span className="text-xl xl:text-2xl">{medalEmojis[type]}</span>
+                      <span className="font-bold">{medalCounts[type]}</span>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
-
-          {/* Medal Summary - Compact */}
-          {achievements.length > 0 && (
-            <div className="flex gap-1.5">
-              {(['gold', 'silver', 'bronze'] as const).map(type => {
-                if (medalCounts[type] === 0) return null;
-                return (
-                  <div 
-                    key={type}
-                    className={cn(
-                      'flex items-center gap-1 px-2 py-1 rounded-lg text-sm',
-                      type === 'gold' && 'bg-[hsl(var(--medal-gold-bg))]',
-                      type === 'silver' && 'bg-[hsl(var(--medal-silver-bg))]',
-                      type === 'bronze' && 'bg-[hsl(var(--medal-bronze-bg))]'
-                    )}
-                  >
-                    <span className="text-base">{medalEmojis[type]}</span>
-                    <span className="font-bold text-sm">{medalCounts[type]}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
       </header>
 
-      {/* Tabs Bar - Compact for kiosk */}
+      {/* Tabs Bar - Optimized for Kiosk Touch */}
       <nav className="flex-shrink-0 border-y border-bronze/20 bg-background/90 backdrop-blur-lg overflow-x-auto scrollbar-hide">
-        <div className="flex justify-center gap-0.5 p-1.5 min-w-max">
+        <div className="flex justify-center gap-2 xl:gap-3 p-3 xl:p-4 min-w-max">
           {tabs.map(tab => {
             const Icon = tab.icon;
             return (
@@ -239,14 +243,14 @@ export default function WrestlerProfilePage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  'flex items-center gap-1 px-3 md:px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap',
+                  'flex items-center gap-2 xl:gap-3 px-5 xl:px-6 py-3 xl:py-4 rounded-2xl transition-all duration-200 whitespace-nowrap',
                   activeTab === tab.id
-                    ? 'bg-bronze text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-bronze/10'
+                    ? 'gold-button'
+                    : 'liquid-glass text-muted-foreground hover:text-foreground'
                 )}
               >
-                <Icon className="h-3.5 w-3.5" />
-                <span className="font-medium text-xs md:text-sm">{tab.label}</span>
+                <Icon className="h-5 w-5 xl:h-6 xl:w-6" />
+                <span className="font-medium text-sm xl:text-base">{tab.label}</span>
               </button>
             );
           })}
@@ -254,42 +258,39 @@ export default function WrestlerProfilePage() {
       </nav>
 
       {/* Tab Content - Remaining space with internal scroll */}
-      <main className="flex-1 overflow-y-auto p-4 xl:p-5">
-        <div className="container mx-auto max-w-5xl">
+      <main className="flex-1 overflow-y-auto p-4 xl:p-6 2xl:p-8">
+        <div className="container mx-auto max-w-6xl 2xl:max-w-7xl">
           
-          {/* Narrative Tab - First Person + Video */}
+          {/* Narrative Tab - Full Width Video + Text Below */}
           {activeTab === 'narrative' && (
-            <div className="animate-fade-in">
-              {/* Two Column Layout for Video + Text */}
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                {/* Intro Video - Constrained Height */}
-                <div className="order-1">
-                  {(wrestler as any).intro_video_url ? (
-                    <IntroVideo 
-                      src={(wrestler as any).intro_video_url} 
-                      wrestlerName={wrestler.name} 
-                    />
-                  ) : (
-                    <div className="bronze-card rounded-2xl p-6 text-center h-full flex flex-col items-center justify-center min-h-[150px]">
-                      <Play className="h-10 w-10 mx-auto mb-2 text-bronze/50" />
-                      <p className="text-muted-foreground text-sm">ویدیوی معرفی هنوز اضافه نشده است</p>
-                    </div>
-                  )}
-                </div>
-                
-                {/* First Person Narrative */}
-                <div className="order-2 bronze-card rounded-2xl p-5 xl:p-6 max-h-[35vh] overflow-y-auto">
-                  <h2 className="text-xl font-bold mb-3 text-bronze">روایت من</h2>
-                  {wrestler.bio ? (
-                    <p className="text-sm xl:text-base leading-relaxed whitespace-pre-wrap" style={{ lineHeight: '1.8' }}>
-                      {wrestler.bio}
-                    </p>
-                  ) : (
-                    <p className="text-muted-foreground italic text-sm">
-                      روایت شخصی این کشتی‌گیر هنوز ثبت نشده است.
-                    </p>
-                  )}
-                </div>
+            <div className="animate-fade-in space-y-6 xl:space-y-8">
+              {/* Intro Video - Full Width, No Cropping */}
+              <div className="w-full">
+                {(wrestler as any).intro_video_url ? (
+                  <IntroVideo 
+                    src={(wrestler as any).intro_video_url} 
+                    wrestlerName={wrestler.name} 
+                  />
+                ) : (
+                  <div className="liquid-glass rounded-3xl p-8 xl:p-12 text-center flex flex-col items-center justify-center aspect-video">
+                    <Play className="h-16 w-16 xl:h-20 xl:w-20 mx-auto mb-4 text-bronze/50" />
+                    <p className="text-muted-foreground text-lg xl:text-xl">ویدیوی معرفی هنوز اضافه نشده است</p>
+                  </div>
+                )}
+              </div>
+              
+              {/* First Person Narrative - Below Video */}
+              <div className="liquid-glass rounded-3xl p-6 xl:p-8">
+                <h2 className="text-2xl xl:text-3xl font-bold mb-4 xl:mb-6 text-bronze">روایت من</h2>
+                {wrestler.bio ? (
+                  <p className="text-base xl:text-lg 2xl:text-xl leading-relaxed whitespace-pre-wrap" style={{ lineHeight: '2' }}>
+                    {wrestler.bio}
+                  </p>
+                ) : (
+                  <p className="text-muted-foreground italic text-lg xl:text-xl">
+                    روایت شخصی این کشتی‌گیر هنوز ثبت نشده است.
+                  </p>
+                )}
               </div>
             </div>
           )}

@@ -21,14 +21,14 @@ function MenuCard({ title, icon, description, onClick, delay }: MenuCardProps) {
       className="w-full text-right focus:outline-none group page-slide-up"
       style={{ animationDelay: `${delay}s` }}
     >
-      <div className="liquid-glass rounded-3xl p-4 md:p-5 xl:p-6 h-full flex flex-col items-center justify-center text-center min-h-[120px] md:min-h-[160px] xl:min-h-[180px] 2xl:min-h-[200px] group-active:scale-[0.98]">
-        <div className="mb-2 md:mb-3 p-3 md:p-4 rounded-2xl liquid-glass text-bronze group-hover:text-foreground group-hover:bg-bronze/30 transition-all duration-300">
+      <div className="liquid-glass rounded-3xl p-5 md:p-6 xl:p-8 2xl:p-10 h-full flex flex-col items-center justify-center text-center min-h-[160px] md:min-h-[200px] xl:min-h-[260px] 2xl:min-h-[300px] group-active:scale-[0.98]">
+        <div className="mb-3 md:mb-4 p-4 md:p-5 xl:p-6 rounded-2xl liquid-glass text-bronze group-hover:text-foreground group-hover:bg-bronze/30 transition-all duration-300">
           {icon}
         </div>
-        <h2 className="text-base md:text-lg xl:text-xl 2xl:text-2xl font-bold mb-1 text-foreground group-hover:text-bronze transition-all duration-300">
+        <h2 className="text-lg md:text-xl xl:text-2xl 2xl:text-3xl font-bold mb-2 text-foreground group-hover:text-bronze transition-all duration-300">
           {title}
         </h2>
-        <p className="text-muted-foreground text-xs md:text-sm xl:text-base">
+        <p className="text-muted-foreground text-sm md:text-base xl:text-lg 2xl:text-xl">
           {description}
         </p>
       </div>
@@ -44,37 +44,37 @@ export default function MuseumHomePage() {
   const menuItems = [
     {
       title: 'تاریخچه',
-      icon: <History className="h-8 w-8 md:h-10 md:w-10 xl:h-12 xl:w-12" />,
+      icon: <History className="h-10 w-10 md:h-12 md:w-12 xl:h-16 xl:w-16 2xl:h-20 2xl:w-20" />,
       description: 'سفر در تاریخ کشتی ایران',
       path: '/history',
     },
     {
       title: 'کشتی‌گیران',
-      icon: <Users className="h-8 w-8 md:h-10 md:w-10 xl:h-12 xl:w-12" />,
+      icon: <Users className="h-10 w-10 md:h-12 md:w-12 xl:h-16 xl:w-16 2xl:h-20 2xl:w-20" />,
       description: 'پهلوانان و قهرمانان',
       path: '/wrestlers',
     },
     {
       title: 'بناها و اماکن',
-      icon: <Building2 className="h-8 w-8 md:h-10 md:w-10 xl:h-12 xl:w-12" />,
+      icon: <Building2 className="h-10 w-10 md:h-12 md:w-12 xl:h-16 xl:w-16 2xl:h-20 2xl:w-20" />,
       description: 'مکان‌های تاریخی کشتی',
       path: '/buildings',
     },
     {
       title: 'تألیفات',
-      icon: <BookOpen className="h-8 w-8 md:h-10 md:w-10 xl:h-12 xl:w-12" />,
+      icon: <BookOpen className="h-10 w-10 md:h-12 md:w-12 xl:h-16 xl:w-16 2xl:h-20 2xl:w-20" />,
       description: 'کتاب‌ها و آثار مکتوب',
       path: '/books',
     },
     {
       title: 'آلبوم تصاویر',
-      icon: <Images className="h-8 w-8 md:h-10 md:w-10 xl:h-12 xl:w-12" />,
+      icon: <Images className="h-10 w-10 md:h-12 md:w-12 xl:h-16 xl:w-16 2xl:h-20 2xl:w-20" />,
       description: 'مجموعه عکس‌های تاریخی',
       path: '/albums',
     },
     {
       title: 'درباره موزه',
-      icon: <Info className="h-8 w-8 md:h-10 md:w-10 xl:h-12 xl:w-12" />,
+      icon: <Info className="h-10 w-10 md:h-12 md:w-12 xl:h-16 xl:w-16 2xl:h-20 2xl:w-20" />,
       description: 'معرفی موزه افتخارات کشتی',
       path: '/about',
     },
@@ -93,18 +93,18 @@ export default function MuseumHomePage() {
         </button>
       </div>
 
-      {/* Logo & Title - Compact for kiosk */}
-      <header className="text-center mb-4 md:mb-6 xl:mb-8 flex-shrink-0 page-slide-up" style={{ animationDelay: '0.1s' }}>
-        <div className="flex items-center justify-center gap-3 md:gap-5 xl:gap-6 mb-1 md:mb-2">
+      {/* Logo & Title - Optimized for 55-inch Kiosk */}
+      <header className="text-center mb-6 md:mb-8 xl:mb-10 2xl:mb-12 flex-shrink-0 page-slide-up" style={{ animationDelay: '0.1s' }}>
+        <div className="flex items-center justify-center gap-4 md:gap-6 xl:gap-8 2xl:gap-10 mb-2 md:mb-3">
           {/* Right Logo */}
           <img 
             src={federationLogo} 
             alt="لوگو فدراسیون کشتی" 
-            className="h-12 md:h-16 xl:h-20 2xl:h-24 object-contain"
+            className="h-16 md:h-20 xl:h-28 2xl:h-36 object-contain"
           />
           
           {/* Title */}
-          <h1 className="text-2xl md:text-4xl xl:text-5xl 2xl:text-6xl font-bold">
+          <h1 className="text-3xl md:text-5xl xl:text-6xl 2xl:text-7xl font-bold">
             <span className="text-bronze bronze-glow">موزه افتخارات</span>
             <span className="text-foreground"> کشتی</span>
           </h1>
@@ -113,10 +113,10 @@ export default function MuseumHomePage() {
           <img 
             src={federationLogo} 
             alt="لوگو فدراسیون کشتی" 
-            className="h-12 md:h-16 xl:h-20 2xl:h-24 object-contain"
+            className="h-16 md:h-20 xl:h-28 2xl:h-36 object-contain"
           />
         </div>
-        <p className="text-sm md:text-lg xl:text-xl 2xl:text-2xl text-muted-foreground">
+        <p className="text-base md:text-xl xl:text-2xl 2xl:text-3xl text-muted-foreground">
           میراث پهلوانی و افتخار ملی
         </p>
       </header>
