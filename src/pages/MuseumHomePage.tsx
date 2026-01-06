@@ -22,20 +22,17 @@ function MenuCard({ title, icon, description, onClick, delay }: MenuCardProps) {
       className="w-full text-right focus:outline-none group animate-scale-in"
       style={{ animationDelay: `${delay}ms` }}
     >
-      <GlassCard 
-        hover 
-        className="p-4 md:p-6 xl:p-8 h-full flex flex-col items-center justify-center text-center min-h-[140px] md:min-h-[180px] xl:min-h-[200px] 2xl:min-h-[240px] transition-all duration-300 group-hover:border-primary/40 group-active:scale-[0.98]"
-      >
-        <div className="mb-3 p-3 rounded-2xl bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+      <div className="bronze-card rounded-2xl p-4 md:p-5 xl:p-6 h-full flex flex-col items-center justify-center text-center min-h-[120px] md:min-h-[160px] xl:min-h-[180px] 2xl:min-h-[200px] transition-all duration-300 group-active:scale-[0.98]">
+        <div className="mb-2 md:mb-3 p-2.5 md:p-3 rounded-xl bg-bronze/15 text-bronze group-hover:bg-bronze/25 transition-colors">
           {icon}
         </div>
-        <h2 className="text-lg md:text-xl xl:text-2xl 2xl:text-3xl font-bold mb-1 text-foreground group-hover:text-gold transition-all">
+        <h2 className="text-base md:text-lg xl:text-xl 2xl:text-2xl font-bold mb-1 text-foreground group-hover:text-bronze transition-all">
           {title}
         </h2>
-        <p className="text-muted-foreground text-sm md:text-base xl:text-lg 2xl:text-xl">
+        <p className="text-muted-foreground text-xs md:text-sm xl:text-base">
           {description}
         </p>
-      </GlassCard>
+      </div>
     </button>
   );
 }
@@ -85,33 +82,33 @@ export default function MuseumHomePage() {
   ];
 
   return (
-    <div className="h-screen flex flex-col items-center justify-center p-4 md:p-6 xl:p-8 overflow-hidden">
-      {/* Search Button - Top Right */}
-      <div className="fixed top-4 left-4 z-50 animate-fade-in">
+    <div className="h-screen flex flex-col items-center justify-center p-3 md:p-4 xl:p-6 overflow-hidden">
+      {/* Search Button - Top Left */}
+      <div className="fixed top-3 left-3 z-50 animate-fade-in">
         <GoldButton
           variant="ghost"
-          size="lg"
+          size="sm"
           onClick={() => setIsSearchOpen(true)}
           className="flex items-center gap-2"
         >
-          <Search className="h-5 w-5" />
+          <Search className="h-4 w-4 md:h-5 md:w-5" />
           <span className="hidden md:inline">جستجو</span>
         </GoldButton>
       </div>
 
-      {/* Logo & Title - Logos on both sides */}
-      <header className="text-center mb-6 md:mb-8 xl:mb-10 animate-fade-in">
-        <div className="flex items-center justify-center gap-4 md:gap-6 xl:gap-8 mb-2 md:mb-3">
+      {/* Logo & Title - Compact for kiosk */}
+      <header className="text-center mb-4 md:mb-6 xl:mb-8 animate-fade-in flex-shrink-0">
+        <div className="flex items-center justify-center gap-3 md:gap-5 xl:gap-6 mb-1 md:mb-2">
           {/* Right Logo */}
           <img 
             src={federationLogo} 
             alt="لوگو فدراسیون کشتی" 
-            className="h-16 md:h-24 xl:h-28 2xl:h-32 object-contain"
+            className="h-12 md:h-16 xl:h-20 2xl:h-24 object-contain"
           />
           
           {/* Title */}
-          <h1 className="text-3xl md:text-5xl xl:text-6xl 2xl:text-7xl font-bold">
-            <span className="text-gold">موزه افتخارات</span>
+          <h1 className="text-2xl md:text-4xl xl:text-5xl 2xl:text-6xl font-bold">
+            <span className="text-bronze bronze-glow">موزه افتخارات</span>
             <span className="text-foreground"> کشتی</span>
           </h1>
           
@@ -119,17 +116,17 @@ export default function MuseumHomePage() {
           <img 
             src={federationLogo} 
             alt="لوگو فدراسیون کشتی" 
-            className="h-16 md:h-24 xl:h-28 2xl:h-32 object-contain"
+            className="h-12 md:h-16 xl:h-20 2xl:h-24 object-contain"
           />
         </div>
-        <p className="text-base md:text-xl xl:text-2xl 2xl:text-3xl text-muted-foreground">
+        <p className="text-sm md:text-lg xl:text-xl 2xl:text-2xl text-muted-foreground">
           میراث پهلوانی و افتخار ملی
         </p>
       </header>
 
-      {/* 6 Cards Grid - 3x2 */}
-      <main className="w-full max-w-5xl xl:max-w-6xl 2xl:max-w-7xl">
-        <div className="grid grid-cols-3 gap-3 md:gap-4 xl:gap-6">
+      {/* 6 Cards Grid - Responsive for Kiosk */}
+      <main className="w-full flex-1 flex items-center justify-center">
+        <div className="kiosk-menu-grid grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 xl:gap-5 w-full max-w-4xl xl:max-w-5xl 2xl:max-w-6xl">
           {menuItems.map((item, index) => (
             <MenuCard
               key={item.path}

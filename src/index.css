@@ -35,39 +35,39 @@
   font-display: swap;
 }
 
-/* Ultra-Luxury Liquid Glass Design System */
+/* Ultra-Luxury Bronze/Copper Design System */
 @layer base {
-  /* Dark Mode (Default) */
+  /* Dark Mode (Default) - Bronze Theme */
   :root,
   .dark {
-    /* Base colors - Deep Navy & Gold theme */
-    --background: 220 30% 8%;
-    --foreground: 45 20% 95%;
+    /* Base colors - Deep Black & Bronze theme */
+    --background: 0 0% 4%;
+    --foreground: 30 20% 92%;
 
-    --card: 220 25% 12%;
-    --card-foreground: 45 20% 95%;
+    --card: 0 0% 8%;
+    --card-foreground: 30 20% 92%;
 
-    --popover: 220 25% 10%;
-    --popover-foreground: 45 20% 95%;
+    --popover: 0 0% 6%;
+    --popover-foreground: 30 20% 92%;
 
-    --primary: 43 56% 55%;
-    --primary-foreground: 220 30% 8%;
+    --primary: 25 65% 50%;
+    --primary-foreground: 0 0% 4%;
 
-    --secondary: 220 20% 18%;
-    --secondary-foreground: 45 20% 90%;
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 30 20% 88%;
 
-    --muted: 220 15% 20%;
-    --muted-foreground: 220 10% 60%;
+    --muted: 0 0% 18%;
+    --muted-foreground: 30 10% 55%;
 
-    --accent: 200 60% 45%;
-    --accent-foreground: 45 20% 95%;
+    --accent: 20 85% 45%;
+    --accent-foreground: 30 20% 92%;
 
     --destructive: 0 72% 51%;
-    --destructive-foreground: 45 20% 95%;
+    --destructive-foreground: 30 20% 92%;
 
-    --border: 220 15% 25%;
-    --input: 220 20% 18%;
-    --ring: 43 56% 55%;
+    --border: 25 20% 20%;
+    --input: 0 0% 12%;
+    --ring: 25 65% 50%;
 
     --radius: 1rem;
 
@@ -79,70 +79,64 @@
     --medal-bronze: 25 60% 45%;
     --medal-bronze-bg: 25 60% 45% / 0.15;
 
-    /* Glass effect variables */
-    --glass-bg: 220 25% 15% / 0.6;
-    --glass-border: 45 20% 90% / 0.1;
+    /* Glass effect variables - Bronze tint */
+    --glass-bg: 25 15% 12% / 0.7;
+    --glass-border: 25 40% 50% / 0.2;
     --glass-blur: 24px;
-    --glass-shadow: 0 8px 32px 0 hsl(220 30% 5% / 0.4);
+    --glass-shadow: 0 8px 32px 0 hsl(0 0% 0% / 0.5);
 
-    /* Gold gradient */
-    --gradient-gold: linear-gradient(135deg, hsl(43 56% 55%) 0%, hsl(38 60% 45%) 50%, hsl(43 56% 55%) 100%);
-    --gradient-glass: linear-gradient(135deg, hsl(220 25% 18% / 0.8) 0%, hsl(220 25% 12% / 0.6) 100%);
-    --gradient-hero: linear-gradient(180deg, hsl(220 30% 8%) 0%, hsl(220 25% 12%) 100%);
+    /* Bronze gradient */
+    --gradient-gold: linear-gradient(135deg, hsl(25 65% 55%) 0%, hsl(20 70% 40%) 50%, hsl(25 65% 55%) 100%);
+    --gradient-bronze: linear-gradient(135deg, hsl(25 65% 50%) 0%, hsl(20 70% 38%) 100%);
+    --gradient-copper: linear-gradient(135deg, hsl(30 75% 48%) 0%, hsl(18 80% 35%) 100%);
+    --gradient-glass: linear-gradient(135deg, hsl(25 15% 15% / 0.8) 0%, hsl(0 0% 8% / 0.6) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(0 0% 4%) 0%, hsl(0 0% 8%) 100%);
 
     /* Animation timing */
     --transition-smooth: 200ms cubic-bezier(0.4, 0, 0.2, 1);
     --transition-bounce: 300ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
-    /* Sidebar */
-    --sidebar-background: 220 25% 10%;
-    --sidebar-foreground: 45 20% 90%;
-    --sidebar-primary: 43 56% 55%;
-    --sidebar-primary-foreground: 220 30% 8%;
-    --sidebar-accent: 220 20% 18%;
-    --sidebar-accent-foreground: 45 20% 90%;
-    --sidebar-border: 220 15% 20%;
-    --sidebar-ring: 43 56% 55%;
+    /* Sidebar - Bronze */
+    --sidebar-background: 0 0% 6%;
+    --sidebar-foreground: 30 20% 88%;
+    --sidebar-primary: 25 65% 50%;
+    --sidebar-primary-foreground: 0 0% 4%;
+    --sidebar-accent: 0 0% 14%;
+    --sidebar-accent-foreground: 30 20% 88%;
+    --sidebar-border: 25 20% 18%;
+    --sidebar-ring: 25 65% 50%;
   }
 
-  /* Light Mode - Elegant Warm Theme */
+  /* Light Mode - Warm Bronze Theme */
   .light {
-    /* پس‌زمینه کرم گرم */
-    --background: 40 35% 95%;
-    --foreground: 220 30% 18%;
+    --background: 30 25% 94%;
+    --foreground: 20 30% 15%;
     
-    /* کارت‌ها - سفید با سایه گرم */
-    --card: 40 30% 99%;
-    --card-foreground: 220 30% 18%;
+    --card: 30 20% 98%;
+    --card-foreground: 20 30% 15%;
     
-    --popover: 40 30% 99%;
-    --popover-foreground: 220 30% 18%;
+    --popover: 30 20% 98%;
+    --popover-foreground: 20 30% 15%;
     
-    /* طلایی تیره‌تر برای خوانایی بهتر */
-    --primary: 38 75% 35%;
-    --primary-foreground: 40 30% 98%;
+    --primary: 25 70% 40%;
+    --primary-foreground: 30 20% 98%;
     
-    /* ثانویه - خاکستری گرم */
-    --secondary: 40 20% 90%;
-    --secondary-foreground: 220 30% 18%;
+    --secondary: 30 15% 88%;
+    --secondary-foreground: 20 30% 15%;
     
-    /* muted - خاکستری ملایم */
-    --muted: 40 15% 88%;
-    --muted-foreground: 220 20% 40%;
+    --muted: 30 12% 85%;
+    --muted-foreground: 20 15% 45%;
     
-    /* accent - طلایی */
-    --accent: 38 75% 35%;
-    --accent-foreground: 40 30% 98%;
+    --accent: 25 70% 40%;
+    --accent-foreground: 30 20% 98%;
     
     --destructive: 0 75% 50%;
     --destructive-foreground: 0 0% 100%;
     
-    /* border تیره‌تر برای کنتراست بهتر */
-    --border: 220 20% 78%;
-    --input: 40 25% 92%;
-    --ring: 38 75% 35%;
+    --border: 25 20% 78%;
+    --input: 30 20% 92%;
+    --ring: 25 70% 40%;
 
-    /* رنگ مدال‌ها در حالت روشن */
     --medal-gold: 43 85% 40%;
     --medal-gold-bg: 43 70% 88%;
     --medal-silver: 220 15% 50%;
@@ -150,26 +144,25 @@
     --medal-bronze: 28 65% 38%;
     --medal-bronze-bg: 28 45% 88%;
 
-    /* Glass effects برای حالت روشن */
-    --glass-bg: 40 30% 99% / 0.9;
-    --glass-border: 220 20% 70% / 0.4;
+    --glass-bg: 30 20% 98% / 0.9;
+    --glass-border: 25 30% 65% / 0.4;
     --glass-blur: 20px;
-    --glass-shadow: 0 8px 32px 0 hsl(220 30% 40% / 0.08);
+    --glass-shadow: 0 8px 32px 0 hsl(25 30% 30% / 0.1);
 
-    /* گرادیان‌ها */
-    --gradient-gold: linear-gradient(135deg, hsl(38 75% 40%) 0%, hsl(35 80% 32%) 50%, hsl(38 75% 40%) 100%);
-    --gradient-glass: linear-gradient(135deg, hsl(40 30% 99% / 0.95) 0%, hsl(40 25% 96% / 0.85) 100%);
-    --gradient-hero: linear-gradient(180deg, hsl(40 35% 95%) 0%, hsl(40 30% 92%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(25 70% 45%) 0%, hsl(20 75% 35%) 50%, hsl(25 70% 45%) 100%);
+    --gradient-bronze: linear-gradient(135deg, hsl(25 70% 45%) 0%, hsl(20 75% 35%) 100%);
+    --gradient-copper: linear-gradient(135deg, hsl(30 75% 45%) 0%, hsl(18 80% 32%) 100%);
+    --gradient-glass: linear-gradient(135deg, hsl(30 20% 98% / 0.95) 0%, hsl(30 15% 95% / 0.85) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(30 25% 94%) 0%, hsl(30 20% 91%) 100%);
 
-    /* Sidebar */
-    --sidebar-background: 40 30% 97%;
-    --sidebar-foreground: 220 30% 18%;
-    --sidebar-primary: 38 75% 35%;
-    --sidebar-primary-foreground: 40 30% 98%;
-    --sidebar-accent: 40 20% 92%;
-    --sidebar-accent-foreground: 220 30% 18%;
-    --sidebar-border: 220 20% 85%;
-    --sidebar-ring: 38 75% 35%;
+    --sidebar-background: 30 20% 96%;
+    --sidebar-foreground: 20 30% 15%;
+    --sidebar-primary: 25 70% 40%;
+    --sidebar-primary-foreground: 30 20% 98%;
+    --sidebar-accent: 30 15% 90%;
+    --sidebar-accent-foreground: 20 30% 15%;
+    --sidebar-border: 25 20% 82%;
+    --sidebar-ring: 25 70% 40%;
   }
 }
 
@@ -416,4 +409,68 @@
     padding: 1.25rem 1.5rem;
     font-size: 1.25rem;
   }
+}
+
+/* Kiosk Portrait Mode (Vertical 9:16) */
+@media (orientation: portrait) and (min-height: 1080px) {
+  .kiosk-menu-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-rows: repeat(3, 1fr) !important;
+    gap: 1.5rem !important;
+    max-width: 90vw !important;
+  }
+  
+  .kiosk-menu-grid > * {
+    min-height: 200px !important;
+  }
+}
+
+/* Kiosk Landscape Mode (Horizontal 16:9) */
+@media (orientation: landscape) and (min-width: 1920px) {
+  .kiosk-menu-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    grid-template-rows: repeat(2, 1fr) !important;
+    gap: 2rem !important;
+    max-width: 85vw !important;
+  }
+  
+  .kiosk-menu-grid > * {
+    min-height: 220px !important;
+  }
+}
+
+/* Bronze Card Styles */
+.bronze-card {
+  background: linear-gradient(135deg, 
+    hsl(25 40% 20% / 0.4) 0%, 
+    hsl(20 30% 12% / 0.3) 100%
+  );
+  border: 1px solid hsl(25 50% 45% / 0.25);
+  box-shadow: 
+    0 8px 32px hsl(0 0% 0% / 0.4),
+    inset 0 1px 0 hsl(25 50% 60% / 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.bronze-card:hover {
+  border-color: hsl(25 60% 50% / 0.5);
+  box-shadow: 
+    0 12px 40px hsl(0 0% 0% / 0.5),
+    0 0 30px hsl(25 60% 50% / 0.15),
+    inset 0 1px 0 hsl(25 50% 60% / 0.15);
+  transform: translateY(-4px);
+}
+
+/* Bronze Glow Effect */
+.bronze-glow {
+  text-shadow: 0 0 20px hsl(25 65% 50% / 0.5);
+}
+
+/* Bronze Text Gradient */
+.text-bronze {
+  background: var(--gradient-bronze);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }

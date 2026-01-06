@@ -4,9 +4,9 @@
   "description": "موزه دیجیتال افتخارات کشتی ایران - مرور زندگی و افتخارات بزرگان کشتی ایران",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "landscape",
-  "background_color": "#0A1628",
-  "theme_color": "#0A1628",
+  "orientation": "any",
+  "background_color": "#0A0A0A",
+  "theme_color": "#d48955",
   "lang": "fa",
   "dir": "rtl",
   "icons": [
