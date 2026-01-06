@@ -62,7 +62,7 @@ export default function AdminWrestlerEditPage() {
     social_activities: '',
   });
 
-  const [achievements, setAchievements] = useState<Omit<Achievement, 'id'>[]>([]);
+  const [achievements, setAchievements] = useState<(Omit<Achievement, 'id'> & { id?: string })[]>([]);
   const [existingMedia, setExistingMedia] = useState<{ id: string; type: 'image' | 'video'; url: string; title: string | null }[]>([]);
 
   // Load existing data
@@ -84,6 +84,7 @@ export default function AdminWrestlerEditPage() {
         });
         const existingAchievements = getAchievementsByWrestlerId(id);
         setAchievements(existingAchievements.map(a => ({
+          id: a.id,
           wrestler_id: a.wrestler_id,
           title: a.title,
           event: a.event,
@@ -190,6 +191,32 @@ export default function AdminWrestlerEditPage() {
           success_path: formData.success_path || null,
           social_activities: formData.social_activities || null,
         });
+
+        // Handle achievements for existing wrestler
+        const existingAchievements = getAchievementsByWrestlerId(id!);
+        
+        // Delete achievements that were removed
+        for (const existing of existingAchievements) {
+          const stillExists = achievements.find(a => a.id === existing.id);
+          if (!stillExists) {
+            await deleteAchievement(existing.id);
+          }
+        }
+        
+        // Add new achievements (ones without id)
+        for (const ach of achievements) {
+          if (!ach.id) {
+            await addAchievement({
+              wrestler_id: id!,
+              title: ach.title,
+              event: ach.event,
+              year: ach.year,
+              medal_type: ach.medal_type,
+              description: ach.description || null,
+            });
+          }
+        }
+
         navigate('/admin/wrestlers');
       }
     } catch (err) {
