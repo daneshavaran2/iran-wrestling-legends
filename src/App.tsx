@@ -49,8 +49,8 @@ const App = () => (
           <WrestlerProvider>
           <Toaster />
           <Sonner />
-          <BackgroundMusicPlayer />
           <BrowserRouter>
+            <BackgroundMusicPlayer />
             <PageTransition>
               <Routes>
                 {/* Public Routes - Museum */}
