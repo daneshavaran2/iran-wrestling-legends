@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History, Users, Building2, BookOpen, Images, Info, Search } from 'lucide-react';
-import { GoldButton } from '@/components/ui/GoldButton';
-import { GlobalSearch } from '@/components/GlobalSearch';
+import { History, Users, Building2, BookOpen, Images, Info } from 'lucide-react';
 import { ParallaxCard } from '@/components/ui/ParallaxCard';
 import { SparkParticles } from '@/components/ui/SparkParticles';
+import { AudioController } from '@/components/AudioController';
 import { useKioskMode } from '@/hooks/useKioskMode';
 import federationLogo from '@/assets/federation-logo.png';
 
@@ -44,7 +43,6 @@ function MenuCard({ title, icon, description, onClick, delay }: MenuCardProps) {
 export default function MuseumHomePage() {
   useKioskMode();
   const navigate = useNavigate();
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const menuItems = [
     {
@@ -90,16 +88,8 @@ export default function MuseumHomePage() {
       {/* Spark Particles Background */}
       <SparkParticles count={40} />
 
-      {/* Search Button - Top Left */}
-      <div className="fixed top-3 left-3 z-50">
-        <button
-          onClick={() => setIsSearchOpen(true)}
-          className="cyber-button flex items-center gap-2 px-4 py-2.5 rounded-2xl"
-        >
-          <Search className="h-4 w-4 md:h-5 md:w-5" />
-          <span className="hidden md:inline text-sm">جستجو</span>
-        </button>
-      </div>
+      {/* Audio Controller - Top Left */}
+      <AudioController />
 
       {/* Logo & Title - Optimized for 55-inch Kiosk */}
       <header className="text-center mb-6 md:mb-8 xl:mb-10 2xl:mb-12 flex-shrink-0 page-slide-up relative z-10" style={{ animationDelay: '0.1s' }}>
@@ -155,8 +145,6 @@ export default function MuseumHomePage() {
         </a>
       </footer>
 
-      {/* Global Search Modal */}
-      <GlobalSearch isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </div>
   );
 }
