@@ -11,18 +11,18 @@ export function useMediaUpload() {
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const uploadFile = async (file: File, wrestlerId: string): Promise<string> => {
+  const uploadFile = async (file: File, folderId: string, bucket: string = 'wrestler-media'): Promise<string> => {
     setIsUploading(true);
     setError(null);
 
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${wrestlerId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const fileName = `${folderId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
       setUploadProgress(prev => [...prev, { fileName: file.name, progress: 0 }]);
 
       const { data, error: uploadError } = await supabase.storage
-        .from('wrestler-media')
+        .from(bucket)
         .upload(fileName, file, {
           cacheControl: '3600',
           upsert: false,
@@ -35,7 +35,7 @@ export function useMediaUpload() {
       );
 
       const { data: urlData } = supabase.storage
-        .from('wrestler-media')
+        .from(bucket)
         .getPublicUrl(data.path);
 
       return urlData.publicUrl;
