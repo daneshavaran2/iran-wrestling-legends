@@ -177,8 +177,8 @@ export default function HistoryDetailPage() {
           </div>
         )}
 
-        {/* Main Content */}
-        {section.content && (
+        {/* Main Content - فقط اگر زیربخش نداشته باشد نمایش بده */}
+        {section.content && childSections.length === 0 && (
           <div className="animate-fade-in mb-8">
             <GlassCard className="p-6 md:p-8">
               <article className="prose prose-lg prose-invert max-w-none">

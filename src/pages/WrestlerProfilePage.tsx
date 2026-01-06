@@ -19,7 +19,7 @@ const medalEmojis = {
   bronze: '🥉',
 };
 
-type TabType = 'bio' | 'success' | 'achievements' | 'social' | 'media';
+type TabType = 'intro' | 'bio' | 'success' | 'achievements' | 'social' | 'media';
 
 // Intro Video Component with autoplay muted and tap-to-play sound
 function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }) {
@@ -118,7 +118,7 @@ export default function WrestlerProfilePage() {
   const navigate = useNavigate();
   const { getWrestlerById, getAchievementsByWrestlerId, getMediaByWrestlerId, isLoading } = useWrestlers();
   
-  const [activeTab, setActiveTab] = useState<TabType>('bio');
+  const [activeTab, setActiveTab] = useState<TabType>('intro');
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   const wrestler = getWrestlerById(id || '');
@@ -145,6 +145,7 @@ export default function WrestlerProfilePage() {
   }
 
   const tabs = [
+    { id: 'intro', label: 'کلیپ معرفی', icon: Play },
     { id: 'bio', label: 'زندگی‌نامه', icon: BookOpen },
     { id: 'success', label: 'مسیر موفقیت', icon: TrendingUp },
     { id: 'achievements', label: 'افتخارات', icon: Trophy },
@@ -264,19 +265,29 @@ export default function WrestlerProfilePage() {
       <main className="flex-1 overflow-y-auto p-4 xl:p-6 2xl:p-8 relative z-10">
         <div className="container mx-auto max-w-6xl 2xl:max-w-7xl">
 
-          {/* Biography Tab */}
-          {activeTab === 'bio' && (
-            <div className="animate-fade-in space-y-6 xl:space-y-8">
-              {/* Intro Video at top of bio */}
-              {(wrestler as any).intro_video_url && (
-                <div className="w-full">
+          {/* Intro Clip Tab */}
+          {activeTab === 'intro' && (
+            <div className="animate-fade-in">
+              {(wrestler as any).intro_video_url ? (
+                <div className="w-full max-w-4xl mx-auto">
                   <IntroVideo 
                     src={(wrestler as any).intro_video_url} 
                     wrestlerName={wrestler.name} 
                   />
                 </div>
+              ) : (
+                <EmptyState
+                  icon={<Play className="h-16 w-16" />}
+                  title="کلیپ معرفی موجود نیست"
+                  description="ویدیو معرفی این کشتی‌گیر هنوز اضافه نشده است"
+                />
               )}
-              
+            </div>
+          )}
+
+          {/* Biography Tab */}
+          {activeTab === 'bio' && (
+            <div className="animate-fade-in">
               {wrestler.full_story ? (
                 <div className="cyber-glass p-8 rounded-3xl">
                   <div 
