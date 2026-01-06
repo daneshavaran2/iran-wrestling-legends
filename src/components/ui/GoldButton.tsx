@@ -17,15 +17,15 @@ export function GoldButton({
   return (
     <button
       className={cn(
-        'relative overflow-hidden rounded-xl font-medium transition-all duration-[240ms] disabled:opacity-50 disabled:cursor-not-allowed',
+        'relative overflow-hidden rounded-2xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed',
         // Size variants
         size === 'sm' && 'px-4 py-2 text-sm',
         size === 'md' && 'px-6 py-3 text-base',
         size === 'lg' && 'px-8 py-4 text-lg',
-        // Style variants
+        // Style variants - iOS 26 Liquid Glass
         variant === 'solid' && 'gold-button',
-        variant === 'outline' && 'glass-button border-primary/50 text-primary hover:bg-primary/10',
-        variant === 'ghost' && 'bg-transparent text-primary hover:bg-primary/10',
+        variant === 'outline' && 'liquid-button border-bronze/30 text-bronze hover:border-bronze/50',
+        variant === 'ghost' && 'liquid-button bg-transparent hover:bg-bronze/10',
         className
       )}
       {...props}

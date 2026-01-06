@@ -43,24 +43,24 @@ export default function BooksListPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden p-4 md:p-6">
+    <div className="h-screen flex flex-col overflow-hidden p-4 md:p-6 page-enter">
       {/* Header */}
-      <header className="flex items-center gap-4 mb-4 animate-fade-in shrink-0">
+      <header className="flex items-center gap-4 mb-4 shrink-0">
         <GoldButton
           variant="ghost"
           size="lg"
           onClick={() => navigate('/')}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 liquid-button"
         >
           <ArrowRight className="h-5 w-5" />
           بازگشت
         </GoldButton>
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5">
-            <BookOpen className="h-6 w-6 text-primary" />
+        <div className="flex items-center gap-3 page-slide-up" style={{ animationDelay: '0.1s' }}>
+          <div className="p-2 rounded-2xl liquid-glass">
+            <BookOpen className="h-6 w-6 text-bronze" />
           </div>
           <h1 className="text-2xl md:text-3xl xl:text-4xl font-bold">
-            <span className="text-gold">تألیفات</span>
+            <span className="text-bronze bronze-glow">تألیفات</span>
           </h1>
         </div>
       </header>
@@ -71,11 +71,11 @@ export default function BooksListPage() {
           {isLoading ? (
             <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {[...Array(6)].map((_, i) => (
-                <Skeleton key={i} className="aspect-[3/4] w-full rounded-2xl" />
+                <Skeleton key={i} className="aspect-[3/4] w-full rounded-3xl" />
               ))}
             </div>
           ) : books.length === 0 ? (
-            <div className="p-12 text-center max-w-md mx-auto rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm">
+            <div className="liquid-glass p-12 text-center max-w-md mx-auto rounded-3xl">
               <BookOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-xl font-bold mb-2">محتوایی وجود ندارد</h3>
               <p className="text-muted-foreground">
@@ -87,8 +87,8 @@ export default function BooksListPage() {
               {books.map((book, index) => (
                 <div
                   key={book.id}
-                  className="animate-scale-in group"
-                  style={{ animationDelay: `${index * 60}ms` }}
+                  className="group page-slide-up"
+                  style={{ animationDelay: `${0.1 + index * 0.06}s` }}
                 >
                   {/* 3D Book Card Effect */}
                   <div className="relative cursor-pointer perspective-1000">
@@ -96,8 +96,8 @@ export default function BooksListPage() {
                       {/* Book spine shadow */}
                       <div className="absolute -left-1 top-2 bottom-2 w-3 bg-gradient-to-l from-black/30 to-transparent rounded-l-sm opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       
-                      {/* Book card */}
-                      <div className="relative overflow-hidden rounded-xl border border-white/10 backdrop-blur-xl bg-gradient-to-br from-white/5 to-white/[0.02] shadow-lg shadow-black/30 group-hover:shadow-xl group-hover:shadow-primary/20 transition-all duration-500">
+                      {/* Book card - Liquid Glass */}
+                      <div className="relative overflow-hidden rounded-2xl liquid-glass">
                         {/* Cover Image */}
                         <div className="aspect-[3/4] bg-muted overflow-hidden relative">
                           {book.cover_image_url ? (
@@ -107,8 +107,8 @@ export default function BooksListPage() {
                               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-900/30 via-amber-800/20 to-amber-700/10">
-                              <BookOpen className="h-12 w-12 text-primary/40" />
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-bronze/20 via-bronze/10 to-transparent">
+                              <BookOpen className="h-12 w-12 text-bronze/40" />
                             </div>
                           )}
                           
@@ -117,8 +117,8 @@ export default function BooksListPage() {
                         </div>
                         
                         {/* Content */}
-                        <div className="p-3 bg-gradient-to-b from-transparent to-black/20">
-                          <h2 className="text-sm md:text-base font-bold mb-1 line-clamp-2 group-hover:text-gold transition-colors duration-300">
+                        <div className="p-3 bg-gradient-to-b from-transparent to-black/30">
+                          <h2 className="text-sm md:text-base font-bold mb-1 line-clamp-2 group-hover:text-bronze transition-colors duration-300">
                             {book.title}
                           </h2>
                           <div className="flex items-center gap-1 text-muted-foreground text-xs">
@@ -129,7 +129,7 @@ export default function BooksListPage() {
                       </div>
                       
                       {/* Page edges effect */}
-                      <div className="absolute top-1 -right-[2px] h-[calc(100%-8px)] w-[3px] bg-gradient-to-r from-gray-300/20 to-gray-400/10 rounded-r-sm" />
+                      <div className="absolute top-1 -right-[2px] h-[calc(100%-8px)] w-[3px] bg-gradient-to-r from-bronze/20 to-bronze/10 rounded-r-sm" />
                     </div>
                   </div>
                 </div>
