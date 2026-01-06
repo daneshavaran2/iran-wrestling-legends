@@ -7,6 +7,7 @@ import { WrestlerProvider } from "@/contexts/WrestlerContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { PageTransition } from "@/components/PageTransition";
 import AdminLayout from "@/components/AdminLayout";
 
 // Public Pages
@@ -47,31 +48,32 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Routes>
-              {/* Public Routes - Museum */}
-              <Route path="/" element={<MuseumHomePage />} />
-              
-              {/* Wrestlers */}
-              <Route path="/wrestlers" element={<WrestlersListPage />} />
-              <Route path="/wrestler/:id" element={<WrestlerProfilePage />} />
-              
-              {/* History */}
-              <Route path="/history" element={<HistoryListPage />} />
-              <Route path="/history/:slug" element={<HistoryDetailPage />} />
-              
-              {/* Buildings */}
-              <Route path="/buildings" element={<BuildingsListPage />} />
-              <Route path="/buildings/:id" element={<BuildingDetailPage />} />
-              
-              {/* Books */}
-              <Route path="/books" element={<BooksListPage />} />
-              
-              {/* Albums */}
-              <Route path="/albums" element={<AlbumsListPage />} />
-              <Route path="/albums/:id" element={<AlbumGalleryPage />} />
-              
-              {/* About */}
-              <Route path="/about" element={<AboutMuseumPage />} />
+            <PageTransition>
+              <Routes>
+                {/* Public Routes - Museum */}
+                <Route path="/" element={<MuseumHomePage />} />
+                
+                {/* Wrestlers */}
+                <Route path="/wrestlers" element={<WrestlersListPage />} />
+                <Route path="/wrestler/:id" element={<WrestlerProfilePage />} />
+                
+                {/* History */}
+                <Route path="/history" element={<HistoryListPage />} />
+                <Route path="/history/:slug" element={<HistoryDetailPage />} />
+                
+                {/* Buildings */}
+                <Route path="/buildings" element={<BuildingsListPage />} />
+                <Route path="/buildings/:id" element={<BuildingDetailPage />} />
+                
+                {/* Books */}
+                <Route path="/books" element={<BooksListPage />} />
+                
+                {/* Albums */}
+                <Route path="/albums" element={<AlbumsListPage />} />
+                <Route path="/albums/:id" element={<AlbumGalleryPage />} />
+                
+                {/* About */}
+                <Route path="/about" element={<AboutMuseumPage />} />
               
               {/* Auth Routes */}
               <Route path="/admin/login" element={<AdminLoginPage />} />
@@ -136,8 +138,9 @@ const App = () => (
                 </ProtectedRoute>
               } />
               
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </PageTransition>
           </BrowserRouter>
           </WrestlerProvider>
         </AuthProvider>
