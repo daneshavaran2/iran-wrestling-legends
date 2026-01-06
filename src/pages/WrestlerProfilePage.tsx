@@ -7,6 +7,7 @@ import { GoldButton } from '@/components/ui/GoldButton';
 import { SkeletonProfile } from '@/components/ui/skeleton-cards';
 import { EmptyState, ErrorState } from '@/components/ui/StateComponents';
 import { MediaGallery } from '@/components/MediaGallery';
+import { SparkParticles } from '@/components/ui/SparkParticles';
 import { useWrestlers } from '@/contexts/WrestlerContext';
 import { useKioskMode } from '@/hooks/useKioskMode';
 import { wrestlingStyles, medalTypes } from '@/data/wrestlers';
@@ -18,7 +19,7 @@ const medalEmojis = {
   bronze: '🥉',
 };
 
-type TabType = 'narrative' | 'bio' | 'success' | 'achievements' | 'social' | 'media';
+type TabType = 'bio' | 'success' | 'achievements' | 'social' | 'media';
 
 // Intro Video Component with autoplay muted and tap-to-play sound
 function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }) {
@@ -67,7 +68,7 @@ function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }
   };
 
   return (
-    <div className="relative rounded-3xl overflow-hidden group liquid-glass">
+    <div className="relative rounded-3xl overflow-hidden group cyber-glass cyber-hud">
       <div className="aspect-video w-full">
         <video
           ref={videoRef}
@@ -86,14 +87,14 @@ function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }
         <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
           <button
             onClick={togglePlay}
-            className="p-3 xl:p-4 rounded-full liquid-glass hover:bg-bronze/30 transition-colors"
+            className="p-3 xl:p-4 rounded-full cyber-glass hover:bg-primary/30 transition-colors"
           >
             {isPlaying ? <Pause className="h-6 w-6 xl:h-7 xl:w-7" /> : <Play className="h-6 w-6 xl:h-7 xl:w-7" />}
           </button>
           
           <button
             onClick={toggleMute}
-            className="p-3 xl:p-4 rounded-full liquid-glass hover:bg-bronze/30 transition-colors"
+            className="p-3 xl:p-4 rounded-full cyber-glass hover:bg-primary/30 transition-colors"
           >
             {isMuted ? <VolumeX className="h-6 w-6 xl:h-7 xl:w-7" /> : <Volume2 className="h-6 w-6 xl:h-7 xl:w-7" />}
           </button>
@@ -102,8 +103,8 @@ function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }
 
       {/* Video Title */}
       <div className="absolute top-4 right-4">
-        <span className="px-4 py-2 rounded-full liquid-glass text-sm xl:text-base font-medium">
-          روایت {wrestlerName}
+        <span className="px-4 py-2 rounded-full cyber-glass text-sm xl:text-base font-medium">
+          ویدیو معرفی
         </span>
       </div>
     </div>
@@ -117,7 +118,7 @@ export default function WrestlerProfilePage() {
   const navigate = useNavigate();
   const { getWrestlerById, getAchievementsByWrestlerId, getMediaByWrestlerId, isLoading } = useWrestlers();
   
-  const [activeTab, setActiveTab] = useState<TabType>('narrative');
+  const [activeTab, setActiveTab] = useState<TabType>('bio');
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   const wrestler = getWrestlerById(id || '');
@@ -144,7 +145,6 @@ export default function WrestlerProfilePage() {
   }
 
   const tabs = [
-    { id: 'narrative', label: 'روایت من', icon: User },
     { id: 'bio', label: 'زندگی‌نامه', icon: BookOpen },
     { id: 'success', label: 'مسیر موفقیت', icon: TrendingUp },
     { id: 'achievements', label: 'افتخارات', icon: Trophy },
@@ -160,9 +160,12 @@ export default function WrestlerProfilePage() {
   };
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col bg-background">
+    <div className="h-screen overflow-hidden flex flex-col bg-background relative">
+      {/* Spark Particles */}
+      <SparkParticles count={20} />
+
       {/* Header Section - Compact for Kiosk */}
-      <header className="py-4 xl:py-6 relative bg-gradient-to-b from-muted/30 to-background flex-shrink-0">
+      <header className="py-4 xl:py-6 relative bg-gradient-to-b from-muted/30 to-background flex-shrink-0 z-10">
         {/* Back Button */}
         <GoldButton
           variant="ghost"
@@ -178,7 +181,7 @@ export default function WrestlerProfilePage() {
         <div className="flex items-center justify-center gap-6 xl:gap-8 px-6 pt-12 xl:pt-14">
           {/* Wrestler Image */}
           <div 
-            className="w-20 h-20 md:w-24 md:h-24 xl:w-32 xl:h-32 2xl:w-36 2xl:h-36 rounded-full overflow-hidden border-4 border-bronze/50 shadow-bronze flex-shrink-0 animate-scale-in cursor-pointer hover:scale-105 hover:shadow-bronze-lg transition-all duration-300"
+            className="w-20 h-20 md:w-24 md:h-24 xl:w-32 xl:h-32 2xl:w-36 2xl:h-36 rounded-full overflow-hidden border-4 border-primary/50 shadow-[0_0_30px_hsl(20_100%_50%/0.3)] flex-shrink-0 animate-scale-in cursor-pointer hover:scale-105 hover:shadow-[0_0_50px_hsl(20_100%_50%/0.5)] transition-all duration-300"
             onClick={() => setIsImageModalOpen(true)}
           >
             <img
@@ -191,17 +194,17 @@ export default function WrestlerProfilePage() {
           {/* Info Section */}
           <div className="flex flex-col items-start">
             {/* Wrestler Name */}
-            <h1 className="text-2xl md:text-3xl xl:text-4xl 2xl:text-5xl font-bold text-bronze mb-2 xl:mb-3">
+            <h1 className="text-2xl md:text-3xl xl:text-4xl 2xl:text-5xl font-bold text-neon neon-glow mb-2 xl:mb-3">
               {wrestler.name}
             </h1>
             
             {/* Style & Weight Badges */}
             <div className="flex gap-2 xl:gap-3 mb-2 xl:mb-3">
-              <span className="liquid-glass px-4 py-2 text-sm xl:text-base font-bold rounded-xl">
+              <span className="cyber-glass px-4 py-2 text-sm xl:text-base font-bold rounded-xl border border-primary/30">
                 {wrestlingStyles[wrestler.style]}
               </span>
               {wrestler.weight_class && (
-                <span className="liquid-glass px-4 py-2 text-sm xl:text-base font-bold rounded-xl">
+                <span className="cyber-glass px-4 py-2 text-sm xl:text-base font-bold rounded-xl border border-primary/30">
                   {wrestler.weight_class}
                 </span>
               )}
@@ -216,10 +219,10 @@ export default function WrestlerProfilePage() {
                     <div 
                       key={type}
                       className={cn(
-                        'flex items-center gap-2 px-3 xl:px-4 py-2 rounded-xl text-base xl:text-lg',
-                        type === 'gold' && 'bg-[hsl(var(--medal-gold-bg))]',
-                        type === 'silver' && 'bg-[hsl(var(--medal-silver-bg))]',
-                        type === 'bronze' && 'bg-[hsl(var(--medal-bronze-bg))]'
+                        'flex items-center gap-2 px-3 xl:px-4 py-2 rounded-xl text-base xl:text-lg border',
+                        type === 'gold' && 'bg-[hsl(var(--medal-gold-bg))] border-[hsl(var(--medal-gold)/0.5)] shadow-[0_0_20px_hsl(43_100%_55%/0.3)]',
+                        type === 'silver' && 'bg-[hsl(var(--medal-silver-bg))] border-[hsl(var(--medal-silver)/0.3)]',
+                        type === 'bronze' && 'bg-[hsl(var(--medal-bronze-bg))] border-[hsl(var(--medal-bronze)/0.5)] shadow-[0_0_20px_hsl(25_70%_50%/0.3)]'
                       )}
                     >
                       <span className="text-xl xl:text-2xl">{medalEmojis[type]}</span>
@@ -234,7 +237,7 @@ export default function WrestlerProfilePage() {
       </header>
 
       {/* Tabs Bar - Optimized for Kiosk Touch */}
-      <nav className="flex-shrink-0 border-y border-bronze/20 bg-background/90 backdrop-blur-lg overflow-x-auto scrollbar-hide">
+      <nav className="flex-shrink-0 border-y border-primary/20 bg-background/90 backdrop-blur-lg overflow-x-auto scrollbar-hide z-10">
         <div className="flex justify-center gap-2 xl:gap-3 p-3 xl:p-4 min-w-max">
           {tabs.map(tab => {
             const Icon = tab.icon;
@@ -245,8 +248,8 @@ export default function WrestlerProfilePage() {
                 className={cn(
                   'flex items-center gap-2 xl:gap-3 px-5 xl:px-6 py-3 xl:py-4 rounded-2xl transition-all duration-200 whitespace-nowrap',
                   activeTab === tab.id
-                    ? 'gold-button'
-                    : 'liquid-glass text-muted-foreground hover:text-foreground'
+                    ? 'cyber-button'
+                    : 'cyber-glass text-muted-foreground hover:text-foreground hover:border-primary/40'
                 )}
               >
                 <Icon className="h-5 w-5 xl:h-6 xl:w-6" />
@@ -258,55 +261,31 @@ export default function WrestlerProfilePage() {
       </nav>
 
       {/* Tab Content - Remaining space with internal scroll */}
-      <main className="flex-1 overflow-y-auto p-4 xl:p-6 2xl:p-8">
+      <main className="flex-1 overflow-y-auto p-4 xl:p-6 2xl:p-8 relative z-10">
         <div className="container mx-auto max-w-6xl 2xl:max-w-7xl">
-          
-          {/* Narrative Tab - Full Width Video + Text Below */}
-          {activeTab === 'narrative' && (
+
+          {/* Biography Tab */}
+          {activeTab === 'bio' && (
             <div className="animate-fade-in space-y-6 xl:space-y-8">
-              {/* Intro Video - Full Width, No Cropping */}
-              <div className="w-full">
-                {(wrestler as any).intro_video_url ? (
+              {/* Intro Video at top of bio */}
+              {(wrestler as any).intro_video_url && (
+                <div className="w-full">
                   <IntroVideo 
                     src={(wrestler as any).intro_video_url} 
                     wrestlerName={wrestler.name} 
                   />
-                ) : (
-                  <div className="liquid-glass rounded-3xl p-8 xl:p-12 text-center flex flex-col items-center justify-center aspect-video">
-                    <Play className="h-16 w-16 xl:h-20 xl:w-20 mx-auto mb-4 text-bronze/50" />
-                    <p className="text-muted-foreground text-lg xl:text-xl">ویدیوی معرفی هنوز اضافه نشده است</p>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
               
-              {/* First Person Narrative - Below Video */}
-              <div className="liquid-glass rounded-3xl p-6 xl:p-8">
-                <h2 className="text-2xl xl:text-3xl font-bold mb-4 xl:mb-6 text-bronze">روایت من</h2>
-                {wrestler.bio ? (
-                  <p className="text-base xl:text-lg 2xl:text-xl leading-relaxed whitespace-pre-wrap" style={{ lineHeight: '2' }}>
-                    {wrestler.bio}
-                  </p>
-                ) : (
-                  <p className="text-muted-foreground italic text-lg xl:text-xl">
-                    روایت شخصی این کشتی‌گیر هنوز ثبت نشده است.
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Biography Tab */}
-          {activeTab === 'bio' && (
-            <div className="prose prose-invert max-w-none animate-fade-in">
               {wrestler.full_story ? (
-                <GlassCard className="p-8">
+                <div className="cyber-glass p-8 rounded-3xl">
                   <div 
                     className="text-lg xl:text-xl leading-relaxed whitespace-pre-wrap"
                     style={{ lineHeight: '2' }}
                   >
                     {wrestler.full_story}
                   </div>
-                </GlassCard>
+                </div>
               ) : (
                 <EmptyState
                   icon={<BookOpen className="h-16 w-16" />}
@@ -321,8 +300,8 @@ export default function WrestlerProfilePage() {
           {activeTab === 'success' && (
             <div className="animate-fade-in">
               {(wrestler as any).success_path ? (
-                <GlassCard className="p-8">
-                  <h2 className="text-2xl font-bold mb-4 text-gold flex items-center gap-2">
+                <div className="cyber-glass p-8 rounded-3xl">
+                  <h2 className="text-2xl font-bold mb-4 text-neon flex items-center gap-2">
                     <TrendingUp className="h-6 w-6" />
                     مسیر موفقیت
                   </h2>
@@ -332,7 +311,7 @@ export default function WrestlerProfilePage() {
                   >
                     {(wrestler as any).success_path}
                   </div>
-                </GlassCard>
+                </div>
               ) : (
                 <EmptyState
                   icon={<TrendingUp className="h-16 w-16" />}
@@ -355,9 +334,9 @@ export default function WrestlerProfilePage() {
                       key={achievement.id} 
                       className={cn(
                         'relative p-5 rounded-2xl border transition-all duration-200 hover:scale-[1.02]',
-                        achievement.medal_type === 'gold' && 'bg-[hsl(var(--medal-gold-bg))] border-[hsl(var(--medal-gold)/0.3)]',
+                        achievement.medal_type === 'gold' && 'bg-[hsl(var(--medal-gold-bg))] border-[hsl(var(--medal-gold)/0.4)] shadow-[0_0_30px_hsl(43_100%_55%/0.2)]',
                         achievement.medal_type === 'silver' && 'bg-[hsl(var(--medal-silver-bg))] border-[hsl(var(--medal-silver)/0.3)]',
-                        achievement.medal_type === 'bronze' && 'bg-[hsl(var(--medal-bronze-bg))] border-[hsl(var(--medal-bronze)/0.3)]'
+                        achievement.medal_type === 'bronze' && 'bg-[hsl(var(--medal-bronze-bg))] border-[hsl(var(--medal-bronze)/0.4)] shadow-[0_0_30px_hsl(25_70%_50%/0.2)]'
                       )}
                     >
                       <div className="flex items-start gap-4">
@@ -399,8 +378,8 @@ export default function WrestlerProfilePage() {
           {activeTab === 'social' && (
             <div className="animate-fade-in">
               {(wrestler as any).social_activities ? (
-                <GlassCard className="p-8">
-                  <h2 className="text-2xl font-bold mb-4 text-gold flex items-center gap-2">
+                <div className="cyber-glass p-8 rounded-3xl">
+                  <h2 className="text-2xl font-bold mb-4 text-neon flex items-center gap-2">
                     <Heart className="h-6 w-6" />
                     فعالیت‌های اجتماعی
                   </h2>
@@ -410,7 +389,7 @@ export default function WrestlerProfilePage() {
                   >
                     {(wrestler as any).social_activities}
                   </div>
-                </GlassCard>
+                </div>
               ) : (
                 <EmptyState
                   icon={<Heart className="h-16 w-16" />}
@@ -421,16 +400,15 @@ export default function WrestlerProfilePage() {
             </div>
           )}
 
-          {/* Media Tab */}
           {activeTab === 'media' && (
             <div className="animate-fade-in">
               {media.length > 0 ? (
-                <MediaGallery items={media} />
+                <MediaGallery items={media.map(m => ({ id: m.id, type: m.type, url: m.url, thumbnail: m.thumbnail, title: m.title }))} />
               ) : (
                 <EmptyState
                   icon={<ImageIcon className="h-16 w-16" />}
                   title="رسانه‌ای موجود نیست"
-                  description="تصاویر و ویدیوهای این کشتی‌گیر هنوز ثبت نشده است"
+                  description="تصاویر و ویدیوهای این کشتی‌گیر هنوز اضافه نشده است"
                 />
               )}
             </div>
@@ -441,11 +419,11 @@ export default function WrestlerProfilePage() {
       {/* Image Modal */}
       {isImageModalOpen && (
         <div 
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
           onClick={() => setIsImageModalOpen(false)}
         >
           <div 
-            className="relative max-w-3xl max-h-[90vh] animate-scale-in"
+            className="relative max-w-2xl max-h-[80vh] animate-scale-in"
             onClick={e => e.stopPropagation()}
           >
             <button
@@ -454,16 +432,11 @@ export default function WrestlerProfilePage() {
             >
               <X className="h-8 w-8" />
             </button>
-            
             <img
               src={wrestler.image_url || sampleWrestlerImage}
               alt={wrestler.name}
-              className="w-full h-full object-contain rounded-2xl border-4 border-gold/30 shadow-2xl"
+              className="w-full h-full object-contain rounded-2xl border-2 border-primary/30 shadow-[0_0_60px_hsl(20_100%_50%/0.3)]"
             />
-            
-            <p className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 px-6 py-2 rounded-full text-gold font-bold">
-              {wrestler.name}
-            </p>
           </div>
         </div>
       )}

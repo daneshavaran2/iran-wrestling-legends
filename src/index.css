@@ -35,134 +35,105 @@
   font-display: swap;
 }
 
-/* Ultra-Luxury Bronze/Copper Design System */
+/* ============================================
+   CYBERPUNK CINEMATIC DESIGN SYSTEM
+   Neon Orange, Dramatic Lighting, HUD Elements
+============================================ */
 @layer base {
-  /* Dark Mode (Default) - Bronze Theme */
+  /* Dark Mode - Cyberpunk Neon Orange Theme */
   :root,
   .dark {
-    /* Base colors - Deep Black & Bronze theme */
-    --background: 0 0% 4%;
-    --foreground: 30 20% 92%;
+    /* Base colors - Deep Black with Neon Orange */
+    --background: 0 0% 3%;
+    --foreground: 25 20% 92%;
 
-    --card: 0 0% 8%;
-    --card-foreground: 30 20% 92%;
+    --card: 0 0% 6%;
+    --card-foreground: 25 20% 92%;
 
-    --popover: 0 0% 6%;
-    --popover-foreground: 30 20% 92%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 25 20% 92%;
 
-    --primary: 25 65% 50%;
-    --primary-foreground: 0 0% 4%;
+    /* Neon Orange Primary */
+    --primary: 20 100% 55%;
+    --primary-foreground: 0 0% 3%;
 
-    --secondary: 0 0% 14%;
-    --secondary-foreground: 30 20% 88%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 25 20% 88%;
 
-    --muted: 0 0% 18%;
-    --muted-foreground: 30 10% 55%;
+    --muted: 0 0% 14%;
+    --muted-foreground: 20 15% 55%;
 
-    --accent: 20 85% 45%;
-    --accent-foreground: 30 20% 92%;
+    /* Cyber Orange Accent */
+    --accent: 18 100% 50%;
+    --accent-foreground: 0 0% 3%;
 
     --destructive: 0 72% 51%;
-    --destructive-foreground: 30 20% 92%;
+    --destructive-foreground: 25 20% 92%;
 
-    --border: 25 20% 20%;
-    --input: 0 0% 12%;
-    --ring: 25 65% 50%;
+    --border: 20 40% 18%;
+    --input: 0 0% 8%;
+    --ring: 20 100% 55%;
 
     --radius: 1rem;
 
-    /* Medal colors */
-    --medal-gold: 43 90% 55%;
-    --medal-gold-bg: 43 90% 55% / 0.15;
-    --medal-silver: 220 10% 70%;
-    --medal-silver-bg: 220 10% 70% / 0.15;
-    --medal-bronze: 25 60% 45%;
-    --medal-bronze-bg: 25 60% 45% / 0.15;
+    /* Neon Orange Colors */
+    --neon-orange: 20 100% 55%;
+    --neon-orange-glow: 20 100% 60%;
+    --neon-orange-dark: 18 90% 40%;
+    --cyber-black: 0 0% 3%;
+    --cyber-dark: 0 0% 6%;
+    --cyber-surface: 0 0% 10%;
+    --spark-color: 25 100% 60%;
+    --fog-color: 20 50% 50%;
 
-    /* Glass effect variables - Bronze tint */
-    --glass-bg: 25 15% 12% / 0.7;
-    --glass-border: 25 40% 50% / 0.2;
-    --glass-blur: 24px;
-    --glass-shadow: 0 8px 32px 0 hsl(0 0% 0% / 0.5);
+    /* Medal colors - Neon Style */
+    --medal-gold: 43 100% 55%;
+    --medal-gold-bg: 43 100% 55% / 0.2;
+    --medal-silver: 220 15% 70%;
+    --medal-silver-bg: 220 15% 70% / 0.15;
+    --medal-bronze: 25 70% 50%;
+    --medal-bronze-bg: 25 70% 50% / 0.2;
 
-    /* Bronze gradient */
-    --gradient-gold: linear-gradient(135deg, hsl(25 65% 55%) 0%, hsl(20 70% 40%) 50%, hsl(25 65% 55%) 100%);
-    --gradient-bronze: linear-gradient(135deg, hsl(25 65% 50%) 0%, hsl(20 70% 38%) 100%);
-    --gradient-copper: linear-gradient(135deg, hsl(30 75% 48%) 0%, hsl(18 80% 35%) 100%);
-    --gradient-glass: linear-gradient(135deg, hsl(25 15% 15% / 0.8) 0%, hsl(0 0% 8% / 0.6) 100%);
-    --gradient-hero: linear-gradient(180deg, hsl(0 0% 4%) 0%, hsl(0 0% 8%) 100%);
+    /* Cyber Glass effect variables */
+    --glass-bg: 20 30% 10% / 0.7;
+    --glass-border: 20 100% 55% / 0.3;
+    --glass-blur: 32px;
+    --glass-shadow: 0 8px 32px 0 hsl(0 0% 0% / 0.6);
+
+    /* Cyberpunk gradients */
+    --gradient-neon: linear-gradient(135deg, hsl(20 100% 55%) 0%, hsl(15 100% 40%) 50%, hsl(25 100% 50%) 100%);
+    --gradient-cyber: linear-gradient(135deg, hsl(20 50% 15% / 0.6) 0%, hsl(0 0% 5% / 0.8) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(0 0% 3%) 0%, hsl(20 20% 5%) 50%, hsl(0 0% 3%) 100%);
 
     /* Animation timing */
     --transition-smooth: 200ms cubic-bezier(0.4, 0, 0.2, 1);
     --transition-bounce: 300ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
-    /* Sidebar - Bronze */
-    --sidebar-background: 0 0% 6%;
-    --sidebar-foreground: 30 20% 88%;
-    --sidebar-primary: 25 65% 50%;
-    --sidebar-primary-foreground: 0 0% 4%;
-    --sidebar-accent: 0 0% 14%;
-    --sidebar-accent-foreground: 30 20% 88%;
-    --sidebar-border: 25 20% 18%;
-    --sidebar-ring: 25 65% 50%;
+    /* Sidebar - Cyber */
+    --sidebar-background: 0 0% 5%;
+    --sidebar-foreground: 25 20% 88%;
+    --sidebar-primary: 20 100% 55%;
+    --sidebar-primary-foreground: 0 0% 3%;
+    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent-foreground: 25 20% 88%;
+    --sidebar-border: 20 40% 15%;
+    --sidebar-ring: 20 100% 55%;
   }
 
-  /* Light Mode - Warm Bronze Theme */
+  /* Light Mode - Keep functional but minimal */
   .light {
-    --background: 30 25% 94%;
-    --foreground: 20 30% 15%;
+    --background: 30 15% 95%;
+    --foreground: 20 30% 10%;
     
-    --card: 30 20% 98%;
-    --card-foreground: 20 30% 15%;
+    --card: 30 15% 98%;
+    --card-foreground: 20 30% 10%;
     
-    --popover: 30 20% 98%;
-    --popover-foreground: 20 30% 15%;
+    --primary: 20 90% 45%;
+    --primary-foreground: 30 15% 98%;
     
-    --primary: 25 70% 40%;
-    --primary-foreground: 30 20% 98%;
-    
-    --secondary: 30 15% 88%;
-    --secondary-foreground: 20 30% 15%;
-    
-    --muted: 30 12% 85%;
-    --muted-foreground: 20 15% 45%;
-    
-    --accent: 25 70% 40%;
-    --accent-foreground: 30 20% 98%;
-    
-    --destructive: 0 75% 50%;
-    --destructive-foreground: 0 0% 100%;
-    
-    --border: 25 20% 78%;
-    --input: 30 20% 92%;
-    --ring: 25 70% 40%;
-
-    --medal-gold: 43 85% 40%;
-    --medal-gold-bg: 43 70% 88%;
-    --medal-silver: 220 15% 50%;
-    --medal-silver-bg: 220 20% 90%;
-    --medal-bronze: 28 65% 38%;
-    --medal-bronze-bg: 28 45% 88%;
-
-    --glass-bg: 30 20% 98% / 0.9;
-    --glass-border: 25 30% 65% / 0.4;
-    --glass-blur: 20px;
-    --glass-shadow: 0 8px 32px 0 hsl(25 30% 30% / 0.1);
-
-    --gradient-gold: linear-gradient(135deg, hsl(25 70% 45%) 0%, hsl(20 75% 35%) 50%, hsl(25 70% 45%) 100%);
-    --gradient-bronze: linear-gradient(135deg, hsl(25 70% 45%) 0%, hsl(20 75% 35%) 100%);
-    --gradient-copper: linear-gradient(135deg, hsl(30 75% 45%) 0%, hsl(18 80% 32%) 100%);
-    --gradient-glass: linear-gradient(135deg, hsl(30 20% 98% / 0.95) 0%, hsl(30 15% 95% / 0.85) 100%);
-    --gradient-hero: linear-gradient(180deg, hsl(30 25% 94%) 0%, hsl(30 20% 91%) 100%);
-
-    --sidebar-background: 30 20% 96%;
-    --sidebar-foreground: 20 30% 15%;
-    --sidebar-primary: 25 70% 40%;
-    --sidebar-primary-foreground: 30 20% 98%;
-    --sidebar-accent: 30 15% 90%;
-    --sidebar-accent-foreground: 20 30% 15%;
-    --sidebar-border: 25 20% 82%;
-    --sidebar-ring: 25 70% 40%;
+    --neon-orange: 20 90% 50%;
+    --neon-orange-glow: 20 90% 55%;
+    --neon-orange-dark: 18 85% 38%;
   }
 }
 
@@ -181,32 +152,117 @@
     font-feature-settings: "ss01", "ss02";
     background-image: var(--gradient-hero);
     min-height: 100vh;
+    position: relative;
+  }
+
+  /* Atmospheric fog overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(
+      ellipse at 50% 100%,
+      hsl(20 50% 50% / 0.08) 0%,
+      transparent 60%
+    );
+    pointer-events: none;
+    z-index: 0;
   }
 }
 
 @layer components {
   /* ============================================
-     iOS 26 LIQUID GLASS DESIGN SYSTEM
-     Ultra-Modern Frosted Glass UI Components
+     CYBERPUNK DESIGN SYSTEM
+     Neon Orange, HUD Frames, Cinematic Effects
   ============================================ */
 
-  /* Liquid Glass Card - iOS 26 Style */
+  /* Cyber Glass Card - Main Component */
+  .cyber-glass {
+    @apply relative overflow-hidden rounded-2xl;
+    background: linear-gradient(
+      145deg,
+      hsl(20 40% 12% / 0.6) 0%,
+      hsl(0 0% 5% / 0.7) 50%,
+      hsl(20 30% 10% / 0.5) 100%
+    );
+    backdrop-filter: blur(48px) saturate(200%);
+    -webkit-backdrop-filter: blur(48px) saturate(200%);
+    border: 1px solid hsl(20 100% 55% / 0.25);
+    box-shadow: 
+      0 0 40px hsl(20 100% 50% / 0.15),
+      0 8px 32px hsl(0 0% 0% / 0.6),
+      inset 0 1px 0 hsl(20 80% 70% / 0.1),
+      inset 0 -1px 0 hsl(0 0% 0% / 0.2);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .cyber-glass::before {
+    content: '';
+    @apply absolute inset-0 pointer-events-none;
+    background: linear-gradient(
+      135deg,
+      hsl(20 80% 60% / 0.08) 0%,
+      transparent 30%
+    );
+  }
+
+  .cyber-glass:hover {
+    border-color: hsl(20 100% 55% / 0.5);
+    box-shadow: 
+      0 0 60px hsl(20 100% 50% / 0.25),
+      0 16px 48px hsl(0 0% 0% / 0.7),
+      inset 0 1px 0 hsl(20 80% 70% / 0.15);
+    transform: translateY(-4px) scale(1.01);
+  }
+
+  /* HUD Frame - Futuristic Border */
+  .cyber-hud {
+    @apply relative;
+    border: 2px solid hsl(20 100% 55% / 0.5);
+    box-shadow: 
+      0 0 30px hsl(20 100% 55% / 0.2),
+      inset 0 0 60px hsl(20 100% 55% / 0.05);
+  }
+
+  .cyber-hud::before,
+  .cyber-hud::after {
+    content: '';
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border: 3px solid hsl(20 100% 55%);
+  }
+
+  .cyber-hud::before {
+    top: -2px;
+    right: -2px;
+    border-left: none;
+    border-bottom: none;
+  }
+
+  .cyber-hud::after {
+    bottom: -2px;
+    left: -2px;
+    border-right: none;
+    border-top: none;
+  }
+
+  /* Liquid Glass - Updated for Cyber */
   .liquid-glass {
     @apply relative overflow-hidden rounded-3xl;
     background: linear-gradient(
       145deg,
-      hsl(25 30% 18% / 0.45) 0%,
-      hsl(20 25% 12% / 0.35) 50%,
-      hsl(25 35% 15% / 0.40) 100%
+      hsl(20 35% 15% / 0.5) 0%,
+      hsl(0 0% 6% / 0.6) 50%,
+      hsl(20 30% 12% / 0.45) 100%
     );
-    backdrop-filter: blur(40px) saturate(180%);
-    -webkit-backdrop-filter: blur(40px) saturate(180%);
-    border: 1px solid hsl(25 50% 55% / 0.15);
+    backdrop-filter: blur(48px) saturate(200%);
+    -webkit-backdrop-filter: blur(48px) saturate(200%);
+    border: 1px solid hsl(20 100% 55% / 0.2);
     box-shadow: 
-      0 8px 32px hsl(0 0% 0% / 0.45),
-      0 2px 8px hsl(0 0% 0% / 0.3),
-      inset 0 1px 0 hsl(30 60% 70% / 0.08),
-      inset 0 -1px 0 hsl(0 0% 0% / 0.15);
+      0 0 30px hsl(20 100% 50% / 0.1),
+      0 8px 32px hsl(0 0% 0% / 0.5),
+      inset 0 1px 0 hsl(20 80% 70% / 0.08);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
@@ -215,217 +271,252 @@
     @apply absolute inset-0 rounded-3xl pointer-events-none;
     background: linear-gradient(
       135deg,
-      hsl(30 50% 80% / 0.06) 0%,
-      transparent 40%,
-      hsl(25 40% 50% / 0.03) 100%
+      hsl(20 70% 60% / 0.06) 0%,
+      transparent 40%
     );
   }
 
   .liquid-glass:hover {
-    border-color: hsl(25 60% 55% / 0.35);
+    border-color: hsl(20 100% 55% / 0.4);
     box-shadow: 
-      0 16px 48px hsl(0 0% 0% / 0.55),
-      0 4px 16px hsl(25 50% 40% / 0.2),
-      inset 0 1px 0 hsl(30 60% 70% / 0.12),
-      inset 0 -1px 0 hsl(0 0% 0% / 0.2);
+      0 0 50px hsl(20 100% 50% / 0.2),
+      0 16px 48px hsl(0 0% 0% / 0.6),
+      inset 0 1px 0 hsl(20 80% 70% / 0.12);
     transform: translateY(-4px) scale(1.01);
   }
 
-  /* Legacy Glass Card with Bronze Tint */
+  /* Glass Card Legacy */
   .glass-card {
     @apply relative overflow-hidden rounded-2xl;
     background: linear-gradient(
       145deg,
-      hsl(25 25% 15% / 0.5) 0%,
-      hsl(20 20% 10% / 0.4) 100%
+      hsl(20 30% 12% / 0.5) 0%,
+      hsl(0 0% 6% / 0.4) 100%
     );
-    backdrop-filter: blur(32px) saturate(150%);
-    -webkit-backdrop-filter: blur(32px) saturate(150%);
-    border: 1px solid hsl(25 45% 50% / 0.18);
+    backdrop-filter: blur(32px) saturate(180%);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
+    border: 1px solid hsl(20 80% 55% / 0.2);
     box-shadow: 
       0 8px 32px hsl(0 0% 0% / 0.5),
-      inset 0 1px 0 hsl(30 50% 65% / 0.08);
+      inset 0 1px 0 hsl(20 60% 65% / 0.08);
     transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .glass-card::before {
-    content: '';
-    @apply absolute inset-0 rounded-2xl pointer-events-none;
-    background: linear-gradient(135deg, hsl(30 40% 75% / 0.05) 0%, transparent 50%);
+  /* Cyber Button - Neon Orange */
+  .cyber-button {
+    @apply relative overflow-hidden rounded-2xl px-8 py-4 font-bold;
+    background: linear-gradient(
+      135deg, 
+      hsl(20 100% 50%) 0%, 
+      hsl(15 100% 38%) 50%,
+      hsl(20 100% 45%) 100%
+    );
+    color: hsl(0 0% 3%);
+    border: none;
+    box-shadow: 
+      0 0 30px hsl(20 100% 50% / 0.5),
+      0 4px 20px hsl(0 0% 0% / 0.5),
+      inset 0 1px 0 hsl(25 100% 70% / 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* Liquid Glass Button - iOS 26 Style */
+  .cyber-button::before {
+    content: '';
+    @apply absolute inset-0 pointer-events-none;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(0 0% 100% / 0.2) 50%,
+      transparent 100%
+    );
+    transform: translateX(-100%);
+    animation: cyber-scan 3s infinite;
+  }
+
+  .cyber-button:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 
+      0 0 50px hsl(20 100% 50% / 0.6),
+      0 8px 32px hsl(0 0% 0% / 0.6),
+      inset 0 1px 0 hsl(25 100% 70% / 0.4);
+  }
+
+  /* Liquid Button - Updated */
   .liquid-button {
     @apply relative overflow-hidden rounded-2xl px-6 py-3.5 font-semibold;
     background: linear-gradient(
       145deg,
-      hsl(25 35% 20% / 0.55) 0%,
-      hsl(20 30% 14% / 0.45) 100%
+      hsl(20 40% 18% / 0.6) 0%,
+      hsl(0 0% 8% / 0.5) 100%
     );
-    backdrop-filter: blur(24px) saturate(160%);
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
-    border: 1px solid hsl(25 50% 55% / 0.2);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid hsl(20 100% 55% / 0.25);
     box-shadow: 
-      0 4px 16px hsl(0 0% 0% / 0.35),
-      inset 0 1px 0 hsl(30 50% 70% / 0.1);
-    color: hsl(30 25% 90%);
+      0 0 20px hsl(20 100% 50% / 0.1),
+      0 4px 16px hsl(0 0% 0% / 0.4);
+    color: hsl(25 30% 90%);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .liquid-button:hover {
-    background: linear-gradient(
-      145deg,
-      hsl(25 40% 25% / 0.65) 0%,
-      hsl(20 35% 18% / 0.55) 100%
-    );
-    border-color: hsl(25 60% 55% / 0.4);
+    border-color: hsl(20 100% 55% / 0.5);
     box-shadow: 
-      0 8px 24px hsl(0 0% 0% / 0.45),
-      0 0 20px hsl(25 60% 50% / 0.15),
-      inset 0 1px 0 hsl(30 50% 70% / 0.15);
+      0 0 40px hsl(20 100% 50% / 0.2),
+      0 8px 24px hsl(0 0% 0% / 0.5);
     transform: translateY(-2px) scale(1.02);
   }
 
-  .liquid-button:active {
-    transform: translateY(0) scale(0.98);
-  }
-
-  /* Legacy Glass Button with Bronze */
-  .glass-button {
-    @apply relative overflow-hidden rounded-xl px-6 py-3 font-medium;
-    background: linear-gradient(
-      145deg,
-      hsl(25 30% 18% / 0.5) 0%,
-      hsl(20 25% 12% / 0.4) 100%
-    );
-    backdrop-filter: blur(20px) saturate(140%);
-    -webkit-backdrop-filter: blur(20px) saturate(140%);
-    border: 1px solid hsl(25 45% 50% / 0.15);
-    color: hsl(30 20% 88%);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .glass-button:hover {
-    background: linear-gradient(
-      145deg,
-      hsl(25 35% 22% / 0.6) 0%,
-      hsl(20 30% 15% / 0.5) 100%
-    );
-    border-color: hsl(25 55% 52% / 0.35);
-    transform: translateY(-2px);
-    box-shadow: 
-      0 12px 32px hsl(0 0% 0% / 0.4),
-      0 0 16px hsl(25 55% 50% / 0.12);
-  }
-
-  /* Bronze Accent Button - Premium Style */
+  /* Gold Button - Neon Style */
   .gold-button {
     @apply relative overflow-hidden rounded-2xl px-6 py-3.5 font-bold;
     background: linear-gradient(
       135deg, 
-      hsl(25 70% 55%) 0%, 
-      hsl(18 75% 42%) 50%,
-      hsl(25 70% 50%) 100%
+      hsl(20 100% 55%) 0%, 
+      hsl(15 100% 42%) 50%,
+      hsl(20 100% 50%) 100%
     );
-    color: hsl(0 0% 4%);
+    color: hsl(0 0% 3%);
     border: none;
     box-shadow: 
-      0 4px 20px hsl(25 65% 45% / 0.45),
-      inset 0 1px 0 hsl(30 70% 70% / 0.3);
+      0 0 25px hsl(20 100% 50% / 0.4),
+      0 4px 20px hsl(0 0% 0% / 0.4),
+      inset 0 1px 0 hsl(25 100% 70% / 0.3);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .gold-button::before {
     content: '';
     @apply absolute inset-0 pointer-events-none;
-    background: linear-gradient(135deg, hsl(35 80% 75% / 0.25) 0%, transparent 50%);
+    background: linear-gradient(135deg, hsl(30 100% 75% / 0.25) 0%, transparent 50%);
   }
 
   .gold-button:hover {
     transform: translateY(-3px) scale(1.03);
     box-shadow: 
-      0 8px 32px hsl(25 65% 45% / 0.55),
-      0 0 24px hsl(25 70% 55% / 0.25);
+      0 0 45px hsl(20 100% 50% / 0.55),
+      0 8px 32px hsl(0 0% 0% / 0.5);
   }
 
-  .gold-button:active {
-    transform: translateY(0) scale(0.98);
+  /* Glass Button */
+  .glass-button {
+    @apply relative overflow-hidden rounded-xl px-6 py-3 font-medium;
+    background: linear-gradient(
+      145deg,
+      hsl(20 35% 15% / 0.5) 0%,
+      hsl(0 0% 8% / 0.4) 100%
+    );
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid hsl(20 80% 55% / 0.2);
+    color: hsl(25 25% 88%);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* Liquid Glass Input */
+  .glass-button:hover {
+    border-color: hsl(20 100% 55% / 0.4);
+    box-shadow: 
+      0 0 30px hsl(20 100% 50% / 0.15),
+      0 12px 32px hsl(0 0% 0% / 0.4);
+    transform: translateY(-2px);
+  }
+
+  /* Glass Input */
   .glass-input {
     @apply w-full rounded-2xl px-5 py-4 outline-none placeholder:text-muted-foreground;
     background: linear-gradient(
       145deg,
-      hsl(25 20% 12% / 0.5) 0%,
-      hsl(20 15% 8% / 0.4) 100%
+      hsl(20 25% 10% / 0.5) 0%,
+      hsl(0 0% 6% / 0.4) 100%
     );
     color: hsl(var(--foreground));
-    backdrop-filter: blur(20px) saturate(130%);
-    -webkit-backdrop-filter: blur(20px) saturate(130%);
-    border: 1px solid hsl(25 40% 45% / 0.15);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid hsl(20 60% 50% / 0.2);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .glass-input:focus {
-    border-color: hsl(25 55% 52% / 0.5);
+    border-color: hsl(20 100% 55% / 0.5);
     box-shadow: 
-      0 0 0 4px hsl(25 55% 50% / 0.1),
+      0 0 25px hsl(20 100% 50% / 0.15),
       0 4px 16px hsl(0 0% 0% / 0.3);
   }
 
-  /* Bronze/Gold Text Gradients */
+  /* Neon Text Styles */
+  .text-neon {
+    background: linear-gradient(135deg, hsl(20 100% 60%) 0%, hsl(25 100% 50%) 50%, hsl(20 100% 55%) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
   .text-gold {
-    background: linear-gradient(135deg, hsl(30 75% 60%) 0%, hsl(25 70% 48%) 50%, hsl(30 75% 55%) 100%);
+    background: linear-gradient(135deg, hsl(25 100% 60%) 0%, hsl(20 100% 48%) 50%, hsl(25 100% 55%) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .text-bronze {
-    background: linear-gradient(135deg, hsl(25 65% 55%) 0%, hsl(20 70% 42%) 100%);
+    background: linear-gradient(135deg, hsl(20 100% 60%) 0%, hsl(15 100% 45%) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
-  /* Bronze Glow Effect */
-  .bronze-glow {
+  /* Neon Glow Effect */
+  .neon-glow {
     text-shadow: 
-      0 0 20px hsl(25 65% 50% / 0.5),
-      0 0 40px hsl(25 60% 45% / 0.3);
+      0 0 20px hsl(20 100% 55% / 0.6),
+      0 0 40px hsl(20 100% 50% / 0.4),
+      0 0 60px hsl(20 100% 50% / 0.2);
   }
 
-  /* Bronze Card - Enhanced */
+  .bronze-glow {
+    text-shadow: 
+      0 0 25px hsl(20 100% 55% / 0.5),
+      0 0 50px hsl(20 100% 50% / 0.3);
+  }
+
+  /* Spark Particle */
+  .spark-particle {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      hsl(20 100% 60%) 0%,
+      hsl(25 100% 50% / 0.8) 30%,
+      transparent 70%
+    );
+    box-shadow: 0 0 10px hsl(20 100% 55% / 0.5);
+    animation: spark-float 4s infinite ease-out;
+    pointer-events: none;
+  }
+
+  /* Bronze Card - Updated */
   .bronze-card {
     @apply relative overflow-hidden rounded-2xl;
     background: linear-gradient(
       145deg, 
-      hsl(25 40% 20% / 0.5) 0%, 
-      hsl(20 30% 12% / 0.4) 50%,
-      hsl(25 35% 16% / 0.45) 100%
+      hsl(20 45% 18% / 0.5) 0%, 
+      hsl(0 0% 8% / 0.4) 50%,
+      hsl(20 40% 14% / 0.45) 100%
     );
-    border: 1px solid hsl(25 50% 50% / 0.2);
+    border: 1px solid hsl(20 80% 55% / 0.25);
     box-shadow: 
-      0 8px 32px hsl(0 0% 0% / 0.45),
-      inset 0 1px 0 hsl(30 55% 65% / 0.1);
-    backdrop-filter: blur(24px) saturate(150%);
-    -webkit-backdrop-filter: blur(24px) saturate(150%);
+      0 0 30px hsl(20 100% 50% / 0.1),
+      0 8px 32px hsl(0 0% 0% / 0.45);
+    backdrop-filter: blur(32px) saturate(180%);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .bronze-card::before {
-    content: '';
-    @apply absolute inset-0 rounded-2xl pointer-events-none;
-    background: linear-gradient(135deg, hsl(30 50% 70% / 0.06) 0%, transparent 40%);
-  }
-
   .bronze-card:hover {
-    border-color: hsl(25 60% 55% / 0.45);
+    border-color: hsl(20 100% 55% / 0.45);
     box-shadow: 
-      0 16px 48px hsl(0 0% 0% / 0.55),
-      0 0 32px hsl(25 60% 50% / 0.15),
-      inset 0 1px 0 hsl(30 55% 65% / 0.15);
+      0 0 50px hsl(20 100% 50% / 0.2),
+      0 16px 48px hsl(0 0% 0% / 0.55);
     transform: translateY(-4px);
   }
 
@@ -439,15 +530,15 @@
     @apply relative overflow-hidden rounded-2xl;
     background: linear-gradient(
       145deg,
-      hsl(25 20% 15% / 0.4) 0%,
-      hsl(20 15% 10% / 0.3) 100%
+      hsl(20 25% 12% / 0.4) 0%,
+      hsl(0 0% 8% / 0.3) 100%
     );
   }
 
   .skeleton::after {
     content: '';
     @apply absolute inset-0;
-    background: linear-gradient(90deg, transparent, hsl(25 40% 50% / 0.08), transparent);
+    background: linear-gradient(90deg, transparent, hsl(20 60% 55% / 0.1), transparent);
     animation: shimmer 2s infinite;
   }
 }
@@ -497,6 +588,34 @@
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
+}
+
+@keyframes spark-float {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-150px) translateX(30px) scale(0.3);
+    opacity: 0;
+  }
+}
+
+@keyframes cyber-scan {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+@keyframes neon-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px hsl(20 100% 50% / 0.3);
+  }
+  50% {
+    box-shadow: 0 0 50px hsl(20 100% 50% / 0.6);
+  }
 }
 
 @keyframes page-fade-in {
@@ -567,10 +686,10 @@
 
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 20px hsl(25 60% 50% / 0.3);
+    box-shadow: 0 0 25px hsl(20 100% 55% / 0.4);
   }
   50% {
-    box-shadow: 0 0 40px hsl(25 60% 50% / 0.5);
+    box-shadow: 0 0 50px hsl(20 100% 55% / 0.6);
   }
 }
 
@@ -604,7 +723,8 @@
   
   .glass-button,
   .liquid-button,
-  .gold-button {
+  .gold-button,
+  .cyber-button {
     padding: 1rem 1.5rem;
     font-size: 1.1rem;
   }
@@ -623,7 +743,8 @@
   
   .glass-button,
   .liquid-button,
-  .gold-button {
+  .gold-button,
+  .cyber-button {
     padding: 1.25rem 2rem;
     font-size: 1.25rem;
   }
@@ -654,7 +775,8 @@
   
   /* Larger touch targets for kiosk */
   .liquid-button,
-  .gold-button {
+  .gold-button,
+  .cyber-button {
     min-height: 56px;
     padding: 1rem 1.5rem;
   }
@@ -680,7 +802,8 @@
   
   /* Larger touch targets for kiosk */
   .liquid-button,
-  .gold-button {
+  .gold-button,
+  .cyber-button {
     min-height: 52px;
     padding: 0.875rem 1.25rem;
   }
