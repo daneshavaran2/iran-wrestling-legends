@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, X, ZoomIn, Grid3X3 } from 'lucide-react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { ChevronLeft, ChevronRight, X, ZoomIn, Grid3X3, Play, Pause } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Photo {
@@ -19,6 +19,8 @@ export function FlipBook({ photos, initialIndex = 0, onClose }: FlipBookProps) {
   const [isFlipping, setIsFlipping] = useState(false);
   const [flipDirection, setFlipDirection] = useState<'next' | 'prev' | null>(null);
   const [showGrid, setShowGrid] = useState(false);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+  const autoPlayIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const goToNext = useCallback(() => {
     if (currentIndex < photos.length - 1 && !isFlipping) {
@@ -29,8 +31,17 @@ export function FlipBook({ photos, initialIndex = 0, onClose }: FlipBookProps) {
         setIsFlipping(false);
         setFlipDirection(null);
       }, 400);
+    } else if (currentIndex === photos.length - 1 && isAutoPlaying) {
+      // Loop back to start when auto-playing
+      setFlipDirection('next');
+      setIsFlipping(true);
+      setTimeout(() => {
+        setCurrentIndex(0);
+        setIsFlipping(false);
+        setFlipDirection(null);
+      }, 400);
     }
-  }, [currentIndex, photos.length, isFlipping]);
+  }, [currentIndex, photos.length, isFlipping, isAutoPlaying]);
 
   const goToPrev = useCallback(() => {
     if (currentIndex > 0 && !isFlipping) {
@@ -49,12 +60,35 @@ export function FlipBook({ photos, initialIndex = 0, onClose }: FlipBookProps) {
     setShowGrid(false);
   }, []);
 
+  // Auto-play functionality
+  useEffect(() => {
+    if (isAutoPlaying && !isFlipping) {
+      autoPlayIntervalRef.current = setTimeout(() => {
+        goToNext();
+      }, 3000);
+    }
+    
+    return () => {
+      if (autoPlayIntervalRef.current) {
+        clearTimeout(autoPlayIntervalRef.current);
+      }
+    };
+  }, [isAutoPlaying, currentIndex, isFlipping, goToNext]);
+
+  const toggleAutoPlay = () => {
+    setIsAutoPlaying(prev => !prev);
+  };
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') goToNext();
       if (e.key === 'ArrowRight') goToPrev();
       if (e.key === 'Escape') onClose?.();
+      if (e.key === ' ') {
+        e.preventDefault();
+        toggleAutoPlay();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -136,6 +170,16 @@ export function FlipBook({ photos, initialIndex = 0, onClose }: FlipBookProps) {
           >
             <Grid3X3 className="h-5 w-5" />
           </button>
+          <button
+            onClick={toggleAutoPlay}
+            className={cn(
+              "p-2 transition-colors bg-black/50 rounded-full",
+              isAutoPlaying ? "text-gold" : "text-white hover:text-gold"
+            )}
+            title={isAutoPlaying ? "توقف اسلایدشو" : "شروع اسلایدشو"}
+          >
+            {isAutoPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+          </button>
         </div>
         <div className="text-white text-sm bg-black/50 px-3 py-1 rounded-full">
           {currentIndex + 1} از {photos.length}
@@ -206,6 +250,16 @@ export function FlipBook({ photos, initialIndex = 0, onClose }: FlipBookProps) {
           </div>
         )}
       </div>
+
+      {/* Auto-play indicator */}
+      {isAutoPlaying && (
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2">
+          <div className="bg-gold/20 rounded-full px-4 py-1.5 flex items-center gap-2">
+            <div className="w-2 h-2 bg-gold rounded-full animate-pulse" />
+            <span className="text-gold text-sm">اسلایدشو خودکار</span>
+          </div>
+        </div>
+      )}
 
       {/* Thumbnail Strip */}
       <div className="absolute bottom-4 left-4 right-4 overflow-x-auto">
