@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowRight, X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2, BookOpen } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { FlipBook } from '@/components/ui/FlipBook';
 
 export default function AlbumGalleryPage() {
   const navigate = useNavigate();
@@ -106,51 +107,13 @@ export default function AlbumGalleryPage() {
         )}
       </main>
 
-      {/* Lightbox Modal */}
+      {/* FlipBook Modal */}
       {selectedIndex !== null && (
-        <div 
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
-          onClick={() => setSelectedIndex(null)}
-        >
-          <button
-            onClick={() => setSelectedIndex(null)}
-            className="absolute top-4 right-4 p-2 text-white hover:text-gold transition-colors"
-          >
-            <X className="h-8 w-8" />
-          </button>
-
-          {selectedIndex > 0 && (
-            <button
-              onClick={(e) => { e.stopPropagation(); handlePrev(); }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-white hover:text-gold transition-colors"
-            >
-              <ChevronRight className="h-10 w-10" />
-            </button>
-          )}
-
-          {selectedIndex < photos.length - 1 && (
-            <button
-              onClick={(e) => { e.stopPropagation(); handleNext(); }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 p-2 text-white hover:text-gold transition-colors"
-            >
-              <ChevronLeft className="h-10 w-10" />
-            </button>
-          )}
-
-          <div className="max-w-5xl max-h-[90vh] p-4" onClick={(e) => e.stopPropagation()}>
-            <img
-              src={photos[selectedIndex].url}
-              alt={photos[selectedIndex].caption || ''}
-              className="max-w-full max-h-[80vh] object-contain mx-auto"
-            />
-            {photos[selectedIndex].caption && (
-              <p className="text-center text-white mt-4">{photos[selectedIndex].caption}</p>
-            )}
-            <p className="text-center text-muted-foreground text-sm mt-2">
-              {selectedIndex + 1} از {photos.length}
-            </p>
-          </div>
-        </div>
+        <FlipBook
+          photos={photos.map((p: any) => ({ id: p.id, url: p.url, caption: p.caption }))}
+          initialIndex={selectedIndex}
+          onClose={() => setSelectedIndex(null)}
+        />
       )}
     </div>
   );

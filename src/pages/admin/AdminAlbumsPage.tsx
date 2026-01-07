@@ -310,17 +310,26 @@ export default function AdminAlbumsPage() {
 
   const handlePhotoUpload = async (files: File[]) => {
     if (!selectedAlbumId || files.length === 0) return;
+    
+    const currentCount = albumPhotos?.length || 0;
+    let uploadedCount = 0;
+    
     try {
-      for (const file of files) {
-        const url = await uploadFile(file, selectedAlbumId);
+      // Upload all files in parallel for faster batch upload
+      const uploadPromises = files.map(async (file, index) => {
+        const url = await uploadFile(file, selectedAlbumId, 'album-media');
         await supabase.from('album_photos').insert({
           album_id: selectedAlbumId,
           url,
-          display_order: (albumPhotos?.length || 0) + 1,
+          display_order: currentCount + index + 1,
         });
-      }
+        uploadedCount++;
+      });
+      
+      await Promise.all(uploadPromises);
+      
       queryClient.invalidateQueries({ queryKey: ['album-photos', selectedAlbumId] });
-      toast.success('تصاویر آپلود شد');
+      toast.success(`${uploadedCount} تصویر آپلود شد`);
     } catch {
       toast.error('خطا در آپلود');
     }
@@ -329,7 +338,7 @@ export default function AdminAlbumsPage() {
   const handleCoverUpload = async (files: File[]) => {
     if (!editingAlbum || files.length === 0) return;
     try {
-      const url = await uploadFile(files[0], editingAlbum.id || 'new');
+      const url = await uploadFile(files[0], editingAlbum.id || 'new', 'album-media');
       setEditingAlbum({ ...editingAlbum, cover_image_url: url });
       toast.success('تصویر آپلود شد');
     } catch {
