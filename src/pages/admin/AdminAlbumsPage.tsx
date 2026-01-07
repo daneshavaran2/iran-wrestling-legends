@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Plus, Edit2, Trash2, Loader2, Save, Images, X, GripVertical, RotateCw, MessageSquare, Check } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GoldButton } from '@/components/ui/GoldButton';
@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { UploadDropzone } from '@/components/UploadDropzone';
 import { useMediaUpload } from '@/hooks/useMediaUpload';
 import { ImageRotator } from '@/components/ImageRotator';
+import { compressImage } from '@/utils/imageCompressor';
 import {
   DndContext,
   closestCenter,
@@ -400,13 +401,15 @@ export default function AdminAlbumsPage() {
     }
   };
 
-  // Upload a single file
-  const uploadSingleFile = async (file: File): Promise<boolean> => {
+  // Upload a single file with compression
+  const uploadSingleFile = useCallback(async (file: File): Promise<boolean> => {
     if (!selectedAlbumId) return false;
     
     try {
+      // فشرده‌سازی تصویر قبل از آپلود
+      const compressedFile = await compressImage(file, 1920, 1080, 0.85);
       const currentCount = albumPhotos?.length || 0;
-      const url = await uploadFile(file, selectedAlbumId, 'album-media');
+      const url = await uploadFile(compressedFile, selectedAlbumId, 'album-media');
       await supabase.from('album_photos').insert({
         album_id: selectedAlbumId,
         url,
@@ -418,26 +421,39 @@ export default function AdminAlbumsPage() {
       console.error('Upload error:', error);
       return false;
     }
-  };
+  }, [selectedAlbumId, albumPhotos?.length, uploadFile]);
 
-  // Handle rotated file save
-  const handleRotatedFileSave = async (rotatedFile: File) => {
-    setUploadingCount(1 + pendingFiles.length);
-    
+  // آپلود موازی - ۳ فایل همزمان
+  const uploadFilesInParallel = useCallback(async (files: File[]): Promise<{ success: number; error: number }> => {
+    const BATCH_SIZE = 3;
     let successCount = 0;
     let errorCount = 0;
-    
-    // Upload the rotated file
-    const success = await uploadSingleFile(rotatedFile);
-    if (success) successCount++;
-    else errorCount++;
-    
-    // Upload remaining pending files
-    for (const file of pendingFiles) {
-      const fileSuccess = await uploadSingleFile(file);
-      if (fileSuccess) successCount++;
-      else errorCount++;
+
+    for (let i = 0; i < files.length; i += BATCH_SIZE) {
+      const batch = files.slice(i, i + BATCH_SIZE);
+      const results = await Promise.all(batch.map(f => uploadSingleFile(f)));
+      successCount += results.filter(Boolean).length;
+      errorCount += results.filter(r => !r).length;
     }
+
+    return { success: successCount, error: errorCount };
+  }, [uploadSingleFile]);
+
+  // Handle rotated file save
+  const handleRotatedFileSave = useCallback(async (rotatedFile: File) => {
+    setUploadingCount(1 + pendingFiles.length);
+    
+    // فشرده‌سازی فایل چرخانده شده
+    const compressedFile = await compressImage(rotatedFile, 1920, 1080, 0.85);
+    
+    // آپلود فایل چرخانده
+    const firstSuccess = await uploadSingleFile(compressedFile);
+    
+    // آپلود موازی بقیه فایل‌ها
+    const { success: restSuccess, error: restError } = await uploadFilesInParallel(pendingFiles);
+    
+    const successCount = (firstSuccess ? 1 : 0) + restSuccess;
+    const errorCount = (firstSuccess ? 0 : 1) + restError;
     
     // Reset states
     setFileToRotate(null);
@@ -452,28 +468,17 @@ export default function AdminAlbumsPage() {
     if (errorCount > 0) {
       toast.error(`${errorCount} تصویر آپلود نشد`);
     }
-  };
+  }, [pendingFiles, uploadSingleFile, uploadFilesInParallel, queryClient, selectedAlbumId]);
 
   // Skip rotation and upload directly
-  const handleSkipRotation = async () => {
+  const handleSkipRotation = useCallback(async () => {
     if (!fileToRotate) return;
     
     setUploadingCount(1 + pendingFiles.length);
     
-    let successCount = 0;
-    let errorCount = 0;
-    
-    // Upload current file without rotation
-    const success = await uploadSingleFile(fileToRotate);
-    if (success) successCount++;
-    else errorCount++;
-    
-    // Upload remaining pending files
-    for (const file of pendingFiles) {
-      const fileSuccess = await uploadSingleFile(file);
-      if (fileSuccess) successCount++;
-      else errorCount++;
-    }
+    // همه فایل‌ها را یکجا آپلود می‌کنیم
+    const allFiles = [fileToRotate, ...pendingFiles];
+    const { success: successCount, error: errorCount } = await uploadFilesInParallel(allFiles);
     
     // Reset states
     setFileToRotate(null);
@@ -488,7 +493,7 @@ export default function AdminAlbumsPage() {
     if (errorCount > 0) {
       toast.error(`${errorCount} تصویر آپلود نشد`);
     }
-  };
+  }, [fileToRotate, pendingFiles, uploadFilesInParallel, queryClient, selectedAlbumId]);
 
   const handleCoverUpload = async (files: File[]) => {
     if (!editingAlbum || files.length === 0) return;
