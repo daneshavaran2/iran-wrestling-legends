@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, memo } from 'react';
 import { ChevronLeft, ChevronRight, X, ZoomIn, Grid3X3, Play, Pause } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -14,45 +14,65 @@ interface FlipBookProps {
   onClose?: () => void;
 }
 
-export function FlipBook({ photos, initialIndex = 0, onClose }: FlipBookProps) {
+// پیش‌بارگذاری تصویر
+const preloadImage = (url: string) => {
+  const img = new Image();
+  img.src = url;
+};
+
+export const FlipBook = memo(function FlipBook({ photos, initialIndex = 0, onClose }: FlipBookProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isFlipping, setIsFlipping] = useState(false);
   const [flipDirection, setFlipDirection] = useState<'next' | 'prev' | null>(null);
   const [showGrid, setShowGrid] = useState(false);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
-  const autoPlayIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const flipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
+
+  // پیش‌بارگذاری تصاویر مجاور
+  useEffect(() => {
+    if (photos.length === 0) return;
+    
+    // پیش‌بارگذاری ۲ تصویر بعدی و قبلی
+    const indicesToPreload = [
+      currentIndex + 1,
+      currentIndex + 2,
+      currentIndex - 1,
+    ].filter(i => i >= 0 && i < photos.length);
+    
+    indicesToPreload.forEach(i => preloadImage(photos[i].url));
+  }, [currentIndex, photos]);
 
   const goToNext = useCallback(() => {
-    if (currentIndex < photos.length - 1 && !isFlipping) {
-      setFlipDirection('next');
-      setIsFlipping(true);
-      setTimeout(() => {
-        setCurrentIndex(prev => prev + 1);
-        setIsFlipping(false);
-        setFlipDirection(null);
-      }, 400);
-    } else if (currentIndex === photos.length - 1 && isAutoPlaying) {
-      // Loop back to start when auto-playing
-      setFlipDirection('next');
-      setIsFlipping(true);
-      setTimeout(() => {
-        setCurrentIndex(0);
-        setIsFlipping(false);
-        setFlipDirection(null);
-      }, 400);
-    }
-  }, [currentIndex, photos.length, isFlipping, isAutoPlaying]);
+    if (isFlipping) return;
+    
+    const nextIndex = currentIndex < photos.length - 1 ? currentIndex + 1 : 0;
+    
+    setFlipDirection('next');
+    setIsFlipping(true);
+    
+    if (flipTimeoutRef.current) clearTimeout(flipTimeoutRef.current);
+    
+    flipTimeoutRef.current = setTimeout(() => {
+      setCurrentIndex(nextIndex);
+      setIsFlipping(false);
+      setFlipDirection(null);
+    }, 200); // انیمیشن سریع‌تر
+  }, [currentIndex, photos.length, isFlipping]);
 
   const goToPrev = useCallback(() => {
-    if (currentIndex > 0 && !isFlipping) {
-      setFlipDirection('prev');
-      setIsFlipping(true);
-      setTimeout(() => {
-        setCurrentIndex(prev => prev - 1);
-        setIsFlipping(false);
-        setFlipDirection(null);
-      }, 400);
-    }
+    if (currentIndex <= 0 || isFlipping) return;
+    
+    setFlipDirection('prev');
+    setIsFlipping(true);
+    
+    if (flipTimeoutRef.current) clearTimeout(flipTimeoutRef.current);
+    
+    flipTimeoutRef.current = setTimeout(() => {
+      setCurrentIndex(prev => prev - 1);
+      setIsFlipping(false);
+      setFlipDirection(null);
+    }, 200); // انیمیشن سریع‌تر
   }, [currentIndex, isFlipping]);
 
   const goToIndex = useCallback((index: number) => {
@@ -60,24 +80,33 @@ export function FlipBook({ photos, initialIndex = 0, onClose }: FlipBookProps) {
     setShowGrid(false);
   }, []);
 
-  // Auto-play functionality
+  // Auto-play سریع‌تر - هر ۱.۵ ثانیه
   useEffect(() => {
-    if (isAutoPlaying && !isFlipping) {
-      autoPlayIntervalRef.current = setTimeout(() => {
-        goToNext();
-      }, 3000);
+    if (!isAutoPlaying) {
+      if (autoPlayRef.current) clearInterval(autoPlayRef.current);
+      return;
     }
-    
-    return () => {
-      if (autoPlayIntervalRef.current) {
-        clearTimeout(autoPlayIntervalRef.current);
-      }
-    };
-  }, [isAutoPlaying, currentIndex, isFlipping, goToNext]);
 
-  const toggleAutoPlay = () => {
+    autoPlayRef.current = setInterval(() => {
+      setCurrentIndex(prev => prev < photos.length - 1 ? prev + 1 : 0);
+    }, 1500); // سرعت بالاتر
+
+    return () => {
+      if (autoPlayRef.current) clearInterval(autoPlayRef.current);
+    };
+  }, [isAutoPlaying, photos.length]);
+
+  // پاکسازی در unmount
+  useEffect(() => {
+    return () => {
+      if (flipTimeoutRef.current) clearTimeout(flipTimeoutRef.current);
+      if (autoPlayRef.current) clearInterval(autoPlayRef.current);
+    };
+  }, []);
+
+  const toggleAutoPlay = useCallback(() => {
     setIsAutoPlaying(prev => !prev);
-  };
+  }, []);
 
   // Keyboard navigation
   useEffect(() => {
@@ -92,25 +121,29 @@ export function FlipBook({ photos, initialIndex = 0, onClose }: FlipBookProps) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goToNext, goToPrev, onClose]);
+  }, [goToNext, goToPrev, onClose, toggleAutoPlay]);
 
   // Touch/Swipe support
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.touches[0].clientX);
-  };
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!touchStart) return;
+  const touchStartRef = useRef<number | null>(null);
+  
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartRef.current = e.touches[0].clientX;
+  }, []);
+  
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
     const touchEnd = e.changedTouches[0].clientX;
-    const diff = touchStart - touchEnd;
+    const diff = touchStartRef.current - touchEnd;
     if (Math.abs(diff) > 50) {
       if (diff > 0) goToNext();
       else goToPrev();
     }
-    setTouchStart(null);
-  };
+    touchStartRef.current = null;
+  }, [goToNext, goToPrev]);
 
   const currentPhoto = photos[currentIndex];
+
+  if (!currentPhoto) return null;
 
   if (showGrid) {
     return (
@@ -146,7 +179,8 @@ export function FlipBook({ photos, initialIndex = 0, onClose }: FlipBookProps) {
               <img
                 src={photo.url}
                 alt={photo.caption || ''}
-                className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+                className="w-full h-full object-cover hover:scale-110 transition-transform duration-200"
+                loading="lazy"
               />
             </button>
           ))}
@@ -216,7 +250,7 @@ export function FlipBook({ photos, initialIndex = 0, onClose }: FlipBookProps) {
       <div className="relative w-full max-w-4xl h-[70vh] perspective-1000 mx-4">
         <div 
           className={cn(
-            "absolute inset-0 flex items-center justify-center transition-transform duration-400 preserve-3d",
+            "absolute inset-0 flex items-center justify-center transition-transform duration-200 preserve-3d",
             isFlipping && flipDirection === 'next' && "animate-flip-next",
             isFlipping && flipDirection === 'prev' && "animate-flip-prev"
           )}
@@ -271,7 +305,7 @@ export function FlipBook({ photos, initialIndex = 0, onClose }: FlipBookProps) {
                 key={photo.id}
                 onClick={() => setCurrentIndex(actualIndex)}
                 className={cn(
-                  "flex-shrink-0 w-12 h-12 md:w-16 md:h-16 rounded overflow-hidden transition-all",
+                  "flex-shrink-0 w-12 h-12 md:w-16 md:h-16 rounded overflow-hidden transition-all duration-150",
                   actualIndex === currentIndex 
                     ? "ring-2 ring-gold scale-110" 
                     : "opacity-60 hover:opacity-100"
@@ -281,6 +315,7 @@ export function FlipBook({ photos, initialIndex = 0, onClose }: FlipBookProps) {
                   src={photo.url}
                   alt=""
                   className="w-full h-full object-cover"
+                  loading="lazy"
                 />
               </button>
             );
@@ -289,4 +324,4 @@ export function FlipBook({ photos, initialIndex = 0, onClose }: FlipBookProps) {
       </div>
     </div>
   );
-}
+});
