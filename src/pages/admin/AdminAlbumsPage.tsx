@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Loader2, Save, Images, X, GripVertical } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Save, Images, X, GripVertical, RotateCw, MessageSquare, Check } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { UploadDropzone } from '@/components/UploadDropzone';
 import { useMediaUpload } from '@/hooks/useMediaUpload';
+import { ImageRotator } from '@/components/ImageRotator';
 import {
   DndContext,
   closestCenter,
@@ -106,7 +107,14 @@ function SortableAlbumCard({ album, onEdit, onDelete, onManagePhotos }: {
   );
 }
 
-function SortablePhotoCard({ photo, onDelete }: { photo: AlbumPhoto; onDelete: () => void }) {
+function SortablePhotoCard({ photo, onDelete, onCaptionChange }: { 
+  photo: AlbumPhoto; 
+  onDelete: () => void;
+  onCaptionChange: (caption: string) => void;
+}) {
+  const [isEditingCaption, setIsEditingCaption] = useState(false);
+  const [captionValue, setCaptionValue] = useState(photo.caption || '');
+  
   const {
     attributes,
     listeners,
@@ -122,9 +130,16 @@ function SortablePhotoCard({ photo, onDelete }: { photo: AlbumPhoto; onDelete: (
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const handleSaveCaption = () => {
+    onCaptionChange(captionValue);
+    setIsEditingCaption(false);
+  };
+
   return (
-    <div ref={setNodeRef} style={style} className="relative aspect-square group">
-      <img src={photo.url} alt="" className="w-full h-full object-cover rounded-lg" />
+    <div ref={setNodeRef} style={style} className="relative group">
+      <div className="aspect-square">
+        <img src={photo.url} alt="" className="w-full h-full object-cover rounded-lg" />
+      </div>
       <div
         {...attributes}
         {...listeners}
@@ -138,6 +153,54 @@ function SortablePhotoCard({ photo, onDelete }: { photo: AlbumPhoto; onDelete: (
       >
         <X className="h-4 w-4 text-white" />
       </button>
+      
+      {/* Caption button */}
+      <button
+        onClick={() => setIsEditingCaption(true)}
+        className="absolute bottom-2 right-2 p-1.5 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary"
+        title="ویرایش کپشن"
+      >
+        <MessageSquare className="h-4 w-4 text-white" />
+      </button>
+      
+      {/* Show caption if exists */}
+      {photo.caption && !isEditingCaption && (
+        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 rounded-b-lg truncate">
+          {photo.caption}
+        </div>
+      )}
+      
+      {/* Caption editor */}
+      {isEditingCaption && (
+        <div className="absolute inset-0 bg-black/80 rounded-lg flex flex-col items-center justify-center p-2 gap-2">
+          <input
+            type="text"
+            value={captionValue}
+            onChange={(e) => setCaptionValue(e.target.value)}
+            placeholder="کپشن تصویر..."
+            className="w-full p-2 text-sm rounded bg-background/90 border border-border/50 focus:border-primary focus:outline-none"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSaveCaption();
+              if (e.key === 'Escape') setIsEditingCaption(false);
+            }}
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsEditingCaption(false)}
+              className="p-1.5 bg-muted rounded-full hover:bg-muted/80"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <button
+              onClick={handleSaveCaption}
+              className="p-1.5 bg-primary rounded-full hover:bg-primary/80"
+            >
+              <Check className="h-4 w-4 text-white" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -149,6 +212,9 @@ export default function AdminAlbumsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [photosDialogOpen, setPhotosDialogOpen] = useState(false);
   const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
+  const [fileToRotate, setFileToRotate] = useState<File | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [uploadingCount, setUploadingCount] = useState(0);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -235,6 +301,17 @@ export default function AdminAlbumsPage() {
     },
   });
 
+  const updateCaptionMutation = useMutation({
+    mutationFn: async ({ id, caption }: { id: string; caption: string }) => {
+      const { error } = await supabase.from('album_photos').update({ caption }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['album-photos', selectedAlbumId] });
+      toast.success('کپشن ذخیره شد');
+    },
+  });
+
   const updateOrderMutation = useMutation({
     mutationFn: async (items: { id: string; display_order: number }[]) => {
       for (const item of items) {
@@ -308,30 +385,108 @@ export default function AdminAlbumsPage() {
     saveMutation.mutate(editingAlbum);
   };
 
-  const handlePhotoUpload = async (files: File[]) => {
-    if (!selectedAlbumId || files.length === 0) return;
+  // Handle files selected - show rotation option for first file if multiple
+  const handleFilesSelected = (files: File[]) => {
+    if (files.length === 0) return;
     
-    const currentCount = albumPhotos?.length || 0;
-    let uploadedCount = 0;
+    if (files.length === 1) {
+      // Single file - show rotator
+      setFileToRotate(files[0]);
+      setPendingFiles([]);
+    } else {
+      // Multiple files - show rotator for first, queue rest
+      setFileToRotate(files[0]);
+      setPendingFiles(files.slice(1));
+    }
+  };
+
+  // Upload a single file
+  const uploadSingleFile = async (file: File): Promise<boolean> => {
+    if (!selectedAlbumId) return false;
     
     try {
-      // Upload all files in parallel for faster batch upload
-      const uploadPromises = files.map(async (file, index) => {
-        const url = await uploadFile(file, selectedAlbumId, 'album-media');
-        await supabase.from('album_photos').insert({
-          album_id: selectedAlbumId,
-          url,
-          display_order: currentCount + index + 1,
-        });
-        uploadedCount++;
+      const currentCount = albumPhotos?.length || 0;
+      const url = await uploadFile(file, selectedAlbumId, 'album-media');
+      await supabase.from('album_photos').insert({
+        album_id: selectedAlbumId,
+        url,
+        display_order: currentCount + 1,
+        caption: null,
       });
-      
-      await Promise.all(uploadPromises);
-      
-      queryClient.invalidateQueries({ queryKey: ['album-photos', selectedAlbumId] });
-      toast.success(`${uploadedCount} تصویر آپلود شد`);
-    } catch {
-      toast.error('خطا در آپلود');
+      return true;
+    } catch (error) {
+      console.error('Upload error:', error);
+      return false;
+    }
+  };
+
+  // Handle rotated file save
+  const handleRotatedFileSave = async (rotatedFile: File) => {
+    setUploadingCount(1 + pendingFiles.length);
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    // Upload the rotated file
+    const success = await uploadSingleFile(rotatedFile);
+    if (success) successCount++;
+    else errorCount++;
+    
+    // Upload remaining pending files
+    for (const file of pendingFiles) {
+      const fileSuccess = await uploadSingleFile(file);
+      if (fileSuccess) successCount++;
+      else errorCount++;
+    }
+    
+    // Reset states
+    setFileToRotate(null);
+    setPendingFiles([]);
+    setUploadingCount(0);
+    
+    queryClient.invalidateQueries({ queryKey: ['album-photos', selectedAlbumId] });
+    
+    if (successCount > 0) {
+      toast.success(`${successCount} تصویر آپلود شد`);
+    }
+    if (errorCount > 0) {
+      toast.error(`${errorCount} تصویر آپلود نشد`);
+    }
+  };
+
+  // Skip rotation and upload directly
+  const handleSkipRotation = async () => {
+    if (!fileToRotate) return;
+    
+    setUploadingCount(1 + pendingFiles.length);
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    // Upload current file without rotation
+    const success = await uploadSingleFile(fileToRotate);
+    if (success) successCount++;
+    else errorCount++;
+    
+    // Upload remaining pending files
+    for (const file of pendingFiles) {
+      const fileSuccess = await uploadSingleFile(file);
+      if (fileSuccess) successCount++;
+      else errorCount++;
+    }
+    
+    // Reset states
+    setFileToRotate(null);
+    setPendingFiles([]);
+    setUploadingCount(0);
+    
+    queryClient.invalidateQueries({ queryKey: ['album-photos', selectedAlbumId] });
+    
+    if (successCount > 0) {
+      toast.success(`${successCount} تصویر آپلود شد`);
+    }
+    if (errorCount > 0) {
+      toast.error(`${errorCount} تصویر آپلود نشد`);
     }
   };
 
@@ -437,8 +592,30 @@ export default function AdminAlbumsPage() {
             <DialogTitle>مدیریت تصاویر آلبوم</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-4">
-            <UploadDropzone onFilesSelected={handlePhotoUpload} isUploading={isUploading} accept="image/*" />
-            <p className="text-xs text-muted-foreground">برای تغییر ترتیب، تصاویر را بکشید و رها کنید</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex-1">
+                <UploadDropzone 
+                  onFilesSelected={handleFilesSelected} 
+                  isUploading={isUploading || uploadingCount > 0} 
+                  accept="image/*" 
+                />
+              </div>
+            </div>
+            
+            {uploadingCount > 0 && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                در حال آپلود {uploadingCount} تصویر...
+              </div>
+            )}
+            
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <RotateCw className="h-4 w-4" />
+              <span>پس از انتخاب تصویر، امکان چرخش قبل از آپلود وجود دارد</span>
+            </div>
+            
+            <p className="text-xs text-muted-foreground">برای تغییر ترتیب، تصاویر را بکشید و رها کنید • برای ویرایش کپشن روی آیکون پیام کلیک کنید</p>
+            
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handlePhotoDragEnd}>
               <SortableContext items={albumPhotos?.map(p => p.id) || []} strategy={rectSortingStrategy}>
                 <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
@@ -447,6 +624,7 @@ export default function AdminAlbumsPage() {
                       key={photo.id}
                       photo={photo}
                       onDelete={() => deletePhotoMutation.mutate(photo.id)}
+                      onCaptionChange={(caption) => updateCaptionMutation.mutate({ id: photo.id, caption })}
                     />
                   ))}
                 </div>
@@ -455,6 +633,15 @@ export default function AdminAlbumsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Image Rotator */}
+      {fileToRotate && (
+        <ImageRotator
+          file={fileToRotate}
+          onSave={handleRotatedFileSave}
+          onCancel={handleSkipRotation}
+        />
+      )}
     </div>
   );
 }
