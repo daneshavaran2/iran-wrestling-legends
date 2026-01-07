@@ -105,7 +105,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (user) {
-      checkAdminStatus();
+      // Defer admin check to idle time for faster initial load
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(() => checkAdminStatus());
+      } else {
+        setTimeout(checkAdminStatus, 100);
+      }
     }
   }, [user]);
 

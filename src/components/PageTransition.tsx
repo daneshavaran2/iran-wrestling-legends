@@ -11,14 +11,13 @@ export function PageTransition({ children }: PageTransitionProps) {
   const [displayChildren, setDisplayChildren] = useState(children);
 
   useEffect(() => {
-    // Start enter animation
     setIsVisible(false);
+    setDisplayChildren(children);
     
-    // Small delay to ensure the animation triggers
+    // Minimal delay for animation trigger
     const showTimer = setTimeout(() => {
-      setDisplayChildren(children);
       setIsVisible(true);
-    }, 50);
+    }, 10);
 
     return () => clearTimeout(showTimer);
   }, [location.pathname, children]);
@@ -26,11 +25,8 @@ export function PageTransition({ children }: PageTransitionProps) {
   return (
     <div
       className={`
-        w-full h-full transition-all duration-500 ease-out
-        ${isVisible 
-          ? 'opacity-100 translate-y-0 scale-100' 
-          : 'opacity-0 translate-y-4 scale-[0.99]'
-        }
+        w-full h-full transition-opacity duration-200 ease-out
+        ${isVisible ? 'opacity-100' : 'opacity-0'}
       `}
     >
       {displayChildren}

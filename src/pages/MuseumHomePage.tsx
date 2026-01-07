@@ -85,7 +85,7 @@ export default function MuseumHomePage() {
   return (
     <div className="h-screen flex flex-col items-center justify-center p-3 md:p-4 xl:p-6 overflow-hidden page-enter relative">
       {/* Spark Particles Background */}
-      <SparkParticles count={40} />
+      <SparkParticles count={20} />
 
       {/* Logo & Title - Optimized for 55-inch Kiosk */}
       <header className="text-center mb-6 md:mb-8 xl:mb-10 2xl:mb-12 flex-shrink-0 page-slide-up relative z-10" style={{ animationDelay: '0.1s' }}>
