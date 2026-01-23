@@ -1,46 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, BookOpen, User } from 'lucide-react';
+import { ArrowRight, BookOpen, User, WifiOff } from 'lucide-react';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { useKioskMode } from '@/hooks/useKioskMode';
-import { supabase } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LazyImage } from '@/components/ui/LazyImage';
-
-interface Book {
-  id: string;
-  title: string;
-  author: string;
-  cover_image_url: string | null;
-  summary: string | null;
-  related_wrestler_id: string | null;
-}
+import { useOfflineData } from '@/contexts/OfflineDataContext';
 
 export default function BooksListPage() {
   useKioskMode();
   const navigate = useNavigate();
-  const [books, setBooks] = useState<Book[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetchBooks();
-  }, []);
-
-  const fetchBooks = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('books')
-        .select('*')
-        .order('display_order');
-
-      if (error) throw error;
-      setBooks(data || []);
-    } catch (error) {
-      console.error('Error fetching books:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { books, isLoadingBooks, isOffline } = useOfflineData();
 
   return (
     <div className="h-screen flex flex-col overflow-hidden p-4 md:p-6 page-enter">
@@ -62,13 +32,19 @@ export default function BooksListPage() {
           <h1 className="text-2xl md:text-3xl xl:text-4xl font-bold">
             <span className="text-bronze bronze-glow">تألیفات</span>
           </h1>
+          {isOffline && (
+            <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-yellow-500/20 text-yellow-500 text-xs">
+              <WifiOff className="h-3 w-3" />
+              <span>آفلاین</span>
+            </div>
+          )}
         </div>
       </header>
 
       {/* Books Grid */}
       <main className="flex-1 flex items-center overflow-hidden">
         <div className="w-full max-w-7xl mx-auto">
-          {isLoading ? (
+          {isLoadingBooks ? (
             <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {[...Array(6)].map((_, i) => (
                 <Skeleton key={i} className="aspect-[3/4] w-full rounded-3xl" />

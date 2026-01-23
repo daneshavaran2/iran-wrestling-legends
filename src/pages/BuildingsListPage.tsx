@@ -1,47 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Building2 } from 'lucide-react';
+import { ArrowRight, Building2, WifiOff } from 'lucide-react';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { ParallaxCard } from '@/components/ui/ParallaxCard';
 import { SparkParticles } from '@/components/ui/SparkParticles';
 import { useKioskMode } from '@/hooks/useKioskMode';
-import { supabase } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LazyImage } from '@/components/ui/LazyImage';
-
-interface Building {
-  id: string;
-  name: string;
-  description: string | null;
-  hero_image_url: string | null;
-  display_order: number;
-}
+import { useOfflineData } from '@/contexts/OfflineDataContext';
 
 export default function BuildingsListPage() {
   useKioskMode();
   const navigate = useNavigate();
-  const [buildings, setBuildings] = useState<Building[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetchBuildings();
-  }, []);
-
-  const fetchBuildings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('buildings')
-        .select('id, name, description, hero_image_url, display_order')
-        .order('display_order');
-
-      if (error) throw error;
-      setBuildings(data || []);
-    } catch (error) {
-      console.error('Error fetching buildings:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { buildings, isLoadingBuildings, isOffline } = useOfflineData();
 
   return (
     <div className="h-screen flex flex-col overflow-hidden p-4 md:p-6 page-enter relative">
@@ -66,13 +37,19 @@ export default function BuildingsListPage() {
           <h1 className="text-2xl md:text-3xl xl:text-4xl font-bold">
             <span className="text-neon neon-glow">بناها و اماکن</span>
           </h1>
+          {isOffline && (
+            <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-yellow-500/20 text-yellow-500 text-xs">
+              <WifiOff className="h-3 w-3" />
+              <span>آفلاین</span>
+            </div>
+          )}
         </div>
       </header>
 
       {/* Buildings Grid */}
       <main className="flex-1 flex items-center overflow-hidden relative z-10">
         <div className="w-full max-w-7xl mx-auto">
-          {isLoading ? (
+          {isLoadingBuildings ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {[...Array(4)].map((_, i) => (
                 <Skeleton key={i} className="h-56 w-full rounded-3xl" />

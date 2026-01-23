@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { WrestlerProvider } from "@/contexts/WrestlerContext";
+import { OfflineDataProvider } from "@/contexts/OfflineDataContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -60,6 +61,7 @@ const App = () => (
     <ThemeProvider>
       <TooltipProvider>
         <AuthProvider>
+          <OfflineDataProvider>
           <WrestlerProvider>
           <Toaster />
           <Sonner />
@@ -174,6 +176,7 @@ const App = () => (
             </Suspense>
           </BrowserRouter>
           </WrestlerProvider>
+          </OfflineDataProvider>
         </AuthProvider>
       </TooltipProvider>
     </ThemeProvider>
