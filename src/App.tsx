@@ -43,6 +43,7 @@ const AdminBooksPage = lazy(() => import("./pages/admin/AdminBooksPage"));
 const AdminAlbumsPage = lazy(() => import("./pages/admin/AdminAlbumsPage"));
 const AdminAboutPage = lazy(() => import("./pages/admin/AdminAboutPage"));
 const AdminAudioPage = lazy(() => import("./pages/admin/AdminAudioPage"));
+const AdminOfflineSettingsPage = lazy(() => import("./pages/admin/AdminOfflineSettingsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -166,6 +167,13 @@ const App = () => (
                   <ProtectedRoute>
                     <AdminLayout>
                       <AdminAudioPage />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/offline" element={
+                  <ProtectedRoute>
+                    <AdminLayout>
+                      <AdminOfflineSettingsPage />
                     </AdminLayout>
                   </ProtectedRoute>
                 } />
