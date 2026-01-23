@@ -4,7 +4,7 @@ import { ArrowRight, Loader2, BookOpen } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { FlipBook } from '@/components/ui/FlipBook';
 
 export default function AlbumGalleryPage() {

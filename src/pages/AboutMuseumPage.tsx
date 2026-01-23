@@ -4,7 +4,7 @@ import { ArrowRight, Info, Loader2, Play, X } from 'lucide-react';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { LazyImage } from '@/components/ui/LazyImage';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import logo from '@/assets/logo.png';
 

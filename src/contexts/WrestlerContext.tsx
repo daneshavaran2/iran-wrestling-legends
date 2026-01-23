@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { iranianProvinces, wrestlingStyles, medalTypes } from '@/data/wrestlers';
 
 export interface Wrestler {

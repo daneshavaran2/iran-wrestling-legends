@@ -3,7 +3,7 @@ import { Loader2, Save, X, Image as ImageIcon, Video } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { UploadDropzone } from '@/components/UploadDropzone';
 import { useMediaUpload } from '@/hooks/useMediaUpload';
