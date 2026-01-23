@@ -1,27 +1,51 @@
 {
-  "name": "موزه افتخارات کشتی",
-  "short_name": "موزه افتخارات",
+  "name": "موزه افتخارات کشتی ایران",
+  "short_name": "موزه کشتی",
   "description": "موزه دیجیتال افتخارات کشتی ایران - مرور زندگی و افتخارات بزرگان کشتی ایران",
   "start_url": "/",
+  "id": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "any",
   "background_color": "#0A0A0A",
   "theme_color": "#d48955",
   "lang": "fa",
   "dir": "rtl",
+  "scope": "/",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/favicon.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/favicon.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
-  "categories": ["education", "sports"]
+  "categories": ["education", "sports"],
+  "shortcuts": [
+    {
+      "name": "کشتی‌گیران",
+      "short_name": "کشتی‌گیران",
+      "url": "/wrestlers",
+      "icons": [{ "src": "/favicon.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "تاریخچه",
+      "short_name": "تاریخچه",
+      "url": "/history",
+      "icons": [{ "src": "/favicon.png", "sizes": "192x192" }]
+    }
+  ]
 }

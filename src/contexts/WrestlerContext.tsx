@@ -235,6 +235,18 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
       }
     } else {
       setIsOffline(false);
+      
+      // Pre-cache wrestler images for offline use
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        const imageUrls = wrestlers
+          .filter(w => w.image_url)
+          .map(w => w.image_url as string);
+        
+        navigator.serviceWorker.controller.postMessage({
+          type: 'CACHE_IMAGES',
+          urls: imageUrls,
+        });
+      }
     }
     
     setIsLoading(false);
