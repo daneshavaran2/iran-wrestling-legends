@@ -14,7 +14,8 @@ import {
   BookOpen,
   Images,
   Info,
-  Music
+  Music,
+  Download
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,6 +35,7 @@ const navItems = [
   { path: '/admin/albums', label: 'آلبوم‌ها', icon: Images },
   { path: '/admin/audio', label: 'موسیقی', icon: Music },
   { path: '/admin/about', label: 'درباره موزه', icon: Info },
+  { path: '/admin/offline', label: 'تنظیمات آفلاین', icon: Download },
 ];
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
