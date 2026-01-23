@@ -1,8 +1,12 @@
-import { Download, Trash2, HardDrive, Clock, Users, History, Building2, BookOpen, Images, Image } from 'lucide-react';
+import { Download, Trash2, HardDrive, Clock, Users, History, Building2, BookOpen, Images, Image, RefreshCw, Bell, Timer } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DownloadProgressCard } from '@/components/DownloadProgressCard';
 import { useOfflineDownload } from '@/hooks/useOfflineDownload';
+import { useOfflineData } from '@/contexts/OfflineDataContext';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +30,15 @@ export default function AdminOfflineSettingsPage() {
     formatBytes,
     toPersianNumber,
   } = useOfflineDownload();
+
+  const {
+    autoSyncSettings,
+    updateAutoSyncSettings,
+    isSyncing,
+    syncNow,
+    getTimeUntilNextSync,
+    getLastSyncFormatted,
+  } = useOfflineData();
 
   const handleStartDownload = () => {
     startFullDownload();
@@ -178,6 +191,111 @@ export default function AdminOfflineSettingsPage() {
         )}
       </div>
 
+      {/* Auto Sync Section */}
+      <GlassCard className="p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <RefreshCw className="h-6 w-6 text-primary" />
+          <h2 className="text-xl font-semibold">به‌روزرسانی اتوماتیک</h2>
+        </div>
+
+        <div className="space-y-6">
+          {/* Enable/Disable Auto Sync */}
+          <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50">
+            <div className="flex items-center gap-3">
+              <Timer className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <Label htmlFor="auto-sync" className="font-medium">به‌روزرسانی خودکار</Label>
+                <p className="text-xs text-muted-foreground">
+                  داده‌ها به صورت دوره‌ای به‌روز می‌شوند
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="auto-sync"
+              checked={autoSyncSettings.enabled}
+              onCheckedChange={(checked) => updateAutoSyncSettings({ enabled: checked })}
+            />
+          </div>
+
+          {/* Interval Selection */}
+          {autoSyncSettings.enabled && (
+            <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50">
+              <div className="flex items-center gap-3">
+                <Clock className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <Label className="font-medium">بازه زمانی</Label>
+                  <p className="text-xs text-muted-foreground">
+                    هر چند ساعت یک‌بار به‌روزرسانی شود
+                  </p>
+                </div>
+              </div>
+              <Select
+                value={autoSyncSettings.intervalHours.toString()}
+                onValueChange={(value) => updateAutoSyncSettings({ intervalHours: parseInt(value) })}
+              >
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="6">۶ ساعت</SelectItem>
+                  <SelectItem value="12">۱۲ ساعت</SelectItem>
+                  <SelectItem value="24">۲۴ ساعت</SelectItem>
+                  <SelectItem value="48">۴۸ ساعت</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Show Notification */}
+          {autoSyncSettings.enabled && (
+            <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50">
+              <div className="flex items-center gap-3">
+                <Bell className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <Label htmlFor="show-notification" className="font-medium">نمایش اعلان</Label>
+                  <p className="text-xs text-muted-foreground">
+                    هنگام به‌روزرسانی اعلان نمایش داده شود
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id="show-notification"
+                checked={autoSyncSettings.showNotification}
+                onCheckedChange={(checked) => updateAutoSyncSettings({ showNotification: checked })}
+              />
+            </div>
+          )}
+
+          {/* Sync Status */}
+          {autoSyncSettings.enabled && (
+            <div className="grid grid-cols-2 gap-4 pt-2">
+              <div className="text-center p-3 rounded-lg bg-muted/20">
+                <div className="text-sm text-muted-foreground mb-1">آخرین به‌روزرسانی</div>
+                <div className="font-medium">{getLastSyncFormatted() || 'هنوز انجام نشده'}</div>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-muted/20">
+                <div className="text-sm text-muted-foreground mb-1">به‌روزرسانی بعدی</div>
+                <div className="font-medium">{getTimeUntilNextSync() || 'نامشخص'}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Manual Sync Button */}
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              syncNow();
+              toast.info('در حال به‌روزرسانی دستی...');
+            }}
+            disabled={isSyncing}
+          >
+            <RefreshCw className={`h-4 w-4 ml-2 ${isSyncing ? 'animate-spin' : ''}`} />
+            {isSyncing ? 'در حال به‌روزرسانی...' : 'به‌روزرسانی دستی'}
+          </Button>
+        </div>
+      </GlassCard>
+
       {/* Tips Section */}
       <GlassCard className="p-6">
         <h3 className="text-lg font-semibold mb-4">نکات مهم</h3>
@@ -192,7 +310,7 @@ export default function AdminOfflineSettingsPage() {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-primary mt-1">•</span>
-            <span>برای به‌روزرسانی داده‌ها، دوباره دکمه دانلود را بزنید.</span>
+            <span>با فعال کردن به‌روزرسانی اتوماتیک، داده‌ها همیشه به‌روز خواهند بود.</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-primary mt-1">•</span>

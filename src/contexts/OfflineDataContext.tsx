@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useAutoSync } from '@/hooks/useAutoSync';
 
 // Interfaces
 interface HistorySection {
@@ -38,6 +39,12 @@ interface Album {
   photo_count?: number;
 }
 
+interface AutoSyncSettings {
+  enabled: boolean;
+  intervalHours: number;
+  showNotification: boolean;
+}
+
 interface OfflineDataContextType {
   // Data
   historySections: HistorySection[];
@@ -61,6 +68,14 @@ interface OfflineDataContextType {
   refreshBuildings: () => Promise<void>;
   refreshBooks: () => Promise<void>;
   refreshAlbums: () => Promise<void>;
+  
+  // Auto Sync
+  autoSyncSettings: AutoSyncSettings;
+  updateAutoSyncSettings: (settings: Partial<AutoSyncSettings>) => void;
+  isSyncing: boolean;
+  syncNow: () => Promise<void>;
+  getTimeUntilNextSync: () => string | null;
+  getLastSyncFormatted: () => string | null;
 }
 
 const CACHE_KEYS = {
@@ -304,6 +319,16 @@ export const OfflineDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   }, [isOffline, refreshAllData]);
 
+  // Auto Sync hook
+  const {
+    settings: autoSyncSettings,
+    updateSettings: updateAutoSyncSettings,
+    isSyncing,
+    syncNow,
+    getTimeUntilNextSync,
+    getLastSyncFormatted,
+  } = useAutoSync(refreshAllData, isOffline);
+
   const value: OfflineDataContextType = {
     historySections,
     buildings,
@@ -320,6 +345,13 @@ export const OfflineDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     refreshBuildings,
     refreshBooks,
     refreshAlbums,
+    // Auto Sync
+    autoSyncSettings,
+    updateAutoSyncSettings,
+    isSyncing,
+    syncNow,
+    getTimeUntilNextSync,
+    getLastSyncFormatted,
   };
 
   return (

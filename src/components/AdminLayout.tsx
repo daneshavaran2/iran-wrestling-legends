@@ -12,6 +12,7 @@ import {
   History,
   Building2,
   BookOpen,
+  Database,
   Images,
   Info,
   Music,
@@ -36,6 +37,7 @@ const navItems = [
   { path: '/admin/audio', label: 'موسیقی', icon: Music },
   { path: '/admin/about', label: 'درباره موزه', icon: Info },
   { path: '/admin/offline', label: 'تنظیمات آفلاین', icon: Download },
+  { path: '/admin/backup', label: 'پشتیبان‌گیری', icon: Database },
 ];
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
