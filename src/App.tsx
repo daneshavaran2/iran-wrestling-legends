@@ -45,6 +45,7 @@ const AdminAboutPage = lazy(() => import("./pages/admin/AdminAboutPage"));
 const AdminAudioPage = lazy(() => import("./pages/admin/AdminAudioPage"));
 const AdminOfflineSettingsPage = lazy(() => import("./pages/admin/AdminOfflineSettingsPage"));
 const AdminBackupPage = lazy(() => import("./pages/admin/AdminBackupPage"));
+const AdminResetPasswordPage = lazy(() => import("./pages/admin/AdminResetPasswordPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -106,6 +107,7 @@ const App = () => (
                 <Route path="/admin/login" element={<AdminLoginPage />} />
                 <Route path="/admin/signup" element={<AdminSignupPage />} />
                 <Route path="/admin/setup" element={<AdminSetupPage />} />
+                <Route path="/admin/reset-password" element={<AdminResetPasswordPage />} />
                 
                 {/* Protected Admin Routes */}
                 <Route path="/admin" element={
