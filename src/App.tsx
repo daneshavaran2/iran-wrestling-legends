@@ -13,6 +13,7 @@ import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import AdminLayout from "@/components/AdminLayout";
 import { BackgroundMusicPlayer } from "@/components/BackgroundMusicPlayer";
+import InstallPrompt from "@/components/InstallPrompt";
 
 // Lazy load public pages
 const MuseumHomePage = lazy(() => import("./pages/MuseumHomePage"));
@@ -26,6 +27,7 @@ const BooksListPage = lazy(() => import("./pages/BooksListPage"));
 const AlbumsListPage = lazy(() => import("./pages/AlbumsListPage"));
 const AlbumGalleryPage = lazy(() => import("./pages/AlbumGalleryPage"));
 const AboutMuseumPage = lazy(() => import("./pages/AboutMuseumPage"));
+const InstallPage = lazy(() => import("./pages/InstallPage"));
 
 // Lazy load admin pages
 const AdminLoginPage = lazy(() => import("./pages/admin/AdminLoginPage"));
@@ -64,6 +66,7 @@ const App = () => (
           <BrowserRouter>
             <BackgroundMusicPlayer />
             <OfflineIndicator />
+            <InstallPrompt />
             <Suspense fallback={<LoadingSpinner />}>
               <PageTransition>
                 <Routes>
@@ -91,6 +94,9 @@ const App = () => (
                   
                   {/* About */}
                   <Route path="/about" element={<AboutMuseumPage />} />
+                  
+                  {/* Install */}
+                  <Route path="/install" element={<InstallPage />} />
                 
                 {/* Auth Routes */}
                 <Route path="/admin/login" element={<AdminLoginPage />} />

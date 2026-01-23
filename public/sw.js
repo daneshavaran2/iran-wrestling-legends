@@ -1,8 +1,11 @@
-const CACHE_NAME = 'iran-wrestling-museum-v1';
+const CACHE_NAME = 'iran-wrestling-museum-v2';
+const API_CACHE_NAME = 'iran-wrestling-api-v1';
 
 const STATIC_ASSETS = [
   '/',
+  '/index.html',
   '/favicon.png',
+  '/manifest.json',
   '/fonts/Vazirmatn-Regular.woff2',
   '/fonts/Vazirmatn-Bold.woff2',
   '/fonts/Vazirmatn-Medium.woff2',
@@ -25,7 +28,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== CACHE_NAME)
+          .filter((name) => name !== CACHE_NAME && name !== API_CACHE_NAME)
           .map((name) => caches.delete(name))
       );
     })
@@ -41,8 +44,36 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // Skip Supabase API calls - always fetch fresh
-  if (url.hostname.includes('supabase')) return;
+  // Handle Supabase API calls - Network first, cache fallback
+  if (url.hostname.includes('supabase')) {
+    event.respondWith(
+      caches.open(API_CACHE_NAME).then((cache) => {
+        return fetch(request)
+          .then((networkResponse) => {
+            if (networkResponse.ok) {
+              cache.put(request, networkResponse.clone());
+            }
+            return networkResponse;
+          })
+          .catch(() => {
+            return cache.match(request).then((cachedResponse) => {
+              if (cachedResponse) {
+                return cachedResponse;
+              }
+              // Return a custom offline response for API
+              return new Response(
+                JSON.stringify({ error: 'آفلاین - داده‌ها از کش بارگذاری شد' }),
+                {
+                  status: 503,
+                  headers: { 'Content-Type': 'application/json' },
+                }
+              );
+            });
+          });
+      })
+    );
+    return;
+  }
 
   // For images - Cache First strategy
   if (request.destination === 'image') {
@@ -59,6 +90,9 @@ self.addEventListener('fetch', (event) => {
             });
           }
           return networkResponse;
+        }).catch(() => {
+          // Return placeholder for failed images
+          return caches.match('/placeholder.svg');
         });
       })
     );
@@ -78,7 +112,37 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       })
       .catch(() => {
-        return caches.match(request);
+        return caches.match(request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          // Return offline page for navigation requests
+          if (request.mode === 'navigate') {
+            return caches.match('/');
+          }
+          return new Response('آفلاین', { status: 503 });
+        });
       })
   );
+});
+
+// Listen for messages from the app
+self.addEventListener('message', (event) => {
+  if (event.data === 'skipWaiting') {
+    self.skipWaiting();
+  }
+  
+  // Pre-cache wrestler images
+  if (event.data.type === 'CACHE_IMAGES') {
+    const urls = event.data.urls;
+    caches.open(CACHE_NAME).then((cache) => {
+      urls.forEach((url) => {
+        fetch(url).then((response) => {
+          if (response.ok) {
+            cache.put(url, response);
+          }
+        }).catch(() => {});
+      });
+    });
+  }
 });
