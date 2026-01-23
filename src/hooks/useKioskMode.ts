@@ -54,12 +54,6 @@ export function useKioskMode() {
       resetTimer();
     };
 
-    // Disable right-click context menu
-    const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
-      return false;
-    };
-
     // Disable keyboard shortcuts (F12, Ctrl+Shift+I, etc.)
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -80,7 +74,6 @@ export function useKioskMode() {
     });
 
     // Add kiosk security listeners
-    document.addEventListener('contextmenu', handleContextMenu);
     document.addEventListener('keydown', handleKeyDown);
 
     // Add kiosk-mode class to body for CSS restrictions
@@ -92,7 +85,6 @@ export function useKioskMode() {
       activityEvents.forEach(event => {
         document.removeEventListener(event, handleActivity);
       });
-      document.removeEventListener('contextmenu', handleContextMenu);
       document.removeEventListener('keydown', handleKeyDown);
       document.body.classList.remove('kiosk-mode');
       if (timeoutRef.current) {
