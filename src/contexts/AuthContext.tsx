@@ -56,14 +56,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase.rpc('admin_exists');
       
       if (error) {
-        console.error('Error checking admin exists:', error);
+        // Silently handle network errors - not critical for app functionality
         setHasAnyAdmin(false);
         return;
       }
 
       setHasAnyAdmin(!!data);
-    } catch (err) {
-      console.error('Error checking admin exists:', err);
+    } catch {
+      // Network error - silently fail, not critical
       setHasAnyAdmin(false);
     }
   };
