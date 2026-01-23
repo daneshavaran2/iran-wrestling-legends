@@ -5,7 +5,7 @@ import { GoldButton } from '@/components/ui/GoldButton';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 export default function AdminAudioPage() {

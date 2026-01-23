@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, X, History, Users, Building2, BookOpen, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 interface SearchResult {
   id: string;

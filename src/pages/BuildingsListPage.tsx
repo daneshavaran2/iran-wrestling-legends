@@ -5,7 +5,7 @@ import { GoldButton } from '@/components/ui/GoldButton';
 import { ParallaxCard } from '@/components/ui/ParallaxCard';
 import { SparkParticles } from '@/components/ui/SparkParticles';
 import { useKioskMode } from '@/hooks/useKioskMode';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LazyImage } from '@/components/ui/LazyImage';
 
