@@ -1,34 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Images, Loader2 } from 'lucide-react';
+import { ArrowRight, Images, WifiOff } from 'lucide-react';
 import { GoldButton } from '@/components/ui/GoldButton';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useOfflineData } from '@/contexts/OfflineDataContext';
 
 export default function AlbumsListPage() {
   const navigate = useNavigate();
-
-  const { data: albums, isLoading } = useQuery({
-    queryKey: ['albums'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('albums')
-        .select('*, album_photos(count)')
-        .order('display_order', { ascending: true });
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="liquid-glass p-8 rounded-3xl">
-          <Loader2 className="h-12 w-12 animate-spin text-bronze" />
-        </div>
-      </div>
-    );
-  }
+  const { albums, isLoadingAlbums, isOffline } = useOfflineData();
 
   return (
     <div className="min-h-screen p-6 md:p-8 page-enter">
@@ -47,13 +26,25 @@ export default function AlbumsListPage() {
             <Images className="h-10 w-10 text-bronze" />
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-bronze bronze-glow">آلبوم تصاویر</h1>
+          {isOffline && (
+            <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-yellow-500/20 text-yellow-500 text-xs">
+              <WifiOff className="h-3 w-3" />
+              <span>آفلاین</span>
+            </div>
+          )}
         </div>
         <p className="text-lg text-muted-foreground">مجموعه تصاویر تاریخی کشتی ایران</p>
       </header>
 
       {/* Albums Grid */}
       <main className="max-w-6xl mx-auto">
-        {albums && albums.length > 0 ? (
+        {isLoadingAlbums ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <Skeleton key={i} className="aspect-video w-full rounded-3xl" />
+            ))}
+          </div>
+        ) : albums && albums.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {albums.map((album, index) => (
               <button
@@ -87,7 +78,7 @@ export default function AlbumsListPage() {
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground/60 mt-3">
-                      {(album as any).album_photos?.[0]?.count || 0} تصویر
+                      {album.photo_count || 0} تصویر
                     </p>
                   </div>
                 </div>

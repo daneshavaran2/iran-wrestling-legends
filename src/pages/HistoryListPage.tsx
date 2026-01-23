@@ -1,46 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, History, ChevronLeft, Sparkles } from 'lucide-react';
+import { ArrowRight, History, ChevronLeft, Sparkles, WifiOff } from 'lucide-react';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { useKioskMode } from '@/hooks/useKioskMode';
-import { supabase } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
-
-interface HistorySection {
-  id: string;
-  parent_id: string | null;
-  title: string;
-  slug: string;
-  highlighted_quote: string | null;
-  display_order: number;
-}
+import { useOfflineData } from '@/contexts/OfflineDataContext';
 
 export default function HistoryListPage() {
   useKioskMode();
   const navigate = useNavigate();
-  const [sections, setSections] = useState<HistorySection[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetchSections();
-  }, []);
-
-  const fetchSections = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('history_sections')
-        .select('*')
-        .is('parent_id', null)
-        .order('display_order');
-
-      if (error) throw error;
-      setSections(data || []);
-    } catch (error) {
-      console.error('Error fetching history sections:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { historySections, isLoadingHistory, isOffline } = useOfflineData();
 
   return (
     <div className="h-screen flex flex-col overflow-hidden p-4 md:p-6 page-enter">
@@ -62,19 +31,25 @@ export default function HistoryListPage() {
           <h1 className="text-2xl md:text-3xl xl:text-4xl font-bold">
             <span className="text-bronze bronze-glow">تاریخچه</span>
           </h1>
+          {isOffline && (
+            <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-yellow-500/20 text-yellow-500 text-xs">
+              <WifiOff className="h-3 w-3" />
+              <span>آفلاین</span>
+            </div>
+          )}
         </div>
       </header>
 
       {/* History Sections - Liquid Glass Cards */}
       <main className="flex-1 flex items-center">
         <div className="w-full max-w-7xl mx-auto">
-          {isLoading ? (
+          {isLoadingHistory ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {[...Array(5)].map((_, i) => (
                 <Skeleton key={i} className="h-44 w-full rounded-3xl" />
               ))}
             </div>
-          ) : sections.length === 0 ? (
+          ) : historySections.length === 0 ? (
             <div className="liquid-glass p-12 text-center max-w-md mx-auto rounded-3xl">
               <History className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-xl font-bold mb-2">محتوایی وجود ندارد</h3>
@@ -84,7 +59,7 @@ export default function HistoryListPage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
-              {sections.map((section, index) => (
+              {historySections.map((section, index) => (
                 <button
                   key={section.id}
                   onClick={() => navigate(`/history/${section.slug}`)}
