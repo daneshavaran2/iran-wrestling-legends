@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History, Users, Building2, BookOpen, Images, Info } from 'lucide-react';
+import { History, Users, Building2, BookOpen, Images, Info, Settings } from 'lucide-react';
 import { ParallaxCard } from '@/components/ui/ParallaxCard';
 import { SparkParticles } from '@/components/ui/SparkParticles';
 import { useKioskMode } from '@/hooks/useKioskMode';
@@ -131,15 +131,14 @@ export default function MuseumHomePage() {
         </div>
       </main>
 
-      {/* Admin Link (subtle) */}
-      <footer className="fixed bottom-4 left-4">
-        <a
-          href="/admin/login"
-          className="text-xs text-muted-foreground/20 hover:text-muted-foreground/60 transition-colors"
-        >
-          ورود مدیران
-        </a>
-      </footer>
+      {/* Admin Button (visible floating button) */}
+      <button
+        onClick={() => navigate('/admin/login')}
+        className="fixed bottom-6 left-6 p-4 rounded-full cyber-glass text-muted-foreground hover:text-primary hover:bg-primary/20 transition-all duration-300 shadow-lg hover:shadow-primary/30 z-50"
+        title="ورود مدیران"
+      >
+        <Settings className="h-6 w-6" />
+      </button>
 
     </div>
   );
