@@ -2,6 +2,17 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { supabase } from '@/lib/supabase';
 import { iranianProvinces, wrestlingStyles, medalTypes } from '@/data/wrestlers';
 
+// Cache keys for localStorage
+const CACHE_KEYS = {
+  WRESTLERS: 'museum_wrestlers_cache',
+  ACHIEVEMENTS: 'museum_achievements_cache',
+  MEDIA: 'museum_media_cache',
+  TIMESTAMP: 'museum_cache_timestamp',
+};
+
+// Cache expiry time (24 hours in milliseconds)
+const CACHE_EXPIRY = 24 * 60 * 60 * 1000;
+
 export interface Wrestler {
   id: string;
   name: string;
@@ -45,6 +56,7 @@ interface WrestlerContextType {
   media: WrestlerMedia[];
   isLoading: boolean;
   error: string | null;
+  isOffline: boolean;
   refreshWrestlers: () => Promise<void>;
   getWrestlerById: (id: string) => Wrestler | undefined;
   getAchievementsByWrestlerId: (id: string) => Achievement[];
@@ -63,14 +75,72 @@ interface WrestlerContextType {
 
 const WrestlerContext = createContext<WrestlerContextType | undefined>(undefined);
 
+// Helper functions for cache management
+function saveToCache<T>(key: string, data: T): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+    localStorage.setItem(CACHE_KEYS.TIMESTAMP, Date.now().toString());
+  } catch (err) {
+    console.warn('Failed to save to cache:', err);
+  }
+}
+
+function loadFromCache<T>(key: string): T | null {
+  try {
+    const cached = localStorage.getItem(key);
+    if (!cached) return null;
+    
+    const timestamp = localStorage.getItem(CACHE_KEYS.TIMESTAMP);
+    if (timestamp) {
+      const age = Date.now() - parseInt(timestamp, 10);
+      if (age > CACHE_EXPIRY) {
+        // Cache expired, but still return data for offline use
+        console.log('Cache expired but using for offline fallback');
+      }
+    }
+    
+    return JSON.parse(cached) as T;
+  } catch (err) {
+    console.warn('Failed to load from cache:', err);
+    return null;
+  }
+}
+
+function clearCache(): void {
+  try {
+    Object.values(CACHE_KEYS).forEach(key => localStorage.removeItem(key));
+  } catch (err) {
+    console.warn('Failed to clear cache:', err);
+  }
+}
+
 export function WrestlerProvider({ children }: { children: ReactNode }) {
   const [wrestlers, setWrestlers] = useState<Wrestler[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [media, setMedia] = useState<WrestlerMedia[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
 
-  const fetchWrestlers = async () => {
+  // Load cached data on initial mount
+  useEffect(() => {
+    const cachedWrestlers = loadFromCache<Wrestler[]>(CACHE_KEYS.WRESTLERS);
+    const cachedAchievements = loadFromCache<Achievement[]>(CACHE_KEYS.ACHIEVEMENTS);
+    const cachedMedia = loadFromCache<WrestlerMedia[]>(CACHE_KEYS.MEDIA);
+    
+    if (cachedWrestlers && cachedWrestlers.length > 0) {
+      setWrestlers(cachedWrestlers);
+      console.log('Loaded wrestlers from cache:', cachedWrestlers.length);
+    }
+    if (cachedAchievements) {
+      setAchievements(cachedAchievements);
+    }
+    if (cachedMedia) {
+      setMedia(cachedMedia);
+    }
+  }, []);
+
+  const fetchWrestlers = async (): Promise<boolean> => {
     try {
       const { data, error } = await supabase
         .from('wrestlers')
@@ -87,13 +157,15 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
       }));
       
       setWrestlers(mappedData);
+      saveToCache(CACHE_KEYS.WRESTLERS, mappedData);
+      return true;
     } catch (err) {
       console.error('Error fetching wrestlers:', err);
-      setError('خطا در بارگذاری اطلاعات');
+      return false;
     }
   };
 
-  const fetchAchievements = async () => {
+  const fetchAchievements = async (): Promise<boolean> => {
     try {
       const { data, error } = await supabase
         .from('achievements')
@@ -108,12 +180,15 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
       }));
       
       setAchievements(mappedData);
+      saveToCache(CACHE_KEYS.ACHIEVEMENTS, mappedData);
+      return true;
     } catch (err) {
       console.error('Error fetching achievements:', err);
+      return false;
     }
   };
 
-  const fetchMedia = async () => {
+  const fetchMedia = async (): Promise<boolean> => {
     try {
       const { data, error } = await supabase
         .from('wrestler_media')
@@ -128,19 +203,68 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
       }));
       
       setMedia(mappedData);
+      saveToCache(CACHE_KEYS.MEDIA, mappedData);
+      return true;
     } catch (err) {
       console.error('Error fetching media:', err);
+      return false;
     }
   };
 
   const refreshWrestlers = async () => {
     setIsLoading(true);
-    await Promise.all([fetchWrestlers(), fetchAchievements(), fetchMedia()]);
+    setError(null);
+    
+    const results = await Promise.all([
+      fetchWrestlers(),
+      fetchAchievements(),
+      fetchMedia()
+    ]);
+    
+    const allSucceeded = results.every(r => r === true);
+    
+    if (!allSucceeded) {
+      // Check if we have cached data
+      const hasCachedData = wrestlers.length > 0;
+      
+      if (hasCachedData) {
+        setIsOffline(true);
+        setError('حالت آفلاین - نمایش داده‌های ذخیره شده');
+      } else {
+        setError('خطا در بارگذاری اطلاعات. لطفاً اتصال اینترنت را بررسی کنید.');
+      }
+    } else {
+      setIsOffline(false);
+    }
+    
     setIsLoading(false);
   };
 
   useEffect(() => {
     refreshWrestlers();
+    
+    // Listen for online/offline events
+    const handleOnline = () => {
+      console.log('Back online, refreshing data...');
+      setIsOffline(false);
+      refreshWrestlers();
+    };
+    
+    const handleOffline = () => {
+      console.log('Gone offline, using cached data');
+      setIsOffline(true);
+      if (wrestlers.length > 0) {
+        setError('حالت آفلاین - نمایش داده‌های ذخیره شده');
+      }
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   const getWrestlerById = (id: string) => wrestlers.find(w => w.id === id);
@@ -180,7 +304,9 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
       is_visible: data.is_visible ?? true,
     };
     
-    setWrestlers(prev => [...prev, newWrestler]);
+    const updatedWrestlers = [...wrestlers, newWrestler];
+    setWrestlers(updatedWrestlers);
+    saveToCache(CACHE_KEYS.WRESTLERS, updatedWrestlers);
     return newWrestler;
   };
 
@@ -213,7 +339,9 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
       is_visible: data.is_visible ?? true,
     };
     
-    setWrestlers(prev => prev.map(w => w.id === id ? updated : w));
+    const updatedWrestlers = wrestlers.map(w => w.id === id ? updated : w);
+    setWrestlers(updatedWrestlers);
+    saveToCache(CACHE_KEYS.WRESTLERS, updatedWrestlers);
     return updated;
   };
 
@@ -232,9 +360,17 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
 
     if (error) throw error;
     
-    setWrestlers(prev => prev.filter(w => w.id !== id));
-    setAchievements(prev => prev.filter(a => a.wrestler_id !== id));
-    setMedia(prev => prev.filter(m => m.wrestler_id !== id));
+    const updatedWrestlers = wrestlers.filter(w => w.id !== id);
+    const updatedAchievements = achievements.filter(a => a.wrestler_id !== id);
+    const updatedMedia = media.filter(m => m.wrestler_id !== id);
+    
+    setWrestlers(updatedWrestlers);
+    setAchievements(updatedAchievements);
+    setMedia(updatedMedia);
+    
+    saveToCache(CACHE_KEYS.WRESTLERS, updatedWrestlers);
+    saveToCache(CACHE_KEYS.ACHIEVEMENTS, updatedAchievements);
+    saveToCache(CACHE_KEYS.MEDIA, updatedMedia);
   };
 
   const addAchievement = async (achievement: Omit<Achievement, 'id'>): Promise<Achievement> => {
@@ -258,7 +394,9 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
       medal_type: data.medal_type as 'gold' | 'silver' | 'bronze',
     };
     
-    setAchievements(prev => [...prev, newAchievement]);
+    const updatedAchievements = [...achievements, newAchievement];
+    setAchievements(updatedAchievements);
+    saveToCache(CACHE_KEYS.ACHIEVEMENTS, updatedAchievements);
     return newAchievement;
   };
 
@@ -277,7 +415,9 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
       medal_type: data.medal_type as 'gold' | 'silver' | 'bronze',
     };
     
-    setAchievements(prev => prev.map(a => a.id === id ? updated : a));
+    const updatedAchievements = achievements.map(a => a.id === id ? updated : a);
+    setAchievements(updatedAchievements);
+    saveToCache(CACHE_KEYS.ACHIEVEMENTS, updatedAchievements);
     return updated;
   };
 
@@ -289,7 +429,9 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
 
     if (error) throw error;
     
-    setAchievements(prev => prev.filter(a => a.id !== id));
+    const updatedAchievements = achievements.filter(a => a.id !== id);
+    setAchievements(updatedAchievements);
+    saveToCache(CACHE_KEYS.ACHIEVEMENTS, updatedAchievements);
   };
 
   const addMedia = async (mediaItem: Omit<WrestlerMedia, 'id'>): Promise<WrestlerMedia> => {
@@ -313,7 +455,9 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
       type: data.type as 'image' | 'video',
     };
     
-    setMedia(prev => [...prev, newMedia]);
+    const updatedMedia = [...media, newMedia];
+    setMedia(updatedMedia);
+    saveToCache(CACHE_KEYS.MEDIA, updatedMedia);
     return newMedia;
   };
 
@@ -325,7 +469,9 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
 
     if (error) throw error;
     
-    setMedia(prev => prev.filter(m => m.id !== id));
+    const updatedMedia = media.filter(m => m.id !== id);
+    setMedia(updatedMedia);
+    saveToCache(CACHE_KEYS.MEDIA, updatedMedia);
   };
 
   return (
@@ -335,6 +481,7 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
       media,
       isLoading,
       error,
+      isOffline,
       refreshWrestlers,
       getWrestlerById,
       getVisibleWrestlers,

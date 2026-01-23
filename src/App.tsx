@@ -10,6 +10,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PageTransition } from "@/components/PageTransition";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 import AdminLayout from "@/components/AdminLayout";
 import { BackgroundMusicPlayer } from "@/components/BackgroundMusicPlayer";
 
@@ -62,6 +63,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <BackgroundMusicPlayer />
+            <OfflineIndicator />
             <Suspense fallback={<LoadingSpinner />}>
               <PageTransition>
                 <Routes>
