@@ -4,6 +4,9 @@ import { History, Users, Building2, BookOpen, Images, Info, Settings, HardDrive 
 import { ParallaxCard } from '@/components/ui/ParallaxCard';
 import { SparkParticles } from '@/components/ui/SparkParticles';
 import { useKioskMode } from '@/hooks/useKioskMode';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { LanguageSelector } from '@/components/LanguageSelector';
+import { ChatAssistant } from '@/components/ChatAssistant';
 import federationLogo from '@/assets/federation-logo.png';
 
 interface MenuCardProps {
@@ -42,42 +45,43 @@ function MenuCard({ title, icon, description, onClick, delay }: MenuCardProps) {
 export default function MuseumHomePage() {
   useKioskMode();
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const menuItems = [
     {
-      title: 'تاریخچه',
+      title: t('home.menuHistory'),
       icon: <History className="h-10 w-10 md:h-12 md:w-12 xl:h-16 xl:w-16 2xl:h-20 2xl:w-20" />,
-      description: 'سفر در تاریخ کشتی ایران',
+      description: t('home.menuHistoryDesc'),
       path: '/history',
     },
     {
-      title: 'کشتی‌گیران',
+      title: t('home.menuWrestlers'),
       icon: <Users className="h-10 w-10 md:h-12 md:w-12 xl:h-16 xl:w-16 2xl:h-20 2xl:w-20" />,
-      description: 'پهلوانان و قهرمانان',
+      description: t('home.menuWrestlersDesc'),
       path: '/wrestlers',
     },
     {
-      title: 'بناها و اماکن',
+      title: t('home.menuBuildings'),
       icon: <Building2 className="h-10 w-10 md:h-12 md:w-12 xl:h-16 xl:w-16 2xl:h-20 2xl:w-20" />,
-      description: 'مکان‌های تاریخی کشتی',
+      description: t('home.menuBuildingsDesc'),
       path: '/buildings',
     },
     {
-      title: 'تألیفات',
+      title: t('home.menuBooks'),
       icon: <BookOpen className="h-10 w-10 md:h-12 md:w-12 xl:h-16 xl:w-16 2xl:h-20 2xl:w-20" />,
-      description: 'کتاب‌ها و آثار مکتوب',
+      description: t('home.menuBooksDesc'),
       path: '/books',
     },
     {
-      title: 'آلبوم تصاویر',
+      title: t('home.menuAlbums'),
       icon: <Images className="h-10 w-10 md:h-12 md:w-12 xl:h-16 xl:w-16 2xl:h-20 2xl:w-20" />,
-      description: 'مجموعه عکس‌های تاریخی',
+      description: t('home.menuAlbumsDesc'),
       path: '/albums',
     },
     {
-      title: 'درباره موزه',
+      title: t('home.menuAbout'),
       icon: <Info className="h-10 w-10 md:h-12 md:w-12 xl:h-16 xl:w-16 2xl:h-20 2xl:w-20" />,
-      description: 'معرفی موزه افتخارات کشتی',
+      description: t('home.menuAboutDesc'),
       path: '/about',
     },
   ];
@@ -86,6 +90,11 @@ export default function MuseumHomePage() {
     <div className="h-screen flex flex-col items-center justify-center p-3 md:p-4 xl:p-6 overflow-hidden page-enter relative">
       {/* Spark Particles Background */}
       <SparkParticles count={20} />
+
+      {/* Language Selector - Fixed Top */}
+      <div className="fixed top-4 left-4 z-50">
+        <LanguageSelector />
+      </div>
 
       {/* Logo & Title - Optimized for 55-inch Kiosk */}
       <header className="text-center mb-6 md:mb-8 xl:mb-10 2xl:mb-12 flex-shrink-0 page-slide-up relative z-10" style={{ animationDelay: '0.1s' }}>
@@ -99,8 +108,8 @@ export default function MuseumHomePage() {
           
           {/* Title */}
           <h1 className="text-3xl md:text-5xl xl:text-6xl 2xl:text-7xl font-bold">
-            <span className="text-neon neon-glow">موزه افتخارات</span>
-            <span className="text-foreground"> کشتی</span>
+            <span className="text-neon neon-glow">{t('home.title').split(' ').slice(0, 2).join(' ')}</span>
+            <span className="text-foreground"> {t('home.title').split(' ').slice(2).join(' ')}</span>
           </h1>
           
           {/* Left Logo */}
@@ -111,7 +120,7 @@ export default function MuseumHomePage() {
           />
         </div>
         <p className="text-base md:text-xl xl:text-2xl 2xl:text-3xl text-muted-foreground">
-          میراث پهلوانی و افتخار ملی
+          {t('home.subtitle')}
         </p>
       </header>
 
@@ -144,11 +153,13 @@ export default function MuseumHomePage() {
       <button
         onClick={() => navigate('/settings/cache')}
         className="fixed bottom-6 right-6 p-4 rounded-full cyber-glass text-muted-foreground hover:text-primary hover:bg-primary/20 transition-all duration-300 shadow-lg hover:shadow-primary/30 z-50"
-        title="تنظیمات کش"
+        title={t('nav.cache')}
       >
         <HardDrive className="h-6 w-6" />
       </button>
 
+      {/* Chat Assistant */}
+      <ChatAssistant />
     </div>
   );
 }

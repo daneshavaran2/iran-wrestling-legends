@@ -1,1 +1,4 @@
 project_id = "etbekvhdroqiddcteqdq"
+
+[functions.museum-assistant]
+verify_jwt = false
