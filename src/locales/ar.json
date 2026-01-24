@@ -1,0 +1,108 @@
+{
+  "nav": {
+    "home": "الصفحة الرئيسية",
+    "wrestlers": "المصارعون",
+    "history": "التاريخ",
+    "buildings": "المباني",
+    "books": "المؤلفات",
+    "albums": "ألبوم الصور",
+    "about": "حول المتحف",
+    "install": "تثبيت التطبيق",
+    "cache": "إعدادات التخزين",
+    "admin": "دخول المدير"
+  },
+  "common": {
+    "search": "بحث...",
+    "loading": "جاري التحميل...",
+    "back": "رجوع",
+    "more": "المزيد",
+    "close": "إغلاق",
+    "send": "إرسال",
+    "offline": "غير متصل",
+    "all": "الكل",
+    "filter": "تصفية",
+    "noResults": "لم يتم العثور على نتائج"
+  },
+  "home": {
+    "title": "متحف المصارعة الإيرانية",
+    "subtitle": "كنز من أبطال المصارعة",
+    "menuWrestlers": "المصارعون",
+    "menuWrestlersDesc": "أبطال إيران",
+    "menuHistory": "التاريخ",
+    "menuHistoryDesc": "تطور المصارعة",
+    "menuBuildings": "المباني",
+    "menuBuildingsDesc": "الأماكن الرياضية",
+    "menuBooks": "المؤلفات",
+    "menuBooksDesc": "الكتب والمصادر",
+    "menuAlbums": "ألبوم الصور",
+    "menuAlbumsDesc": "معرض الذكريات",
+    "menuAbout": "حول المتحف",
+    "menuAboutDesc": "تعريف المتحف"
+  },
+  "wrestler": {
+    "freestyle": "حر",
+    "grecoRoman": "رومي",
+    "gold": "ذهب",
+    "silver": "فضة",
+    "bronze": "برونز",
+    "bio": "السيرة الذاتية",
+    "achievements": "الإنجازات",
+    "media": "الوسائط",
+    "intro": "مقدمة",
+    "successPath": "مسار النجاح",
+    "social": "الأنشطة الاجتماعية",
+    "filterByStyle": "تصفية حسب الأسلوب",
+    "filterByProvince": "تصفية حسب المحافظة"
+  },
+  "history": {
+    "title": "تاريخ المصارعة الإيرانية",
+    "subtitle": "رحلة عبر الزمن"
+  },
+  "buildings": {
+    "title": "المباني والأماكن",
+    "subtitle": "المواقع الرياضية التاريخية"
+  },
+  "books": {
+    "title": "المؤلفات",
+    "subtitle": "كتب ومصادر المصارعة",
+    "author": "المؤلف"
+  },
+  "albums": {
+    "title": "ألبوم الصور",
+    "subtitle": "مجموعة الصور التاريخية",
+    "photos": "صورة"
+  },
+  "about": {
+    "title": "حول المتحف",
+    "subtitle": "تعريف متحف المصارعة الإيرانية"
+  },
+  "assistant": {
+    "title": "مساعد المتحف",
+    "placeholder": "اكتب سؤالك...",
+    "greeting": "مرحباً! أنا مساعد متحف المصارعة الإيرانية. كيف يمكنني مساعدتك؟",
+    "suggestions": {
+      "history": "تاريخ المصارعة الإيرانية",
+      "champions": "تعرف على الأبطال",
+      "museum": "حول المتحف"
+    },
+    "error": "خطأ في الحصول على الرد. يرجى المحاولة مرة أخرى."
+  },
+  "install": {
+    "title": "تثبيت التطبيق",
+    "subtitle": "وصول سريع وبدون اتصال",
+    "guide": "دليل مصور",
+    "benefits": {
+      "title": "فوائد التثبيت",
+      "fast": "وصول سريع من الشاشة الرئيسية",
+      "offline": "يعمل بدون اتصال",
+      "fullscreen": "تجربة ملء الشاشة",
+      "updates": "تحديثات تلقائية"
+    }
+  },
+  "language": {
+    "fa": "فارسی",
+    "en": "English",
+    "ar": "العربية",
+    "select": "اختر اللغة"
+  }
+}

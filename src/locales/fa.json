@@ -1,0 +1,108 @@
+{
+  "nav": {
+    "home": "صفحه اصلی",
+    "wrestlers": "کشتی‌گیران",
+    "history": "تاریخچه",
+    "buildings": "بناها",
+    "books": "تألیفات",
+    "albums": "آلبوم تصاویر",
+    "about": "درباره موزه",
+    "install": "نصب برنامه",
+    "cache": "تنظیمات کش",
+    "admin": "ورود ادمین"
+  },
+  "common": {
+    "search": "جستجو...",
+    "loading": "در حال بارگذاری...",
+    "back": "بازگشت",
+    "more": "بیشتر",
+    "close": "بستن",
+    "send": "ارسال",
+    "offline": "آفلاین",
+    "all": "همه",
+    "filter": "فیلتر",
+    "noResults": "نتیجه‌ای یافت نشد"
+  },
+  "home": {
+    "title": "موزه افتخارات کشتی ایران",
+    "subtitle": "گنجینه‌ای از افتخارات پهلوانان",
+    "menuWrestlers": "کشتی‌گیران",
+    "menuWrestlersDesc": "افتخارآفرینان ایران",
+    "menuHistory": "تاریخچه",
+    "menuHistoryDesc": "سیر تحول کشتی",
+    "menuBuildings": "بناها",
+    "menuBuildingsDesc": "اماکن ورزشی",
+    "menuBooks": "تألیفات",
+    "menuBooksDesc": "کتب و منابع",
+    "menuAlbums": "آلبوم تصاویر",
+    "menuAlbumsDesc": "گالری خاطرات",
+    "menuAbout": "درباره موزه",
+    "menuAboutDesc": "معرفی موزه"
+  },
+  "wrestler": {
+    "freestyle": "آزاد",
+    "grecoRoman": "فرنگی",
+    "gold": "طلا",
+    "silver": "نقره",
+    "bronze": "برنز",
+    "bio": "زندگینامه",
+    "achievements": "افتخارات",
+    "media": "رسانه",
+    "intro": "معرفی",
+    "successPath": "مسیر موفقیت",
+    "social": "فعالیت‌های اجتماعی",
+    "filterByStyle": "فیلتر بر اساس سبک",
+    "filterByProvince": "فیلتر بر اساس استان"
+  },
+  "history": {
+    "title": "تاریخچه کشتی ایران",
+    "subtitle": "سفری در گذر زمان"
+  },
+  "buildings": {
+    "title": "بناها و اماکن",
+    "subtitle": "مکان‌های تاریخی ورزش"
+  },
+  "books": {
+    "title": "تألیفات",
+    "subtitle": "کتب و منابع کشتی",
+    "author": "نویسنده"
+  },
+  "albums": {
+    "title": "آلبوم تصاویر",
+    "subtitle": "مجموعه تصاویر تاریخی",
+    "photos": "تصویر"
+  },
+  "about": {
+    "title": "درباره موزه",
+    "subtitle": "معرفی موزه کشتی ایران"
+  },
+  "assistant": {
+    "title": "دستیار موزه",
+    "placeholder": "سوال خود را بنویسید...",
+    "greeting": "سلام! من دستیار موزه کشتی ایران هستم. چطور می‌توانم کمکتان کنم؟",
+    "suggestions": {
+      "history": "تاریخچه کشتی ایران",
+      "champions": "معرفی قهرمانان",
+      "museum": "درباره موزه"
+    },
+    "error": "خطا در دریافت پاسخ. لطفاً دوباره تلاش کنید."
+  },
+  "install": {
+    "title": "نصب برنامه",
+    "subtitle": "دسترسی سریع و آفلاین",
+    "guide": "راهنمای تصویری",
+    "benefits": {
+      "title": "مزایای نصب",
+      "fast": "دسترسی سریع از صفحه اصلی",
+      "offline": "کار در حالت آفلاین",
+      "fullscreen": "تجربه تمام صفحه",
+      "updates": "به‌روزرسانی خودکار"
+    }
+  },
+  "language": {
+    "fa": "فارسی",
+    "en": "English",
+    "ar": "العربية",
+    "select": "انتخاب زبان"
+  }
+}

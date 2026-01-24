@@ -8,6 +8,7 @@ import { WrestlerProvider } from "@/contexts/WrestlerContext";
 import { OfflineDataProvider } from "@/contexts/OfflineDataContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PageTransition } from "@/components/PageTransition";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
@@ -63,17 +64,18 @@ const queryClient = new QueryClient({
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <TooltipProvider>
-        <AuthProvider>
-          <OfflineDataProvider>
-          <WrestlerProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <BackgroundMusicPlayer />
-            <OfflineIndicator />
-            <InstallPrompt />
+    <LanguageProvider>
+      <ThemeProvider>
+        <TooltipProvider>
+          <AuthProvider>
+            <OfflineDataProvider>
+            <WrestlerProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <BackgroundMusicPlayer />
+              <OfflineIndicator />
+              <InstallPrompt />
             <Suspense fallback={<LoadingSpinner />}>
               <PageTransition>
                 <Routes>
@@ -198,12 +200,13 @@ const App = () => (
                 </Routes>
               </PageTransition>
             </Suspense>
-          </BrowserRouter>
-          </WrestlerProvider>
-          </OfflineDataProvider>
-        </AuthProvider>
-      </TooltipProvider>
-    </ThemeProvider>
+            </BrowserRouter>
+            </WrestlerProvider>
+            </OfflineDataProvider>
+          </AuthProvider>
+        </TooltipProvider>
+      </ThemeProvider>
+    </LanguageProvider>
   </QueryClientProvider>
 );
 
