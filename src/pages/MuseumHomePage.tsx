@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History, Users, Building2, BookOpen, Images, Info, Settings } from 'lucide-react';
+import { History, Users, Building2, BookOpen, Images, Info, Settings, HardDrive } from 'lucide-react';
 import { ParallaxCard } from '@/components/ui/ParallaxCard';
 import { SparkParticles } from '@/components/ui/SparkParticles';
 import { useKioskMode } from '@/hooks/useKioskMode';
@@ -138,6 +138,15 @@ export default function MuseumHomePage() {
         title="ورود مدیران"
       >
         <Settings className="h-6 w-6" />
+      </button>
+
+      {/* Cache Settings Button */}
+      <button
+        onClick={() => navigate('/settings/cache')}
+        className="fixed bottom-6 right-6 p-4 rounded-full cyber-glass text-muted-foreground hover:text-primary hover:bg-primary/20 transition-all duration-300 shadow-lg hover:shadow-primary/30 z-50"
+        title="تنظیمات کش"
+      >
+        <HardDrive className="h-6 w-6" />
       </button>
 
     </div>

@@ -1,4 +1,5 @@
-import { Download, Trash2, HardDrive, Clock, Users, History, Building2, BookOpen, Images, Image, RefreshCw, Bell, Timer } from 'lucide-react';
+import { useState } from 'react';
+import { Download, Trash2, HardDrive, Clock, Users, History, Building2, BookOpen, Images, Image, RefreshCw, Bell, Timer, FlaskConical, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -7,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DownloadProgressCard } from '@/components/DownloadProgressCard';
 import { useOfflineDownload } from '@/hooks/useOfflineDownload';
 import { useOfflineData } from '@/contexts/OfflineDataContext';
+import { useOfflineTest } from '@/hooks/useOfflineTest';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +41,8 @@ export default function AdminOfflineSettingsPage() {
     getTimeUntilNextSync,
     getLastSyncFormatted,
   } = useOfflineData();
+
+  const { runTest, isRunning: isTestRunning, result: testResult, getSwStatusLabel, getSwStatusColor } = useOfflineTest();
 
   const handleStartDownload = () => {
     startFullDownload();
@@ -294,6 +298,108 @@ export default function AdminOfflineSettingsPage() {
             {isSyncing ? 'در حال به‌روزرسانی...' : 'به‌روزرسانی دستی'}
           </Button>
         </div>
+      </GlassCard>
+
+      {/* Offline Test Section */}
+      <GlassCard className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <FlaskConical className="h-6 w-6 text-primary" />
+            <h2 className="text-xl font-semibold">تست حالت آفلاین</h2>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              runTest();
+              toast.info('در حال تست سیستم...');
+            }}
+            disabled={isTestRunning}
+            className="gap-2"
+          >
+            {isTestRunning ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FlaskConical className="h-4 w-4" />
+            )}
+            شروع تست
+          </Button>
+        </div>
+
+        {testResult ? (
+          <div className="space-y-4">
+            {/* Service Worker Status */}
+            <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50">
+              <span className="text-muted-foreground">Service Worker</span>
+              <span className={`font-medium flex items-center gap-2 ${getSwStatusColor(testResult.serviceWorkerStatus)}`}>
+                {testResult.serviceWorkerStatus === 'active' && <CheckCircle2 className="h-4 w-4" />}
+                {testResult.serviceWorkerStatus === 'none' && <XCircle className="h-4 w-4" />}
+                {getSwStatusLabel(testResult.serviceWorkerStatus)}
+              </span>
+            </div>
+
+            {/* Cache Tests */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {testResult.cacheTests.map((cache, index) => (
+                <div
+                  key={index}
+                  className={`p-3 rounded-lg border ${
+                    cache.status === 'success' 
+                      ? 'bg-primary/10 border-primary/30' 
+                      : cache.status === 'error'
+                      ? 'bg-destructive/10 border-destructive/30'
+                      : 'bg-muted/30 border-border/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium">{cache.name}</span>
+                    {cache.status === 'success' ? (
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                    ) : cache.status === 'error' ? (
+                      <XCircle className="h-4 w-4 text-destructive" />
+                    ) : (
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {toPersianNumber(cache.itemCount)} آیتم • {cache.size}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Overall Status */}
+            <div className={`p-4 rounded-xl text-center ${
+              testResult.isFullyOfflineReady 
+                ? 'bg-primary/10 border border-primary/30' 
+                : 'bg-muted/30 border border-border/50'
+            }`}>
+              <div className={`text-lg font-bold flex items-center justify-center gap-2 ${
+                testResult.isFullyOfflineReady ? 'text-primary' : 'text-muted-foreground'
+              }`}>
+                {testResult.isFullyOfflineReady ? (
+                  <>
+                    <CheckCircle2 className="h-5 w-5" />
+                    برنامه آماده کار در حالت آفلاین است
+                  </>
+                ) : (
+                  <>
+                    <Clock className="h-5 w-5" />
+                    نیاز به دانلود داده‌ها
+                  </>
+                )}
+              </div>
+              <div className="text-sm text-muted-foreground mt-1">
+                حجم کل: {testResult.totalCacheSize}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            <FlaskConical className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p>برای بررسی وضعیت آفلاین، روی دکمه «شروع تست» کلیک کنید</p>
+          </div>
+        )}
       </GlassCard>
 
       {/* Tips Section */}

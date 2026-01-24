@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import App from "./App.tsx";
 import "./index.css";
 import { SplashScreen } from "./components/SplashScreen";
+import { PWAUpdateNotification } from "./components/PWAUpdateNotification";
 
 const Root = () => {
   const [showSplash, setShowSplash] = useState(true);
@@ -31,6 +32,7 @@ const Root = () => {
 
   return (
     <>
+      <PWAUpdateNotification />
       {showSplash && <SplashScreen onComplete={handleSplashComplete} minDisplayTime={2500} />}
       {appReady && <App />}
     </>
