@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Download, Trash2, HardDrive, Clock, Users, History, Building2, BookOpen, Images, Image, RefreshCw, Bell, Timer, FlaskConical, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { Download, Trash2, HardDrive, Clock, Users, History, Building2, BookOpen, Images, Image, RefreshCw, Bell, Timer, FlaskConical, CheckCircle2, XCircle, Loader2, FileText, AlertTriangle } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DownloadProgressCard } from '@/components/DownloadProgressCard';
-import { useOfflineDownload } from '@/hooks/useOfflineDownload';
+import { useOfflineDownload, DEFAULT_SECTIONS, DownloadSection } from '@/hooks/useOfflineDownload';
 import { useOfflineData } from '@/contexts/OfflineDataContext';
 import { useOfflineTest } from '@/hooks/useOfflineTest';
 import {
@@ -22,11 +23,25 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
+const SECTION_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  wrestlers: Users,
+  history: History,
+  buildings: Building2,
+  books: BookOpen,
+  albums: Images,
+  images: Image,
+};
+
 export default function AdminOfflineSettingsPage() {
+  const [selectedSections, setSelectedSections] = useState<string[]>(
+    DEFAULT_SECTIONS.filter(s => s.enabled).map(s => s.id)
+  );
+
   const {
     progress,
     cacheInfo,
     startFullDownload,
+    startSelectiveDownload,
     cancelDownload,
     clearAllCache,
     formatBytes,
@@ -51,11 +66,38 @@ export default function AdminOfflineSettingsPage() {
     });
   };
 
+  const handleSelectiveDownload = () => {
+    if (selectedSections.length === 0) {
+      toast.error('حداقل یک بخش را انتخاب کنید');
+      return;
+    }
+    startSelectiveDownload(selectedSections);
+    toast.info('دانلود انتخابی آغاز شد...', {
+      description: `در حال دانلود ${toPersianNumber(selectedSections.length)} بخش`,
+    });
+  };
+
   const handleClearCache = () => {
     clearAllCache();
     toast.success('کش پاک شد', {
       description: 'تمام داده‌های ذخیره شده حذف شدند.',
     });
+  };
+
+  const toggleSection = (sectionId: string) => {
+    setSelectedSections(prev => 
+      prev.includes(sectionId) 
+        ? prev.filter(id => id !== sectionId)
+        : [...prev, sectionId]
+    );
+  };
+
+  const selectAllSections = () => {
+    setSelectedSections(DEFAULT_SECTIONS.map(s => s.id));
+  };
+
+  const deselectAllSections = () => {
+    setSelectedSections([]);
   };
 
   const cacheStats = [
@@ -145,18 +187,80 @@ export default function AdminOfflineSettingsPage() {
           <GlassCard className="p-6">
             <div className="flex items-center gap-3 mb-6">
               <Download className="h-6 w-6 text-primary" />
-              <h2 className="text-xl font-semibold">دانلود برای حالت آفلاین</h2>
+              <h2 className="text-xl font-semibold">دانلود انتخابی</h2>
             </div>
 
-            <p className="text-muted-foreground mb-6">
-              با دانلود داده‌ها، می‌توانید بدون اتصال به اینترنت از برنامه استفاده کنید. 
-              این شامل تمام کشتی‌گیرها، تاریخچه، بناها، کتاب‌ها، آلبوم‌ها و تصاویر می‌شود.
+            <p className="text-muted-foreground mb-4">
+              بخش‌های مورد نظر را برای دانلود انتخاب کنید:
             </p>
 
+            {/* Section Selection */}
+            <div className="space-y-3 mb-6">
+              {DEFAULT_SECTIONS.map((section) => {
+                const Icon = SECTION_ICONS[section.id] || FileText;
+                const isSelected = selectedSections.includes(section.id);
+                
+                return (
+                  <div
+                    key={section.id}
+                    className={`flex items-center gap-4 p-3 rounded-lg border transition-colors cursor-pointer ${
+                      isSelected 
+                        ? 'bg-primary/10 border-primary/30' 
+                        : 'bg-muted/30 border-border/50 hover:bg-muted/50'
+                    }`}
+                    onClick={() => toggleSection(section.id)}
+                  >
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => toggleSection(section.id)}
+                      className="pointer-events-none"
+                    />
+                    <Icon className={`h-5 w-5 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <div className="flex-1">
+                      <div className="font-medium">{section.label}</div>
+                      <div className="text-xs text-muted-foreground">{section.description}</div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {section.estimatedSize}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Selection Controls */}
+            <div className="flex gap-2 mb-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={selectAllSections}
+              >
+                انتخاب همه
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={deselectAllSections}
+              >
+                لغو انتخاب
+              </Button>
+            </div>
+
+            {/* Download Buttons */}
             <div className="space-y-3">
               <Button
                 className="w-full"
                 size="lg"
+                onClick={handleSelectiveDownload}
+                disabled={selectedSections.length === 0}
+              >
+                <Download className="h-5 w-5 ml-2" />
+                دانلود {toPersianNumber(selectedSections.length)} بخش انتخاب شده
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full"
                 onClick={handleStartDownload}
               >
                 <Download className="h-5 w-5 ml-2" />
@@ -367,6 +471,49 @@ export default function AdminOfflineSettingsPage() {
                 </div>
               ))}
             </div>
+
+            {/* Data Integrity */}
+            {testResult.dataIntegrity && testResult.dataIntegrity.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-muted-foreground">یکپارچگی داده‌ها</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {testResult.dataIntegrity.map((item, index) => (
+                    <div
+                      key={index}
+                      className={`p-2 rounded-lg text-center ${
+                        item.status === 'complete' 
+                          ? 'bg-primary/10 border border-primary/30' 
+                          : item.status === 'partial'
+                          ? 'bg-amber-500/10 border border-amber-500/30'
+                          : 'bg-muted/30 border border-border/50'
+                      }`}
+                    >
+                      <div className="text-sm font-medium">{item.label}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {toPersianNumber(item.cachedCount)} آیتم
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recommendations */}
+            {testResult.recommendations && testResult.recommendations.length > 0 && (
+              <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
+                <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  توصیه‌ها
+                </h4>
+                <ul className="space-y-1">
+                  {testResult.recommendations.map((rec, index) => (
+                    <li key={index} className="text-sm text-muted-foreground">
+                      • {rec}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Overall Status */}
             <div className={`p-4 rounded-xl text-center ${

@@ -29,6 +29,24 @@ export interface CacheInfo {
   };
 }
 
+// Section definitions for selective download
+export interface DownloadSection {
+  id: string;
+  label: string;
+  description: string;
+  estimatedSize: string;
+  enabled: boolean;
+}
+
+export const DEFAULT_SECTIONS: DownloadSection[] = [
+  { id: 'wrestlers', label: 'کشتی‌گیرها', description: 'پروفایل‌ها و افتخارات', estimatedSize: '~۵ مگابایت', enabled: true },
+  { id: 'history', label: 'تاریخچه', description: 'تاریخ کشتی ایران', estimatedSize: '~۲ مگابایت', enabled: true },
+  { id: 'buildings', label: 'بناها', description: 'ساختمان‌های مرتبط', estimatedSize: '~۳ مگابایت', enabled: true },
+  { id: 'books', label: 'کتاب‌ها', description: 'منابع و کتب', estimatedSize: '~۱ مگابایت', enabled: true },
+  { id: 'albums', label: 'آلبوم‌ها', description: 'مجموعه تصاویر', estimatedSize: '~۸ مگابایت', enabled: true },
+  { id: 'images', label: 'تصاویر اصلی', description: 'دانلود تمام تصاویر', estimatedSize: '~۱۵ مگابایت', enabled: false },
+];
+
 const CACHE_KEYS = {
   WRESTLERS: 'museum_wrestlers_cache',
   ACHIEVEMENTS: 'museum_achievements_cache',
@@ -186,47 +204,62 @@ export function useOfflineDownload() {
     };
   }, []);
 
-  const collectAllImageUrls = async (): Promise<string[]> => {
+  // Collect image URLs for a specific section
+  const collectSectionImageUrls = async (sectionId: string): Promise<string[]> => {
     const imageUrls: string[] = [];
 
-    // Wrestlers images
-    const { data: wrestlers } = await supabase.from('wrestlers').select('image_url');
-    wrestlers?.forEach(w => w.image_url && imageUrls.push(w.image_url));
-
-    // Wrestler media
-    const { data: wrestlerMedia } = await supabase.from('wrestler_media').select('url, thumbnail');
-    wrestlerMedia?.forEach(m => {
-      if (m.url) imageUrls.push(m.url);
-      if (m.thumbnail) imageUrls.push(m.thumbnail);
-    });
-
-    // Buildings images
-    const { data: buildings } = await supabase.from('buildings').select('hero_image_url');
-    buildings?.forEach(b => b.hero_image_url && imageUrls.push(b.hero_image_url));
-
-    const { data: buildingImages } = await supabase.from('building_images').select('url');
-    buildingImages?.forEach(bi => bi.url && imageUrls.push(bi.url));
-
-    // Books covers
-    const { data: books } = await supabase.from('books').select('cover_image_url');
-    books?.forEach(b => b.cover_image_url && imageUrls.push(b.cover_image_url));
-
-    // Albums
-    const { data: albums } = await supabase.from('albums').select('cover_image_url');
-    albums?.forEach(a => a.cover_image_url && imageUrls.push(a.cover_image_url));
-
-    const { data: albumPhotos } = await supabase.from('album_photos').select('url');
-    albumPhotos?.forEach(p => p.url && imageUrls.push(p.url));
-
-    // History media
-    const { data: historyMedia } = await supabase.from('history_media').select('url');
-    historyMedia?.forEach(m => m.url && imageUrls.push(m.url));
-
-    // About media
-    const { data: aboutMedia } = await supabase.from('about_media').select('url');
-    aboutMedia?.forEach(m => m.url && imageUrls.push(m.url));
+    switch (sectionId) {
+      case 'wrestlers': {
+        const { data: wrestlers } = await supabase.from('wrestlers').select('image_url');
+        wrestlers?.forEach(w => w.image_url && imageUrls.push(w.image_url));
+        const { data: wrestlerMedia } = await supabase.from('wrestler_media').select('url, thumbnail');
+        wrestlerMedia?.forEach(m => {
+          if (m.url) imageUrls.push(m.url);
+          if (m.thumbnail) imageUrls.push(m.thumbnail);
+        });
+        break;
+      }
+      case 'buildings': {
+        const { data: buildings } = await supabase.from('buildings').select('hero_image_url');
+        buildings?.forEach(b => b.hero_image_url && imageUrls.push(b.hero_image_url));
+        const { data: buildingImages } = await supabase.from('building_images').select('url');
+        buildingImages?.forEach(bi => bi.url && imageUrls.push(bi.url));
+        break;
+      }
+      case 'books': {
+        const { data: books } = await supabase.from('books').select('cover_image_url');
+        books?.forEach(b => b.cover_image_url && imageUrls.push(b.cover_image_url));
+        break;
+      }
+      case 'albums': {
+        const { data: albums } = await supabase.from('albums').select('cover_image_url');
+        albums?.forEach(a => a.cover_image_url && imageUrls.push(a.cover_image_url));
+        const { data: albumPhotos } = await supabase.from('album_photos').select('url');
+        albumPhotos?.forEach(p => p.url && imageUrls.push(p.url));
+        break;
+      }
+      case 'history': {
+        const { data: historyMedia } = await supabase.from('history_media').select('url');
+        historyMedia?.forEach(m => m.url && imageUrls.push(m.url));
+        const { data: aboutMedia } = await supabase.from('about_media').select('url');
+        aboutMedia?.forEach(m => m.url && imageUrls.push(m.url));
+        break;
+      }
+    }
 
     return imageUrls.filter(Boolean);
+  };
+
+  const collectAllImageUrls = async (): Promise<string[]> => {
+    const allUrls: string[] = [];
+    const sections = ['wrestlers', 'buildings', 'books', 'albums', 'history'];
+    
+    for (const section of sections) {
+      const urls = await collectSectionImageUrls(section);
+      allUrls.push(...urls);
+    }
+    
+    return allUrls;
   };
 
   const downloadImagesWithProgress = async (urls: string[]): Promise<void> => {
@@ -347,6 +380,107 @@ export function useOfflineDownload() {
     }
   }, [refreshWrestlers, refreshAllData, updateCacheInfo]);
 
+  // Selective download - only download selected sections
+  const startSelectiveDownload = useCallback(async (selectedSections: string[]) => {
+    cancelRef.current = false;
+    
+    setProgress({
+      stage: 'wrestlers',
+      stageName: 'شروع دانلود',
+      currentItem: 0,
+      totalItems: selectedSections.length,
+      downloadedBytes: 0,
+      totalBytes: 0,
+      percentage: 0,
+      isDownloading: true,
+    });
+
+    try {
+      let currentStep = 0;
+      const totalSteps = selectedSections.length + (selectedSections.includes('images') ? 1 : 0);
+
+      for (const sectionId of selectedSections) {
+        if (cancelRef.current) return;
+        
+        currentStep++;
+        const stageName = STAGE_NAMES[sectionId] || sectionId;
+        
+        setProgress(prev => ({
+          ...prev,
+          stage: sectionId as DownloadProgress['stage'],
+          stageName,
+          percentage: Math.round((currentStep / totalSteps) * 50),
+        }));
+
+        // Download data for section
+        if (sectionId === 'wrestlers') {
+          await refreshWrestlers();
+        } else if (sectionId !== 'images') {
+          // Refresh all data handles other sections
+          await refreshAllData();
+        }
+
+        // Download images for section (if not the "images" section itself)
+        if (sectionId !== 'images') {
+          const imageUrls = await collectSectionImageUrls(sectionId);
+          if (imageUrls.length > 0) {
+            setProgress(prev => ({
+              ...prev,
+              stageName: `${stageName} - تصاویر`,
+              currentItem: 0,
+              totalItems: imageUrls.length,
+            }));
+            await downloadImagesWithProgress(imageUrls);
+          }
+        }
+      }
+
+      // If "images" section is selected, download ALL images
+      if (selectedSections.includes('images')) {
+        if (cancelRef.current) return;
+        
+        setProgress(prev => ({
+          ...prev,
+          stage: 'images',
+          stageName: 'تمام تصاویر',
+          percentage: 75,
+        }));
+
+        const allImageUrls = await collectAllImageUrls();
+        setProgress(prev => ({
+          ...prev,
+          currentItem: 0,
+          totalItems: allImageUrls.length,
+        }));
+        await downloadImagesWithProgress(allImageUrls);
+      }
+
+      // Complete
+      localStorage.setItem(CACHE_KEYS.TIMESTAMP, Date.now().toString());
+      
+      setProgress({
+        stage: 'complete',
+        stageName: STAGE_NAMES.complete,
+        currentItem: 0,
+        totalItems: 0,
+        downloadedBytes: 0,
+        totalBytes: 0,
+        percentage: 100,
+        isDownloading: false,
+      });
+
+      updateCacheInfo();
+    } catch (error) {
+      setProgress(prev => ({
+        ...prev,
+        stage: 'error',
+        stageName: STAGE_NAMES.error,
+        isDownloading: false,
+        error: error instanceof Error ? error.message : 'خطای ناشناخته',
+      }));
+    }
+  }, [refreshWrestlers, refreshAllData, updateCacheInfo]);
+
   const cancelDownload = useCallback(() => {
     cancelRef.current = true;
     setProgress(prev => ({
@@ -391,6 +525,7 @@ export function useOfflineDownload() {
     progress,
     cacheInfo,
     startFullDownload,
+    startSelectiveDownload,
     cancelDownload,
     clearAllCache,
     updateCacheInfo,
