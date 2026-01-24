@@ -211,6 +211,23 @@ const InstallPage = () => {
               </GlassCard>
             )}
 
+            {/* Visual Guide Link */}
+            <GlassCard className="p-6 mb-6">
+              <div className="text-center">
+                <h3 className="text-lg font-bold mb-2">راهنمای تصویری نصب</h3>
+                <p className="text-muted-foreground text-sm mb-4">
+                  برای مشاهده راهنمای مرحله به مرحله با تصاویر کلیک کنید
+                </p>
+                <Button 
+                  onClick={() => navigate('/install-guide')}
+                  variant="outline"
+                  className="w-full"
+                >
+                  مشاهده راهنمای تصویری
+                </Button>
+              </div>
+            </GlassCard>
+
             {/* Benefits */}
             <GlassCard className="p-6">
               <h3 className="text-lg font-bold mb-4">مزایای نصب برنامه</h3>
