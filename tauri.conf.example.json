@@ -1,0 +1,68 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/tooling/cli/schema.json",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:8080",
+    "frontendDist": "../dist"
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "msi"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
+    "identifier": "ir.wrestling-museum.app",
+    "shortDescription": "موزه افتخارات کشتی ایران",
+    "longDescription": "آرشیو کامل قهرمانان و افتخارات کشتی ایران - شامل اطلاعات کشتی‌گیران، تاریخچه، آلبوم‌ها و کتاب‌ها",
+    "category": "Education",
+    "copyright": "© 2024 موزه کشتی ایران",
+    "windows": {
+      "wix": {
+        "language": ["fa-IR", "en-US"]
+      },
+      "nsis": {
+        "languages": ["Farsi", "English"],
+        "displayLanguageSelector": true,
+        "installerIcon": "icons/icon.ico",
+        "headerImage": "icons/header.bmp"
+      }
+    }
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "موزه افتخارات کشتی ایران",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true,
+        "decorations": true,
+        "transparent": false,
+        "alwaysOnTop": false,
+        "visible": true,
+        "focus": true
+      }
+    ],
+    "security": {
+      "csp": {
+        "default-src": "'self' https://etbekvhdroqiddcteqdq.supabase.co",
+        "img-src": "'self' data: https: blob:",
+        "style-src": "'self' 'unsafe-inline'",
+        "script-src": "'self'",
+        "connect-src": "'self' https://etbekvhdroqiddcteqdq.supabase.co wss://etbekvhdroqiddcteqdq.supabase.co"
+      }
+    }
+  },
+  "plugins": {
+    "shell": {
+      "open": true
+    }
+  }
+}
