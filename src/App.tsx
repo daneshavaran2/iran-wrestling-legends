@@ -29,6 +29,7 @@ const AlbumsListPage = lazy(() => import("./pages/AlbumsListPage"));
 const AlbumGalleryPage = lazy(() => import("./pages/AlbumGalleryPage"));
 const AboutMuseumPage = lazy(() => import("./pages/AboutMuseumPage"));
 const InstallPage = lazy(() => import("./pages/InstallPage"));
+const CacheSettingsPage = lazy(() => import("./pages/CacheSettingsPage"));
 
 // Lazy load admin pages
 const AdminLoginPage = lazy(() => import("./pages/admin/AdminLoginPage"));
@@ -102,6 +103,9 @@ const App = () => (
                   
                   {/* Install */}
                   <Route path="/install" element={<InstallPage />} />
+                  
+                  {/* Cache Settings */}
+                  <Route path="/settings/cache" element={<CacheSettingsPage />} />
                 
                 {/* Auth Routes */}
                 <Route path="/admin/login" element={<AdminLoginPage />} />

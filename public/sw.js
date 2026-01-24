@@ -53,22 +53,31 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate event - clean old caches
+// Activate event - clean old caches and notify clients
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((name) => {
-            return name.startsWith('iran-wrestling-') && 
-                   !name.endsWith(CACHE_VERSION);
-          })
-          .map((name) => {
-            console.log('[SW] Deleting old cache:', name);
-            return caches.delete(name);
-          })
-      );
-    })
+    Promise.all([
+      // Clean old caches
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames
+            .filter((name) => {
+              return name.startsWith('iran-wrestling-') && 
+                     !name.endsWith(CACHE_VERSION);
+            })
+            .map((name) => {
+              console.log('[SW] Deleting old cache:', name);
+              return caches.delete(name);
+            })
+        );
+      }),
+      // Notify all clients about update
+      self.clients.matchAll().then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'SW_UPDATED' });
+        });
+      }),
+    ])
   );
   self.clients.claim();
 });
@@ -250,23 +259,29 @@ async function handleDynamicRequest(request) {
 
 // Listen for messages from the app
 self.addEventListener('message', (event) => {
-  if (event.data === 'skipWaiting') {
+  // Skip waiting and activate new service worker
+  if (event.data === 'skipWaiting' || event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 
   // Clear all caches
-  if (event.data.type === 'CLEAR_CACHE') {
+  if (event.data?.type === 'CLEAR_CACHE' || event.data?.type === 'CLEAR_ALL_CACHES') {
     event.waitUntil(
       caches.keys().then((cacheNames) => {
         return Promise.all(
           cacheNames.map((name) => caches.delete(name))
-        );
+        ).then(() => {
+          // Notify client that caches are cleared
+          if (event.source) {
+            event.source.postMessage({ type: 'CACHES_CLEARED' });
+          }
+        });
       })
     );
   }
 
   // Pre-cache wrestler images
-  if (event.data.type === 'CACHE_IMAGES') {
+  if (event.data?.type === 'CACHE_IMAGES') {
     const urls = event.data.urls;
     event.waitUntil(
       caches.open(IMAGE_CACHE).then((cache) => {
@@ -286,13 +301,36 @@ self.addEventListener('message', (event) => {
   }
 
   // Pre-cache specific URLs
-  if (event.data.type === 'CACHE_URLS') {
+  if (event.data?.type === 'CACHE_URLS') {
     const urls = event.data.urls;
     const cacheName = event.data.cacheName || DYNAMIC_CACHE;
     event.waitUntil(
       caches.open(cacheName).then((cache) => {
         return cache.addAll(urls);
       })
+    );
+  }
+
+  // Get cache status
+  if (event.data?.type === 'GET_CACHE_STATUS') {
+    event.waitUntil(
+      (async () => {
+        const cacheNames = await caches.keys();
+        const status = {};
+        
+        for (const name of cacheNames) {
+          const cache = await caches.open(name);
+          const keys = await cache.keys();
+          status[name] = keys.length;
+        }
+        
+        if (event.source) {
+          event.source.postMessage({ 
+            type: 'CACHE_STATUS', 
+            status 
+          });
+        }
+      })()
     );
   }
 });
