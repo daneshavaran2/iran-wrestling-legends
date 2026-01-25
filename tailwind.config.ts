@@ -156,6 +156,16 @@ export default {
           "0%, 100%": { boxShadow: "0 0 20px hsl(25 60% 50% / 0.3)" },
           "50%": { boxShadow: "0 0 40px hsl(25 60% 50% / 0.5)" },
         },
+        "spark-orbit": {
+          "0%, 100%": { 
+            opacity: "0.3", 
+            transform: "scale(0.8)",
+          },
+          "50%": { 
+            opacity: "1", 
+            transform: "scale(1.3)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -167,6 +177,7 @@ export default {
         "shimmer": "shimmer 2s infinite",
         "float": "float 6s ease-in-out infinite",
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
+        "spark-orbit": "spark-orbit 2s ease-in-out infinite",
       },
       transitionDuration: {
         '400': '400ms',

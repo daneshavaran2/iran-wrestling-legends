@@ -17,7 +17,7 @@ import {
   Info,
   Music,
   Download,
-  HardDrive
+  Settings2
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,7 +38,7 @@ const navItems = [
   { path: '/admin/audio', label: 'موسیقی', icon: Music },
   { path: '/admin/about', label: 'درباره موزه', icon: Info },
   { path: '/admin/offline', label: 'تنظیمات آفلاین', icon: Download },
-  { path: '/settings/cache', label: 'تنظیمات کش', icon: HardDrive },
+  { path: '/admin/settings', label: 'تنظیمات عمومی', icon: Settings2 },
   { path: '/admin/backup', label: 'پشتیبان‌گیری', icon: Database },
 ];
 

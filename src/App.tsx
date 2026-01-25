@@ -48,6 +48,7 @@ const AdminAboutPage = lazy(() => import("./pages/admin/AdminAboutPage"));
 const AdminAudioPage = lazy(() => import("./pages/admin/AdminAudioPage"));
 const AdminOfflineSettingsPage = lazy(() => import("./pages/admin/AdminOfflineSettingsPage"));
 const AdminBackupPage = lazy(() => import("./pages/admin/AdminBackupPage"));
+const AdminGeneralSettingsPage = lazy(() => import("./pages/admin/AdminGeneralSettingsPage"));
 const AdminResetPasswordPage = lazy(() => import("./pages/admin/AdminResetPasswordPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -192,6 +193,13 @@ const App = () => (
                   <ProtectedRoute>
                     <AdminLayout>
                       <AdminBackupPage />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/settings" element={
+                  <ProtectedRoute>
+                    <AdminLayout>
+                      <AdminGeneralSettingsPage />
                     </AdminLayout>
                   </ProtectedRoute>
                 } />
