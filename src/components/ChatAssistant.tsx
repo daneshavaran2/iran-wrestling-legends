@@ -3,6 +3,7 @@ import { MessageCircle, X, Send, Trash2, Bot, User, Loader2, Volume2, VolumeX } 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { FloatingIconWithSparks } from '@/components/ui/FloatingIconWithSparks';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useChatAssistant, Message } from '@/hooks/useChatAssistant';
 import { useTextToSpeech } from '@/hooks/useTextToSpeech';
@@ -71,18 +72,17 @@ export const ChatAssistant: React.FC = () => {
 
   return (
     <>
-      {/* Chat Button */}
-      <button
-        onClick={() => setIsOpen(true)}
-        className={cn(
-          "fixed bottom-6 z-50 p-4",
-          "floating-icon-glass text-primary hover:text-foreground",
-          dir === 'rtl' ? 'right-6' : 'left-6'
-        )}
-        style={{ display: isOpen ? 'none' : 'flex' }}
-      >
-        <MessageCircle className="h-6 w-6" />
-      </button>
+      {/* Chat Button with Sparks */}
+      {!isOpen && (
+        <div className={cn("fixed bottom-6 z-50", dir === 'rtl' ? 'right-6' : 'left-6')}>
+          <FloatingIconWithSparks
+            onClick={() => setIsOpen(true)}
+            className="text-primary hover:text-foreground"
+          >
+            <MessageCircle className="h-6 w-6" />
+          </FloatingIconWithSparks>
+        </div>
+      )}
 
       {/* Chat Window */}
       {isOpen && (

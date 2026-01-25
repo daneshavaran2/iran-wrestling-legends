@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { History, Users, Building2, BookOpen, Images, Info, Settings } from 'lucide-react';
 import { ParallaxCard } from '@/components/ui/ParallaxCard';
 import { SparkParticles } from '@/components/ui/SparkParticles';
+import { FloatingIconWithSparks } from '@/components/ui/FloatingIconWithSparks';
 import { useKioskMode } from '@/hooks/useKioskMode';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSelector } from '@/components/LanguageSelector';
@@ -140,14 +141,16 @@ export default function MuseumHomePage() {
         </div>
       </main>
 
-      {/* Admin Button (visible floating button) */}
-      <button
-        onClick={() => navigate('/admin/login')}
-        className="fixed bottom-6 left-6 p-4 floating-icon-glass text-muted-foreground hover:text-primary z-50"
-        title="ورود مدیران"
-      >
-        <Settings className="h-6 w-6" />
-      </button>
+      {/* Admin Button with Sparks */}
+      <div className="fixed bottom-6 left-6 z-50">
+        <FloatingIconWithSparks
+          onClick={() => navigate('/admin/login')}
+          title="ورود مدیران"
+          className="text-muted-foreground hover:text-primary"
+        >
+          <Settings className="h-6 w-6" />
+        </FloatingIconWithSparks>
+      </div>
 
       {/* Chat Assistant */}
       <ChatAssistant />
