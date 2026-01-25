@@ -5,13 +5,16 @@ import { GoldButton } from '@/components/ui/GoldButton';
 import { ParallaxCard } from '@/components/ui/ParallaxCard';
 import { SparkParticles } from '@/components/ui/SparkParticles';
 import { useKioskMode } from '@/hooks/useKioskMode';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LazyImage } from '@/components/ui/LazyImage';
 import { useOfflineData } from '@/contexts/OfflineDataContext';
+import { TranslatedContent } from '@/components/TranslatedContent';
 
 export default function BuildingsListPage() {
   useKioskMode();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const { buildings, isLoadingBuildings, isOffline } = useOfflineData();
 
   return (
@@ -28,19 +31,19 @@ export default function BuildingsListPage() {
           className="flex items-center gap-2 cyber-button"
         >
           <ArrowRight className="h-5 w-5" />
-          بازگشت
+          {t('common.back')}
         </GoldButton>
         <div className="flex items-center gap-3 page-slide-up" style={{ animationDelay: '0.1s' }}>
           <div className="p-2 rounded-2xl cyber-glass border border-primary/30">
             <Building2 className="h-6 w-6 text-primary" />
           </div>
           <h1 className="text-2xl md:text-3xl xl:text-4xl font-bold">
-            <span className="text-neon neon-glow">بناها و اماکن</span>
+            <span className="text-neon neon-glow">{t('buildings.title')}</span>
           </h1>
           {isOffline && (
             <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-yellow-500/20 text-yellow-500 text-xs">
               <WifiOff className="h-3 w-3" />
-              <span>آفلاین</span>
+              <span>{t('common.offline')}</span>
             </div>
           )}
         </div>
@@ -58,9 +61,9 @@ export default function BuildingsListPage() {
           ) : buildings.length === 0 ? (
             <div className="cyber-glass p-12 text-center max-w-md mx-auto rounded-3xl border border-primary/30">
               <Building2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-xl font-bold mb-2">محتوایی وجود ندارد</h3>
+              <h3 className="text-xl font-bold mb-2">{t('buildings.noContent')}</h3>
               <p className="text-muted-foreground">
-                بناها و اماکن توسط مدیر اضافه خواهند شد
+                {t('buildings.noContentDesc')}
               </p>
             </div>
           ) : (
@@ -97,11 +100,11 @@ export default function BuildingsListPage() {
                     {/* Content */}
                     <div className="p-4 relative">
                       <h2 className="text-base md:text-lg font-bold mb-1 group-hover:text-primary transition-colors duration-300 line-clamp-1">
-                        {building.name}
+                        <TranslatedContent text={building.name} />
                       </h2>
                       {building.description && (
                         <p className="text-muted-foreground text-xs line-clamp-2 opacity-70">
-                          {building.description}
+                          <TranslatedContent text={building.description} />
                         </p>
                       )}
                     </div>

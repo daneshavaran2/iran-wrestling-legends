@@ -8,12 +8,14 @@ import { SkeletonCard } from '@/components/ui/skeleton-cards';
 import { EmptyState, ErrorState } from '@/components/ui/StateComponents';
 import { useWrestlers } from '@/contexts/WrestlerContext';
 import { useKioskMode } from '@/hooks/useKioskMode';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { iranianProvinces } from '@/data/wrestlers';
 import { cn } from '@/lib/utils';
 
 export default function WrestlersListPage() {
   useKioskMode();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   
   const { getVisibleWrestlers, isLoading, error } = useWrestlers();
   const visibleWrestlers = getVisibleWrestlers();
@@ -49,14 +51,14 @@ export default function WrestlersListPage() {
               className="flex items-center gap-2 liquid-button"
             >
               <ArrowRight className="h-5 w-5" />
-              بازگشت
+              {t('common.back')}
             </GoldButton>
             <div className="page-slide-up" style={{ animationDelay: '0.1s' }}>
               <h1 className="text-3xl md:text-4xl xl:text-5xl font-bold">
-                <span className="text-bronze bronze-glow">کشتی‌گیران</span>
+                <span className="text-bronze bronze-glow">{t('wrestler.title')}</span>
               </h1>
               <p className="text-muted-foreground text-sm md:text-base mt-1">
-                پهلوانان و قهرمانان کشتی ایران
+                {t('wrestler.subtitle')}
               </p>
             </div>
           </div>
@@ -64,7 +66,7 @@ export default function WrestlersListPage() {
           {/* Search Section */}
           <div className="max-w-3xl space-y-4 page-slide-up" style={{ animationDelay: '0.2s' }}>
             <SearchInput
-              placeholder="جستجو بر اساس نام کشتی‌گیر..."
+              placeholder={t('wrestler.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="text-lg py-4"
@@ -77,7 +79,7 @@ export default function WrestlersListPage() {
                 className="flex items-center gap-2 liquid-button px-4 py-2 text-sm"
               >
                 <Filter className="h-4 w-4" />
-                فیلترها
+                {t('common.filter')}
               </button>
             </div>
 
@@ -88,13 +90,13 @@ export default function WrestlersListPage() {
                   {/* Style Filter */}
                   <div>
                     <label className="block text-sm font-medium mb-3 text-muted-foreground">
-                      سبک کشتی
+                      {t('wrestler.style')}
                     </label>
                     <div className="flex gap-2 flex-wrap">
                       {[
-                        { value: 'all', label: 'همه' },
-                        { value: 'freestyle', label: 'آزاد' },
-                        { value: 'greco-roman', label: 'فرنگی' },
+                        { value: 'all', label: t('common.all') },
+                        { value: 'freestyle', label: t('wrestler.freestyle') },
+                        { value: 'greco-roman', label: t('wrestler.grecoRoman') },
                       ].map(option => (
                         <button
                           key={option.value}
@@ -115,14 +117,14 @@ export default function WrestlersListPage() {
                   {/* Province Filter */}
                   <div>
                     <label className="block text-sm font-medium mb-3 text-muted-foreground">
-                      استان
+                      {t('wrestler.province')}
                     </label>
                     <select
                       value={selectedProvince}
                       onChange={(e) => setSelectedProvince(e.target.value)}
                       className="glass-input cursor-pointer"
                     >
-                      <option value="all">همه استان‌ها</option>
+                      <option value="all">{t('wrestler.allProvinces')}</option>
                       {iranianProvinces.map(province => (
                         <option key={province} value={province}>
                           {province}
@@ -141,7 +143,7 @@ export default function WrestlersListPage() {
       <main className="container mx-auto px-6 pb-12">
         <div className="flex items-center justify-between mb-8 page-slide-up" style={{ animationDelay: '0.3s' }}>
           <p className="text-muted-foreground">
-            {filteredWrestlers.length} کشتی‌گیر
+            {t('wrestler.count').replace('{count}', String(filteredWrestlers.length))}
           </p>
         </div>
 
@@ -154,8 +156,8 @@ export default function WrestlersListPage() {
         ) : filteredWrestlers.length === 0 ? (
           <EmptyState
             icon={<Search className="h-16 w-16 2xl:h-20 2xl:w-20" />}
-            title="کشتی‌گیری یافت نشد"
-            description="با تغییر فیلترها یا عبارت جستجو، نتایج بیشتری پیدا کنید"
+            title={t('wrestler.notFound')}
+            description={t('wrestler.notFoundDesc')}
           />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6 2xl:gap-8">

@@ -1,17 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Trash2, Bot, User, Loader2 } from 'lucide-react';
+import { MessageCircle, X, Send, Trash2, Bot, User, Loader2, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useChatAssistant, Message } from '@/hooks/useChatAssistant';
+import { useTextToSpeech } from '@/hooks/useTextToSpeech';
 import { cn } from '@/lib/utils';
 
 export const ChatAssistant: React.FC = () => {
   const { t, dir } = useLanguage();
   const { messages, sendMessage, isLoading, clearHistory } = useChatAssistant();
+  const { speak, stop, isPlaying, isSupported } = useTextToSpeech();
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
+  const [speakingMessageIndex, setSpeakingMessageIndex] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -29,6 +32,13 @@ export const ChatAssistant: React.FC = () => {
     }
   }, [isOpen]);
 
+  // Reset speaking state when playback stops
+  useEffect(() => {
+    if (!isPlaying) {
+      setSpeakingMessageIndex(null);
+    }
+  }, [isPlaying]);
+
   const handleSend = async () => {
     if (!inputValue.trim() || isLoading) return;
     const message = inputValue;
@@ -40,6 +50,16 @@ export const ChatAssistant: React.FC = () => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  const handleSpeak = (text: string, index: number) => {
+    if (speakingMessageIndex === index && isPlaying) {
+      stop();
+      setSpeakingMessageIndex(null);
+    } else {
+      speak(text);
+      setSpeakingMessageIndex(index);
     }
   };
 
@@ -94,6 +114,7 @@ export const ChatAssistant: React.FC = () => {
                 size="icon"
                 onClick={clearHistory}
                 className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                title={t('assistant.clearHistory')}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -138,7 +159,14 @@ export const ChatAssistant: React.FC = () => {
             ) : (
               <div className="space-y-4">
                 {messages.map((message, index) => (
-                  <MessageBubble key={index} message={message} />
+                  <MessageBubble 
+                    key={index} 
+                    message={message}
+                    onSpeak={() => handleSpeak(message.content, index)}
+                    isSpeaking={speakingMessageIndex === index && isPlaying}
+                    showTTS={isSupported && message.role === 'assistant'}
+                    t={t}
+                  />
                 ))}
                 {isLoading && (
                   <div className="flex gap-3">
@@ -182,7 +210,15 @@ export const ChatAssistant: React.FC = () => {
   );
 };
 
-const MessageBubble: React.FC<{ message: Message }> = ({ message }) => {
+interface MessageBubbleProps {
+  message: Message;
+  onSpeak: () => void;
+  isSpeaking: boolean;
+  showTTS: boolean;
+  t: (key: string) => string;
+}
+
+const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onSpeak, isSpeaking, showTTS, t }) => {
   const isUser = message.role === 'user';
 
   return (
@@ -197,13 +233,38 @@ const MessageBubble: React.FC<{ message: Message }> = ({ message }) => {
           <Bot className="h-4 w-4 text-gold" />
         )}
       </div>
-      <div className={cn(
-        "flex-1 p-3 rounded-2xl text-sm max-w-[80%]",
-        isUser 
-          ? "bg-gold/20 text-foreground" 
-          : "bg-muted/50 text-foreground"
-      )}>
-        {message.content}
+      <div className="flex flex-col gap-1 max-w-[80%]">
+        <div className={cn(
+          "p-3 rounded-2xl text-sm",
+          isUser 
+            ? "bg-gold/20 text-foreground" 
+            : "bg-muted/50 text-foreground"
+        )}>
+          {message.content}
+        </div>
+        {showTTS && (
+          <button
+            onClick={onSpeak}
+            className={cn(
+              "flex items-center gap-1 text-xs px-2 py-1 rounded-full w-fit",
+              "text-muted-foreground hover:text-gold transition-colors",
+              isSpeaking && "text-gold"
+            )}
+            title={isSpeaking ? t('assistant.stopSpeaking') : t('assistant.speak')}
+          >
+            {isSpeaking ? (
+              <>
+                <VolumeX className="h-3 w-3" />
+                <span>{t('assistant.stopSpeaking')}</span>
+              </>
+            ) : (
+              <>
+                <Volume2 className="h-3 w-3" />
+                <span>{t('assistant.speak')}</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );
