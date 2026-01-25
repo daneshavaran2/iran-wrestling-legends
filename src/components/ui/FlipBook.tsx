@@ -1,10 +1,12 @@
 import React, { useState, useCallback, useEffect, useRef, memo } from 'react';
 import { ChevronLeft, ChevronRight, X, ZoomIn, Grid3X3, Play, Pause } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getTinyThumbnailUrl } from '@/utils/imageOptimizer';
 
 interface Photo {
   id: string;
   url: string;
+  thumbnailUrl?: string;
   caption?: string | null;
 }
 
@@ -26,8 +28,14 @@ export const FlipBook = memo(function FlipBook({ photos, initialIndex = 0, onClo
   const [flipDirection, setFlipDirection] = useState<'next' | 'prev' | null>(null);
   const [showGrid, setShowGrid] = useState(false);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const flipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Reset image loaded state when index changes
+  useEffect(() => {
+    setImageLoaded(false);
+  }, [currentIndex]);
 
   // پیش‌بارگذاری تصاویر مجاور
   useEffect(() => {
@@ -177,7 +185,7 @@ export const FlipBook = memo(function FlipBook({ photos, initialIndex = 0, onClo
               )}
             >
               <img
-                src={photo.url}
+                src={photo.thumbnailUrl || getTinyThumbnailUrl(photo.url)}
                 alt={photo.caption || ''}
                 className="w-full h-full object-cover hover:scale-110 transition-transform duration-200"
                 loading="lazy"
@@ -263,10 +271,24 @@ export const FlipBook = memo(function FlipBook({ photos, initialIndex = 0, onClo
               {/* Page effect - right edge (book binding) */}
               <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-black/30 via-black/10 to-transparent z-10" />
               
+              {/* Low-res placeholder (shows while high-res loads) */}
+              {currentPhoto.thumbnailUrl && !imageLoaded && (
+                <img
+                  src={currentPhoto.thumbnailUrl}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-contain blur-sm scale-105"
+                />
+              )}
+              
+              {/* High-res image */}
               <img
                 src={currentPhoto.url}
                 alt={currentPhoto.caption || ''}
-                className="max-w-full max-h-[60vh] object-contain"
+                className={cn(
+                  "max-w-full max-h-[60vh] object-contain transition-opacity duration-300",
+                  imageLoaded ? "opacity-100" : "opacity-0"
+                )}
+                onLoad={() => setImageLoaded(true)}
               />
               
               {/* Page corner curl effect */}
@@ -312,7 +334,7 @@ export const FlipBook = memo(function FlipBook({ photos, initialIndex = 0, onClo
                 )}
               >
                 <img
-                  src={photo.url}
+                  src={photo.thumbnailUrl || getTinyThumbnailUrl(photo.url)}
                   alt=""
                   className="w-full h-full object-cover"
                   loading="lazy"

@@ -6,6 +6,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { TranslatedContent } from '@/components/TranslatedContent';
 import { useOfflineData } from '@/contexts/OfflineDataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { LazyImage } from '@/components/ui/LazyImage';
+import { getThumbnailUrl, getTinyThumbnailUrl } from '@/utils/imageOptimizer';
 
 export default function AlbumsListPage() {
   const navigate = useNavigate();
@@ -59,10 +61,11 @@ export default function AlbumsListPage() {
                 <div className="liquid-glass overflow-hidden h-full rounded-3xl">
                   <div className="aspect-video relative overflow-hidden">
                     {album.cover_image_url ? (
-                      <img
-                        src={album.cover_image_url}
+                      <LazyImage
+                        src={getThumbnailUrl(album.cover_image_url)}
+                        thumbnailSrc={getTinyThumbnailUrl(album.cover_image_url)}
                         alt={album.title}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        className="w-full h-full transition-transform duration-500 group-hover:scale-110"
                       />
                     ) : (
                       <div className="w-full h-full bg-muted flex items-center justify-center">

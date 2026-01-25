@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowRight, Loader2, BookOpen } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { FlipBook } from '@/components/ui/FlipBook';
+import { LazyImage } from '@/components/ui/LazyImage';
+import { getMediumUrl, getThumbnailUrl, getFullUrl } from '@/utils/imageOptimizer';
 
 export default function AlbumGalleryPage() {
   const navigate = useNavigate();
@@ -86,10 +88,11 @@ export default function AlbumGalleryPage() {
                 onClick={() => setSelectedIndex(index)}
                 className="aspect-square relative overflow-hidden rounded-xl group focus:outline-none"
               >
-                <img
-                  src={photo.url}
+                <LazyImage
+                  src={getMediumUrl(photo.url)}
+                  thumbnailSrc={getThumbnailUrl(photo.url)}
                   alt={photo.caption || `تصویر ${index + 1}`}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  className="w-full h-full transition-transform duration-500 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors" />
                 {photo.caption && (
@@ -110,7 +113,12 @@ export default function AlbumGalleryPage() {
       {/* FlipBook Modal */}
       {selectedIndex !== null && (
         <FlipBook
-          photos={photos.map((p: any) => ({ id: p.id, url: p.url, caption: p.caption }))}
+          photos={photos.map((p: any) => ({ 
+            id: p.id, 
+            url: getFullUrl(p.url), 
+            thumbnailUrl: getThumbnailUrl(p.url),
+            caption: p.caption 
+          }))}
           initialIndex={selectedIndex}
           onClose={() => setSelectedIndex(null)}
         />
