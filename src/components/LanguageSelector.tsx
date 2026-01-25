@@ -26,9 +26,9 @@ export const LanguageSelector: React.FC = () => {
         <Button
           variant="ghost"
           size="sm"
-          className="gap-2 bg-background/20 backdrop-blur-sm border border-gold/20 hover:bg-gold/10 hover:border-gold/40 transition-all duration-300"
+          className="gap-2 floating-icon-glass text-foreground hover:text-primary px-4 py-2"
         >
-          <Globe className="h-4 w-4 text-gold" />
+          <Globe className="h-4 w-4 text-primary" />
           <span className="text-sm">{currentLang?.flag} {currentLang?.name}</span>
         </Button>
       </DropdownMenuTrigger>
