@@ -3,13 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, BookOpen, User, WifiOff } from 'lucide-react';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { useKioskMode } from '@/hooks/useKioskMode';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LazyImage } from '@/components/ui/LazyImage';
 import { useOfflineData } from '@/contexts/OfflineDataContext';
+import { TranslatedContent } from '@/components/TranslatedContent';
 
 export default function BooksListPage() {
   useKioskMode();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const { books, isLoadingBooks, isOffline } = useOfflineData();
 
   return (
@@ -23,19 +26,19 @@ export default function BooksListPage() {
           className="flex items-center gap-2 liquid-button"
         >
           <ArrowRight className="h-5 w-5" />
-          بازگشت
+          {t('common.back')}
         </GoldButton>
         <div className="flex items-center gap-3 page-slide-up" style={{ animationDelay: '0.1s' }}>
           <div className="p-2 rounded-2xl liquid-glass">
             <BookOpen className="h-6 w-6 text-bronze" />
           </div>
           <h1 className="text-2xl md:text-3xl xl:text-4xl font-bold">
-            <span className="text-bronze bronze-glow">تألیفات</span>
+            <span className="text-bronze bronze-glow">{t('books.title')}</span>
           </h1>
           {isOffline && (
             <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-yellow-500/20 text-yellow-500 text-xs">
               <WifiOff className="h-3 w-3" />
-              <span>آفلاین</span>
+              <span>{t('common.offline')}</span>
             </div>
           )}
         </div>
@@ -53,9 +56,9 @@ export default function BooksListPage() {
           ) : books.length === 0 ? (
             <div className="liquid-glass p-12 text-center max-w-md mx-auto rounded-3xl">
               <BookOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-xl font-bold mb-2">محتوایی وجود ندارد</h3>
+              <h3 className="text-xl font-bold mb-2">{t('books.noContent')}</h3>
               <p className="text-muted-foreground">
-                کتاب‌ها و تألیفات توسط مدیر اضافه خواهند شد
+                {t('books.noContentDesc')}
               </p>
             </div>
           ) : (
@@ -95,11 +98,13 @@ export default function BooksListPage() {
                         {/* Content */}
                         <div className="p-3 bg-gradient-to-b from-transparent to-black/30">
                           <h2 className="text-sm md:text-base font-bold mb-1 line-clamp-2 group-hover:text-bronze transition-colors duration-300">
-                            {book.title}
+                            <TranslatedContent text={book.title} />
                           </h2>
                           <div className="flex items-center gap-1 text-muted-foreground text-xs">
                             <User className="h-3 w-3 flex-shrink-0" />
-                            <span className="line-clamp-1">{book.author}</span>
+                            <span className="line-clamp-1">
+                              <TranslatedContent text={book.author} />
+                            </span>
                           </div>
                         </div>
                       </div>
