@@ -21,7 +21,9 @@
     "offline": "Offline",
     "all": "All",
     "filter": "Filter",
-    "noResults": "No results found"
+    "noResults": "No results found",
+    "error": "Error",
+    "retry": "Retry"
   },
   "home": {
     "title": "Iran Wrestling Museum",
@@ -40,6 +42,8 @@
     "menuAboutDesc": "Museum Introduction"
   },
   "wrestler": {
+    "title": "Wrestlers",
+    "subtitle": "Champions of Iranian Wrestling",
     "freestyle": "Freestyle",
     "grecoRoman": "Greco-Roman",
     "gold": "Gold",
@@ -52,29 +56,73 @@
     "successPath": "Success Path",
     "social": "Social Activities",
     "filterByStyle": "Filter by Style",
-    "filterByProvince": "Filter by Province"
+    "filterByProvince": "Filter by Province",
+    "searchPlaceholder": "Search wrestlers...",
+    "count": "{count} wrestlers",
+    "notFound": "Wrestler not found",
+    "noWrestlers": "No wrestlers found",
+    "weightClass": "Weight Class",
+    "province": "Province"
+  },
+  "profile": {
+    "tabs": {
+      "intro": "Intro Clip",
+      "bio": "Biography",
+      "success": "Success Path",
+      "achievements": "Achievements",
+      "social": "Social Activities",
+      "media": "Media"
+    },
+    "empty": {
+      "noIntro": "No introduction clip available",
+      "noBio": "No biography available",
+      "noSuccess": "No success path recorded",
+      "noAchievements": "No achievements recorded",
+      "noSocial": "No social activities recorded",
+      "noMedia": "No media available"
+    },
+    "labels": {
+      "watchIntro": "Watch Introduction",
+      "medals": "Medals",
+      "back": "Back",
+      "notFound": "Wrestler not found"
+    },
+    "medal": {
+      "gold": "Gold Medal",
+      "silver": "Silver Medal",
+      "bronze": "Bronze Medal"
+    }
   },
   "history": {
     "title": "History of Iranian Wrestling",
-    "subtitle": "A Journey Through Time"
+    "subtitle": "A Journey Through Time",
+    "noContent": "No history content available"
   },
   "buildings": {
     "title": "Buildings & Venues",
-    "subtitle": "Historic Sports Locations"
+    "subtitle": "Historic Sports Locations",
+    "noContent": "No buildings found",
+    "viewOnMap": "View on Map"
   },
   "books": {
     "title": "Publications",
     "subtitle": "Wrestling Books & Resources",
-    "author": "Author"
+    "author": "Author",
+    "noContent": "No books found"
   },
   "albums": {
     "title": "Photo Albums",
     "subtitle": "Historic Photo Collection",
-    "photos": "photos"
+    "photos": "photos",
+    "noContent": "No albums found",
+    "backToHome": "Back to Home"
   },
   "about": {
     "title": "About the Museum",
-    "subtitle": "Iran Wrestling Museum Introduction"
+    "subtitle": "Iran Wrestling Museum Introduction",
+    "backToHome": "Back to Home",
+    "mediaGallery": "Media Gallery",
+    "defaultContent": "The Iran Wrestling Museum is a treasure trove of the glorious history of Iranian wrestling..."
   },
   "assistant": {
     "title": "Museum Assistant",
@@ -85,7 +133,10 @@
       "champions": "Meet the Champions",
       "museum": "About the Museum"
     },
-    "error": "Error getting response. Please try again."
+    "error": "Error getting response. Please try again.",
+    "speak": "Read aloud",
+    "stopSpeaking": "Stop reading",
+    "clearHistory": "Clear chat history"
   },
   "install": {
     "title": "Install App",
