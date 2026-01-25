@@ -383,6 +383,36 @@ export type Database = {
           },
         ]
       }
+      translations: {
+        Row: {
+          created_at: string | null
+          id: string
+          language: string
+          source_hash: string
+          source_text: string
+          translated_text: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          language: string
+          source_hash: string
+          source_text: string
+          translated_text: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          language?: string
+          source_hash?: string
+          source_text?: string
+          translated_text?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
