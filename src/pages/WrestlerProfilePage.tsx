@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight, Trophy, Image as ImageIcon, BookOpen, User, X, Play, Pause, Volume2, VolumeX, Heart, TrendingUp } from 'lucide-react';
+import { ArrowRight, Trophy, Image as ImageIcon, BookOpen, X, Play, Pause, Volume2, VolumeX, Heart, TrendingUp } from 'lucide-react';
 import sampleWrestlerImage from '@/assets/sample-wrestler.jpg';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GoldButton } from '@/components/ui/GoldButton';
@@ -8,7 +8,9 @@ import { SkeletonProfile } from '@/components/ui/skeleton-cards';
 import { EmptyState, ErrorState } from '@/components/ui/StateComponents';
 import { MediaGallery } from '@/components/MediaGallery';
 import { SparkParticles } from '@/components/ui/SparkParticles';
+import { TranslatedContent } from '@/components/TranslatedContent';
 import { useWrestlers } from '@/contexts/WrestlerContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useKioskMode } from '@/hooks/useKioskMode';
 import { wrestlingStyles, medalTypes } from '@/data/wrestlers';
 import { cn } from '@/lib/utils';
@@ -67,6 +69,8 @@ function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }
     setIsMuted(video.muted);
   };
 
+  const { t } = useLanguage();
+
   return (
     <div className="relative rounded-3xl overflow-hidden group cyber-glass cyber-hud">
       <div className="aspect-video w-full">
@@ -104,7 +108,7 @@ function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }
       {/* Video Title */}
       <div className="absolute top-4 right-4">
         <span className="px-4 py-2 rounded-full cyber-glass text-sm xl:text-base font-medium">
-          ویدیو معرفی
+          {t('profile.tabs.intro')}
         </span>
       </div>
     </div>
@@ -116,6 +120,7 @@ export default function WrestlerProfilePage() {
   
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t, dir } = useLanguage();
   const { getWrestlerById, getAchievementsByWrestlerId, getMediaByWrestlerId, isLoading } = useWrestlers();
   
   const [activeTab, setActiveTab] = useState<TabType>('intro');
@@ -137,7 +142,7 @@ export default function WrestlerProfilePage() {
     return (
       <div className="h-screen flex items-center justify-center p-8">
         <ErrorState 
-          message="کشتی‌گیر مورد نظر یافت نشد" 
+          message={t('profile.labels.notFound')} 
           onRetry={() => navigate('/wrestlers')} 
         />
       </div>
@@ -145,12 +150,12 @@ export default function WrestlerProfilePage() {
   }
 
   const tabs = [
-    { id: 'intro', label: 'کلیپ معرفی', icon: Play },
-    { id: 'bio', label: 'زندگی‌نامه', icon: BookOpen },
-    { id: 'success', label: 'مسیر موفقیت', icon: TrendingUp },
-    { id: 'achievements', label: 'افتخارات', icon: Trophy },
-    { id: 'social', label: 'فعالیت‌های اجتماعی', icon: Heart },
-    { id: 'media', label: 'رسانه‌ها', icon: ImageIcon },
+    { id: 'intro', label: t('profile.tabs.intro'), icon: Play },
+    { id: 'bio', label: t('profile.tabs.bio'), icon: BookOpen },
+    { id: 'success', label: t('profile.tabs.success'), icon: TrendingUp },
+    { id: 'achievements', label: t('profile.tabs.achievements'), icon: Trophy },
+    { id: 'social', label: t('profile.tabs.social'), icon: Heart },
+    { id: 'media', label: t('profile.tabs.media'), icon: ImageIcon },
   ] as const;
 
   // Medal counts
@@ -174,8 +179,8 @@ export default function WrestlerProfilePage() {
           onClick={() => navigate('/wrestlers')}
           className="absolute top-4 right-4 z-10 flex items-center gap-2"
         >
-          <ArrowRight className="h-5 w-5 xl:h-6 xl:w-6" />
-          <span className="text-base xl:text-lg">بازگشت</span>
+          <ArrowRight className={`h-5 w-5 xl:h-6 xl:w-6 ${dir === 'ltr' ? 'rotate-180' : ''}`} />
+          <span className="text-base xl:text-lg">{t('profile.labels.back')}</span>
         </GoldButton>
 
         {/* Centered Content - Horizontal Layout */}
@@ -196,13 +201,13 @@ export default function WrestlerProfilePage() {
           <div className="flex flex-col items-start">
             {/* Wrestler Name */}
             <h1 className="text-2xl md:text-3xl xl:text-4xl 2xl:text-5xl font-bold text-neon neon-glow mb-2 xl:mb-3">
-              {wrestler.name}
+              <TranslatedContent text={wrestler.name} />
             </h1>
             
             {/* Style & Weight Badges */}
             <div className="flex gap-2 xl:gap-3 mb-2 xl:mb-3">
               <span className="cyber-glass px-4 py-2 text-sm xl:text-base font-bold rounded-xl border border-primary/30">
-                {wrestlingStyles[wrestler.style]}
+                {t(`wrestler.${wrestler.style === 'freestyle' ? 'freestyle' : 'grecoRoman'}`)}
               </span>
               {wrestler.weight_class && (
                 <span className="cyber-glass px-4 py-2 text-sm xl:text-base font-bold rounded-xl border border-primary/30">
@@ -278,8 +283,8 @@ export default function WrestlerProfilePage() {
               ) : (
                 <EmptyState
                   icon={<Play className="h-16 w-16" />}
-                  title="کلیپ معرفی موجود نیست"
-                  description="ویدیو معرفی این کشتی‌گیر هنوز اضافه نشده است"
+                  title={t('profile.empty.noIntro')}
+                  description=""
                 />
               )}
             </div>
@@ -294,14 +299,14 @@ export default function WrestlerProfilePage() {
                     className="text-lg xl:text-xl leading-relaxed whitespace-pre-wrap"
                     style={{ lineHeight: '2' }}
                   >
-                    {wrestler.full_story}
+                    <TranslatedContent text={wrestler.full_story} />
                   </div>
                 </div>
               ) : (
                 <EmptyState
                   icon={<BookOpen className="h-16 w-16" />}
-                  title="زندگی‌نامه موجود نیست"
-                  description="زندگی‌نامه کامل این کشتی‌گیر هنوز ثبت نشده است"
+                  title={t('profile.empty.noBio')}
+                  description=""
                 />
               )}
             </div>
@@ -314,20 +319,20 @@ export default function WrestlerProfilePage() {
                 <div className="cyber-glass p-8 rounded-3xl">
                   <h2 className="text-2xl font-bold mb-4 text-neon flex items-center gap-2">
                     <TrendingUp className="h-6 w-6" />
-                    مسیر موفقیت
+                    {t('profile.tabs.success')}
                   </h2>
                   <div 
                     className="text-lg xl:text-xl leading-relaxed whitespace-pre-wrap"
                     style={{ lineHeight: '2' }}
                   >
-                    {(wrestler as any).success_path}
+                    <TranslatedContent text={(wrestler as any).success_path} />
                   </div>
                 </div>
               ) : (
                 <EmptyState
                   icon={<TrendingUp className="h-16 w-16" />}
-                  title="مسیر موفقیت ثبت نشده"
-                  description="داستان مسیر موفقیت این کشتی‌گیر هنوز ثبت نشده است"
+                  title={t('profile.empty.noSuccess')}
+                  description=""
                 />
               )}
             </div>
@@ -365,11 +370,15 @@ export default function WrestlerProfilePage() {
                               {achievement.year}
                             </span>
                             <span className="text-sm text-muted-foreground">
-                              مدال {medalTypes[achievement.medal_type]}
+                              {t(`profile.medal.${achievement.medal_type}`)}
                             </span>
                           </div>
-                          <h3 className="text-lg font-bold mb-1">{achievement.title}</h3>
-                          <p className="text-muted-foreground text-sm">{achievement.event}</p>
+                          <h3 className="text-lg font-bold mb-1">
+                            <TranslatedContent text={achievement.title} />
+                          </h3>
+                          <p className="text-muted-foreground text-sm">
+                            <TranslatedContent text={achievement.event} />
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -378,8 +387,8 @@ export default function WrestlerProfilePage() {
               ) : (
                 <EmptyState
                   icon={<Trophy className="h-16 w-16" />}
-                  title="افتخاراتی ثبت نشده"
-                  description="افتخارات این کشتی‌گیر هنوز ثبت نشده است"
+                  title={t('profile.empty.noAchievements')}
+                  description=""
                 />
               )}
             </div>
@@ -392,20 +401,20 @@ export default function WrestlerProfilePage() {
                 <div className="cyber-glass p-8 rounded-3xl">
                   <h2 className="text-2xl font-bold mb-4 text-neon flex items-center gap-2">
                     <Heart className="h-6 w-6" />
-                    فعالیت‌های اجتماعی
+                    {t('profile.tabs.social')}
                   </h2>
                   <div 
                     className="text-lg xl:text-xl leading-relaxed whitespace-pre-wrap"
                     style={{ lineHeight: '2' }}
                   >
-                    {(wrestler as any).social_activities}
+                    <TranslatedContent text={(wrestler as any).social_activities} />
                   </div>
                 </div>
               ) : (
                 <EmptyState
                   icon={<Heart className="h-16 w-16" />}
-                  title="فعالیت اجتماعی ثبت نشده"
-                  description="فعالیت‌های اجتماعی این کشتی‌گیر هنوز ثبت نشده است"
+                  title={t('profile.empty.noSocial')}
+                  description=""
                 />
               )}
             </div>
@@ -418,8 +427,8 @@ export default function WrestlerProfilePage() {
               ) : (
                 <EmptyState
                   icon={<ImageIcon className="h-16 w-16" />}
-                  title="رسانه‌ای موجود نیست"
-                  description="تصاویر و ویدیوهای این کشتی‌گیر هنوز اضافه نشده است"
+                  title={t('profile.empty.noMedia')}
+                  description=""
                 />
               )}
             </div>
@@ -430,25 +439,20 @@ export default function WrestlerProfilePage() {
       {/* Image Modal */}
       {isImageModalOpen && (
         <div 
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-lg animate-fade-in"
           onClick={() => setIsImageModalOpen(false)}
         >
-          <div 
-            className="relative max-w-2xl max-h-[80vh] animate-scale-in"
-            onClick={e => e.stopPropagation()}
+          <button
+            className="absolute top-6 right-6 p-3 cyber-glass rounded-full hover:bg-primary/30"
+            onClick={() => setIsImageModalOpen(false)}
           >
-            <button
-              onClick={() => setIsImageModalOpen(false)}
-              className="absolute -top-12 left-1/2 -translate-x-1/2 text-white/70 hover:text-white transition-colors"
-            >
-              <X className="h-8 w-8" />
-            </button>
-            <img
-              src={wrestler.image_url || sampleWrestlerImage}
-              alt={wrestler.name}
-              className="w-full h-full object-contain rounded-2xl border-2 border-primary/30 shadow-[0_0_60px_hsl(20_100%_50%/0.3)]"
-            />
-          </div>
+            <X className="h-8 w-8" />
+          </button>
+          <img
+            src={wrestler.image_url || sampleWrestlerImage}
+            alt={wrestler.name}
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded-3xl shadow-2xl"
+          />
         </div>
       )}
     </div>
