@@ -75,12 +75,9 @@ export const ChatAssistant: React.FC = () => {
       <button
         onClick={() => setIsOpen(true)}
         className={cn(
-          "fixed bottom-6 z-50 p-4 rounded-full",
-          "bg-gradient-to-r from-gold to-gold/80 text-background",
-          "shadow-lg shadow-gold/30 hover:shadow-xl hover:shadow-gold/40",
-          "transform hover:scale-110 transition-all duration-300",
-          "animate-pulse hover:animate-none",
-          dir === 'rtl' ? 'left-6' : 'right-6'
+          "fixed bottom-6 z-50 p-4",
+          "floating-icon-glass text-primary hover:text-foreground",
+          dir === 'rtl' ? 'right-6' : 'left-6'
         )}
         style={{ display: isOpen ? 'none' : 'flex' }}
       >
