@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { convertToWebP, compressImage } from '@/utils/imageCompressor';
 
 interface UploadProgress {
   fileName: string;
   progress: number;
+  status?: 'processing' | 'uploading' | 'complete';
 }
 
 export function useMediaUpload() {
@@ -16,10 +18,22 @@ export function useMediaUpload() {
     setError(null);
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${folderId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      // نمایش وضعیت پردازش
+      setUploadProgress(prev => [...prev, { fileName: file.name, progress: 0, status: 'processing' }]);
 
-      setUploadProgress(prev => [...prev, { fileName: file.name, progress: 0 }]);
+      // مرحله ۱: تبدیل BMP به WebP
+      let processedFile = await convertToWebP(file);
+      
+      // مرحله ۲: فشرده‌سازی تصویر
+      processedFile = await compressImage(processedFile);
+
+      // بروزرسانی وضعیت به آپلود
+      setUploadProgress(prev => 
+        prev.map(p => p.fileName === file.name ? { ...p, progress: 10, status: 'uploading' } : p)
+      );
+
+      const fileExt = processedFile.name.split('.').pop();
+      const fileName = `${folderId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
       const { data, error: uploadError } = await supabase.storage
         .from(bucket)

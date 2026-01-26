@@ -1,73 +1,230 @@
-# Welcome to your Lovable project
+# موزه افتخارات کشتی ایران 🏛️
 
-## Project info
+<div align="center">
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+آرشیو دیجیتال جامع قهرمانان و افتخارات کشتی ایران
 
-## How can I edit this code?
+**[مشاهده دمو](https://wrestling-heritage-unveiled.lovable.app)** • **[مستندات](./DESKTOP_BUILD.md)** • **[راهنمای کیوسک](./KIOSK_README.md)**
 
-There are several ways of editing your application.
+</div>
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## 📋 فهرست مطالب
 
-Changes made via Lovable will be committed automatically to this repo.
+- [معرفی](#-معرفی)
+- [ویژگی‌ها](#-ویژگیها)
+- [نصب و راه‌اندازی](#-نصب-و-راهاندازی)
+- [استفاده آفلاین](#-استفاده-آفلاین)
+- [ساخت نسخه دسکتاپ](#-ساخت-نسخه-دسکتاپ)
+- [معماری فنی](#-معماری-فنی)
+- [پشتیبانی](#-پشتیبانی)
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🎯 معرفی
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+این اپلیکیشن برای نمایش در کیوسک‌های موزه کشتی ایران طراحی شده است. با استفاده از فناوری‌های مدرن وب، تجربه‌ای روان و تعاملی برای بازدیدکنندگان فراهم می‌کند.
 
-Follow these steps:
+### مخاطبان
+- 🏛️ موزه‌ها و نمایشگاه‌ها
+- 📱 کیوسک‌های لمسی
+- 💻 دسکتاپ ویندوز
+- 🌐 مرورگرهای وب
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## ✨ ویژگی‌ها
 
-# Step 3: Install the necessary dependencies.
-npm i
+### 🎨 رابط کاربری
+- طراحی RTL فارسی با فونت Vazirmatn
+- پشتیبانی از چند زبان (فارسی، انگلیسی، عربی)
+- تم روشن/تاریک خودکار
+- بهینه برای صفحات لمسی 55 اینچی
+- استایل Liquid Glass شفاف و مدرن
+- انیمیشن‌های روان با Framer Motion
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### 📸 مدیریت تصاویر
+- ✅ تبدیل خودکار BMP به WebP (کاهش ۹۵٪ حجم)
+- ✅ بارگذاری پیش‌رونده (Progressive Loading)
+- ✅ بهینه‌سازی خودکار با Supabase Image Transform
+- ✅ قابلیت Zoom/Pinch در گالری FlipBook
+- ✅ تولید خودکار Thumbnail
+- ✅ Lazy Loading هوشمند
+
+### 📡 قابلیت آفلاین
+- PWA با Service Worker
+- کش 24 ساعته داده‌ها در localStorage
+- همگام‌سازی خودکار هنگام بازگشت اینترنت
+- نشانگر وضعیت آفلاین
+
+### 🤖 هوش مصنوعی
+- دستیار هوشمند موزه (چت‌بات)
+- ترجمه خودکار محتوا به زبان‌های مختلف
+- Text-to-Speech برای خوانش متون
+
+### 🎵 چندرسانه‌ای
+- موسیقی پس‌زمینه با کنترل صدا
+- گالری FlipBook با اسلایدشو خودکار
+- پخش‌کننده ویدیو
+- نمایش کتاب‌ها و اسناد
+
+### 🔒 امنیت و مدیریت
+- پنل مدیریت با احراز هویت
+- Row Level Security (RLS)
+- مدیریت کاربران و نقش‌ها
+- پشتیبان‌گیری و بازیابی
+
+---
+
+## 🚀 نصب و راه‌اندازی
+
+### پیش‌نیازها
+- Node.js 18+
+- npm یا bun
+
+### مراحل نصب
+
+```bash
+# کلون پروژه
+git clone https://github.com/YOUR_REPO/wrestling-museum.git
+cd wrestling-museum
+
+# نصب وابستگی‌ها
+npm install
+
+# اجرای محلی
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### متغیرهای محیطی
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+فایل `.env` را ایجاد کنید:
 
-**Use GitHub Codespaces**
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_key
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+## 📡 استفاده آفلاین
 
-This project is built with:
+اپلیکیشن به صورت PWA کار می‌کند و در حالت‌های مختلف رفتار متفاوتی دارد:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+| وضعیت | رفتار |
+|-------|-------|
+| 🟢 **آنلاین** | همه قابلیت‌ها فعال، داده‌های زنده |
+| 🟡 **آفلاین** | نمایش آخرین داده‌های کش شده، پیغام آفلاین |
+| 🔄 **بازگشت** | همگام‌سازی خودکار و بروزرسانی |
 
-## How can I deploy this project?
+### نحوه عملکرد
+1. داده‌ها پس از هر بارگذاری موفق در localStorage ذخیره می‌شوند
+2. Service Worker فایل‌های استاتیک را کش می‌کند
+3. در حالت آفلاین، داده‌های کش شده نمایش داده می‌شوند
+4. با بازگشت اینترنت، همگام‌سازی خودکار انجام می‌شود
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+---
 
-## Can I connect a custom domain to my Lovable project?
+## 🖥️ ساخت نسخه دسکتاپ
 
-Yes, you can!
+برای ساخت فایل EXE ویندوز:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### روش ۱: Tauri (توصیه شده)
+```bash
+# نصب Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+# ساخت
+npm run tauri build
+```
+
+### روش ۲: Electron
+```bash
+npm run build-electron
+```
+
+📖 **برای جزئیات کامل به [DESKTOP_BUILD.md](./DESKTOP_BUILD.md) مراجعه کنید.**
+
+---
+
+## 🏗️ معماری فنی
+
+### فناوری‌های استفاده شده
+
+| فناوری | کاربرد |
+|---------|--------|
+| **React 18** | فریم‌ورک UI |
+| **TypeScript** | تایپ ایمن |
+| **Vite** | باندلر و Dev Server |
+| **Tailwind CSS** | استایل‌دهی |
+| **shadcn/ui** | کامپوننت‌های UI |
+| **Supabase** | بک‌اند و دیتابیس |
+| **TanStack Query** | مدیریت State سرور |
+| **Tauri/Electron** | نسخه دسکتاپ |
+
+### ساختار پروژه
+
+```
+src/
+├── components/        # کامپوننت‌های UI
+│   ├── ui/           # کامپوننت‌های پایه
+│   └── ...           # کامپوننت‌های اپلیکیشن
+├── contexts/         # React Context ها
+├── hooks/            # Custom Hooks
+├── pages/            # صفحات اپلیکیشن
+│   └── admin/        # صفحات پنل مدیریت
+├── utils/            # توابع کمکی
+└── locales/          # فایل‌های ترجمه
+
+supabase/
+├── functions/        # Edge Functions
+└── migrations/       # تغییرات دیتابیس
+```
+
+---
+
+## 📊 بهینه‌سازی عملکرد
+
+### تصاویر
+- تبدیل خودکار BMP → WebP
+- سایزهای بهینه: Tiny (150px), Thumbnail (400px), Medium (800px), Full (1920px)
+- Lazy Loading با IntersectionObserver
+- Progressive Loading با blur placeholder
+
+### کش
+- Service Worker برای فایل‌های استاتیک
+- localStorage برای داده‌های API
+- IndexedDB برای داده‌های حجیم (در صورت نیاز)
+
+### رندرینگ
+- React.memo برای کامپوننت‌های سنگین
+- Virtual Lists برای لیست‌های بزرگ
+- Code Splitting با lazy imports
+
+---
+
+## 🤝 پشتیبانی
+
+### گزارش مشکلات
+لطفاً مشکلات را در [GitHub Issues](https://github.com/YOUR_REPO/issues) گزارش دهید.
+
+### تماس
+- 📧 ایمیل: support@example.com
+- 🌐 وب‌سایت: https://wrestling-museum.ir
+
+---
+
+## 📜 مجوز
+
+این پروژه تحت مجوز MIT منتشر شده است.
+
+---
+
+<div align="center">
+
+ساخته شده با ❤️ برای موزه کشتی ایران
+
+**نسخه 1.0.0 | بهمن ۱۴۰۴**
+
+</div>
