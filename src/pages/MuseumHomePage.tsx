@@ -25,19 +25,24 @@ const MenuCard = forwardRef<HTMLDivElement, MenuCardProps>(
         ref={ref}
         onClick={onClick}
         intensity={10}
-        className="w-full text-right focus:outline-none page-slide-up"
+        className="w-full text-right focus:outline-none menu-card-animated menu-card-hover"
+        style={{ animationDelay: `${delay}s` }}
       >
         <div 
-          className="cyber-glass cyber-hud rounded-3xl p-5 md:p-6 xl:p-8 2xl:p-10 h-full flex flex-col items-center justify-center text-center min-h-[160px] md:min-h-[200px] xl:min-h-[260px] 2xl:min-h-[300px] group active:scale-[0.98] transition-transform"
-          style={{ animationDelay: `${delay}s` }}
+          className="cyber-glass cyber-hud rounded-3xl p-5 md:p-6 xl:p-8 2xl:p-10 h-full flex flex-col items-center justify-center text-center min-h-[160px] md:min-h-[200px] xl:min-h-[260px] 2xl:min-h-[300px] group"
         >
-          <div className="mb-3 md:mb-4 p-4 md:p-5 xl:p-6 rounded-2xl cyber-glass text-primary group-hover:text-foreground group-hover:bg-primary/30 transition-all duration-300">
+          {/* Icon with Glow Animation */}
+          <div className="mb-3 md:mb-4 p-4 md:p-5 xl:p-6 rounded-2xl cyber-glass icon-animated text-primary group-hover:text-foreground group-hover:bg-primary/30 transition-all duration-500">
             {icon}
           </div>
-          <h2 className="text-lg md:text-xl xl:text-2xl 2xl:text-3xl font-bold mb-2 text-foreground group-hover:text-primary transition-all duration-300">
+          
+          {/* Title with Shimmer Effect */}
+          <h2 className="text-lg md:text-xl xl:text-2xl 2xl:text-3xl font-bold mb-2 text-foreground group-hover:text-neon title-shimmer transition-all duration-500">
             {title}
           </h2>
-          <p className="text-muted-foreground text-sm md:text-base xl:text-lg 2xl:text-xl">
+          
+          {/* Description with Fade */}
+          <p className="text-muted-foreground text-sm md:text-base xl:text-lg 2xl:text-xl group-hover:text-foreground/80 transition-colors duration-500">
             {description}
           </p>
         </div>
@@ -105,11 +110,11 @@ export default function MuseumHomePage() {
       {/* Logo & Title - Optimized for 55-inch Kiosk */}
       <header className="text-center mb-6 md:mb-8 xl:mb-10 2xl:mb-12 flex-shrink-0 page-slide-up relative z-10" style={{ animationDelay: '0.1s' }}>
         <div className="flex items-center justify-center gap-4 md:gap-6 xl:gap-8 2xl:gap-10 mb-2 md:mb-3">
-          {/* Right Logo */}
+          {/* Right Logo - Float Animation */}
           <img 
             src={federationLogo} 
             alt="لوگو فدراسیون کشتی" 
-            className="h-16 md:h-20 xl:h-28 2xl:h-36 object-contain drop-shadow-[0_0_20px_hsl(20_100%_50%/0.3)]"
+            className="h-16 md:h-20 xl:h-28 2xl:h-36 object-contain drop-shadow-[0_0_20px_hsl(20_100%_50%/0.3)] animate-logo-float"
           />
           
           {/* Title */}
@@ -118,11 +123,11 @@ export default function MuseumHomePage() {
             <span className="text-foreground"> {t('home.title').split(' ').slice(2).join(' ')}</span>
           </h1>
           
-          {/* Left Logo */}
+          {/* Left Logo - Float Animation Delayed */}
           <img 
             src={federationLogo} 
             alt="لوگو فدراسیون کشتی" 
-            className="h-16 md:h-20 xl:h-28 2xl:h-36 object-contain drop-shadow-[0_0_20px_hsl(20_100%_50%/0.3)]"
+            className="h-16 md:h-20 xl:h-28 2xl:h-36 object-contain drop-shadow-[0_0_20px_hsl(20_100%_50%/0.3)] animate-logo-float-delayed"
           />
         </div>
         <p className="text-base md:text-xl xl:text-2xl 2xl:text-3xl text-muted-foreground">
