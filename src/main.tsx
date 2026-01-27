@@ -1,4 +1,3 @@
-// Build cache invalidation: 2026-01-27
 import { createRoot } from "react-dom/client";
 import { useState, useEffect } from "react";
 import App from "./App.tsx";
