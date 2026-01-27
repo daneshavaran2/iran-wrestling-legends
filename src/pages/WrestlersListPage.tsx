@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Filter, ArrowRight } from 'lucide-react';
 import { SearchInput } from '@/components/ui/GlassInput';
@@ -11,6 +11,20 @@ import { useKioskMode } from '@/hooks/useKioskMode';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { iranianProvinces } from '@/data/wrestlers';
 import { cn } from '@/lib/utils';
+import { getThumbnailUrl } from '@/utils/imageOptimizer';
+
+// Preload images for faster rendering
+const preloadImages = (urls: string[]) => {
+  urls.forEach(url => {
+    if (url) {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = url;
+      document.head.appendChild(link);
+    }
+  });
+};
 
 export default function WrestlersListPage() {
   useKioskMode();
@@ -34,6 +48,18 @@ export default function WrestlersListPage() {
       return matchesSearch && matchesStyle && matchesProvince;
     });
   }, [visibleWrestlers, searchQuery, selectedStyle, selectedProvince]);
+
+  // Preload first 6 wrestler images for faster initial render
+  useEffect(() => {
+    if (filteredWrestlers.length > 0) {
+      const firstSixImages = filteredWrestlers
+        .slice(0, 6)
+        .map(w => getThumbnailUrl(w.image_url))
+        .filter(Boolean) as string[];
+      
+      preloadImages(firstSixImages);
+    }
+  }, [filteredWrestlers]);
 
   if (error) {
     return <ErrorState message={error} onRetry={() => window.location.reload()} />;

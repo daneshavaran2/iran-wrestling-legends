@@ -142,10 +142,17 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
 
   const fetchWrestlers = async (): Promise<boolean> => {
     try {
+      // Add timeout to prevent infinite waiting
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000); // 15 seconds
+
       const { data, error } = await supabase
         .from('wrestlers')
         .select('*')
-        .order('name');
+        .order('name')
+        .abortSignal(controller.signal);
+
+      clearTimeout(timeout);
 
       if (error) throw error;
       
@@ -159,18 +166,27 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
       setWrestlers(mappedData);
       saveToCache(CACHE_KEYS.WRESTLERS, mappedData);
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching wrestlers:', err);
+      if (err.name === 'AbortError') {
+        console.log('Request timed out, using cached data');
+      }
       return false;
     }
   };
 
   const fetchAchievements = async (): Promise<boolean> => {
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
       const { data, error } = await supabase
         .from('achievements')
         .select('*')
-        .order('year', { ascending: false });
+        .order('year', { ascending: false })
+        .abortSignal(controller.signal);
+
+      clearTimeout(timeout);
 
       if (error) throw error;
       
@@ -182,18 +198,27 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
       setAchievements(mappedData);
       saveToCache(CACHE_KEYS.ACHIEVEMENTS, mappedData);
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching achievements:', err);
+      if (err.name === 'AbortError') {
+        console.log('Achievements request timed out');
+      }
       return false;
     }
   };
 
   const fetchMedia = async (): Promise<boolean> => {
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
       const { data, error } = await supabase
         .from('wrestler_media')
         .select('*')
-        .order('display_order');
+        .order('display_order')
+        .abortSignal(controller.signal);
+
+      clearTimeout(timeout);
 
       if (error) throw error;
       
@@ -205,13 +230,16 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
       setMedia(mappedData);
       saveToCache(CACHE_KEYS.MEDIA, mappedData);
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching media:', err);
+      if (err.name === 'AbortError') {
+        console.log('Media request timed out');
+      }
       return false;
     }
   };
 
-  const refreshWrestlers = async () => {
+  const refreshWrestlers = async (retryCount = 0) => {
     setIsLoading(true);
     setError(null);
     
@@ -224,14 +252,21 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
     const allSucceeded = results.every(r => r === true);
     
     if (!allSucceeded) {
+      // Automatic retry (max 2 times) for external server connections
+      if (retryCount < 2 && navigator.onLine) {
+        console.log(`Retrying data fetch... (attempt ${retryCount + 2})`);
+        setTimeout(() => refreshWrestlers(retryCount + 1), 2000);
+        return;
+      }
+      
       // Check if we have cached data
       const hasCachedData = wrestlers.length > 0;
       
       if (hasCachedData) {
         setIsOffline(true);
-        setError('حالت آفلاین - نمایش داده‌های ذخیره شده');
+        setError('نمایش داده‌های ذخیره شده (حالت آفلاین)');
       } else {
-        setError('خطا در بارگذاری اطلاعات. لطفاً اتصال اینترنت را بررسی کنید.');
+        setError('خطا در اتصال به سرور. لطفاً دوباره تلاش کنید.');
       }
     } else {
       setIsOffline(false);

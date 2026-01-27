@@ -96,7 +96,8 @@
   "history": {
     "title": "History of Iranian Wrestling",
     "subtitle": "A Journey Through Time",
-    "noContent": "No history content available"
+    "noContent": "No history content available",
+    "noContentDesc": "No content to display. More information will be added soon."
   },
   "buildings": {
     "title": "Buildings & Venues",

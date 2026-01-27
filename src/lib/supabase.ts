@@ -34,10 +34,19 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_KEY, {
 // Export URL for edge functions if needed
 export const supabaseUrl = SUPABASE_URL;
 
-// Test connection function
+// Test connection function with timeout
 export const testConnection = async (): Promise<boolean> => {
   try {
-    const { error } = await supabase.from('wrestlers').select('id').limit(1);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+    const { error } = await supabase
+      .from('wrestlers')
+      .select('id')
+      .limit(1)
+      .abortSignal(controller.signal);
+
+    clearTimeout(timeout);
     return !error;
   } catch {
     return false;

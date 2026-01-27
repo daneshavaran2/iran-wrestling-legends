@@ -26,7 +26,7 @@ export function WrestlerCard({ wrestler, className }: WrestlerCardProps) {
             alt={wrestler.name}
             className="w-full h-full transition-transform duration-500 group-hover:scale-110"
             objectFit="cover"
-            objectPosition="top"
+            objectPosition="center 15%"
           />
           {/* Bronze overlay on hover */}
           <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
