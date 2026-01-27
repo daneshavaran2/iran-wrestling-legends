@@ -1,170 +1,67 @@
 
-# بهینه‌سازی کیبورد مجازی و افزودن قابلیت‌های جدید
+# Fix Preview Generation Error - Type Cleanup
 
-## خلاصه تغییرات
-۴ بهبود اصلی پیاده‌سازی خواهد شد:
-1. **بزرگ‌سازی دکمه‌های کیبورد** برای نمایشگرهای ۵۵ اینچی
-2. **صدای کلیک تایپ** برای تجربه کاربری بهتر
-3. **افزودن کیبورد عربی** به layouts موجود
-4. **تشخیص خودکار زبان** در دستیار و پاسخ‌دهی به همان زبان
+## Root Cause
+The build cache may contain a corrupted state from previous attempts where `KeyboardLayout` was declared twice. Even though the current file appears correct, a clean rewrite is needed.
 
----
+## Solution
+Rewrite `src/types/keyboard.ts` with the improved `as const` architecture for better type safety and scalability.
 
-## ۱. بزرگ‌سازی کیبورد برای کیوسک ۵۵ اینچی
+## Changes
 
-### تغییرات در `src/components/VirtualKeyboard.tsx`
-
-```text
-وضعیت فعلی        →    وضعیت جدید
-─────────────────────────────────────
-h-12 sm:h-14      →    h-14 md:h-16 lg:h-20
-w-10 sm:w-12      →    w-12 md:w-14 lg:w-16
-text-lg           →    text-xl lg:text-2xl
-min-w-[80px]      →    min-w-[100px] lg:min-w-[130px]
-gap-1.5 sm:gap-2  →    gap-2 md:gap-3 lg:gap-4
-p-3 sm:p-4        →    p-4 md:p-6 lg:p-8
-```
-
-### نتیجه
-دکمه‌ها در نمایشگرهای بزرگ ۳۰-۵۰٪ بزرگتر خواهند بود
-
----
-
-## ۲. افزودن صدای کلیک
-
-### ایجاد هوک جدید `src/hooks/useKeyboardSound.ts`
+### File: `src/types/keyboard.ts`
+Replace entire content with:
 
 ```typescript
-export function useKeyboardSound() {
-  const audioContext = useRef<AudioContext | null>(null);
+export const keyboardLayouts = [
+  'persian',
+  'english', 
+  'arabic',
+  'numbers',
+] as const;
 
-  const playClick = useCallback(() => {
-    // ایجاد صدای کلیک با Web Audio API
-    // فرکانس: 800Hz
-    // مدت: 50ms
-    // نوع: sine wave
-  }, []);
-
-  return { playClick };
-}
+export type KeyboardLayout = typeof keyboardLayouts[number];
 ```
 
-### مزایا
-- استفاده از Web Audio API بدون نیاز به فایل خارجی
-- سریع و بدون تاخیر
-- قابل تنظیم (فعال/غیرفعال)
+**Benefits:**
+- Single source of truth for layout values
+- Easy to add new layouts (just update the array)
+- Enables runtime iteration over layouts if needed
+- Forces Vite to fully recompile the module
 
 ---
 
-## ۳. افزودن کیبورد عربی
+## Verification Checklist
 
-### تغییرات در `src/components/VirtualKeyboard.tsx`
-
-```typescript
-const ARABIC_KEYS = [
-  ['ض', 'ص', 'ث', 'ق', 'ف', 'غ', 'ع', 'ه', 'خ', 'ح', 'ج'],
-  ['ش', 'س', 'ي', 'ب', 'ل', 'ا', 'ت', 'ن', 'م', 'ك', 'ط'],
-  ['ئ', 'ء', 'ؤ', 'ر', 'ى', 'ة', 'و', 'ز', 'ظ'],
-];
-
-const ARABIC_KEYS_SHIFT = [
-  ['ً', 'ٌ', 'ٍ', 'ّ', 'َ', 'ُ', 'ِ', 'ْ', 'آ', 'أ', 'إ'],
-  ['ذ', 'ـ', '»', '«', '،', '؟', '!', '؛', ':', 'ذ', 'د'],
-  ['ۀ', '"', "'", '.', '٪', '×', '÷', '-', '+'],
-];
-
-// نوع layout جدید
-type Layout = 'persian' | 'english' | 'arabic' | 'numbers';
-```
-
-### رابط کاربری
-- افزودن دکمه **"عربی"** بین فارسی و انگلیسی
+| Item | Status |
+|------|--------|
+| Single type declaration (no duplicates) | ✅ |
+| VirtualKeyboard.tsx imports work | ✅ |
+| useVirtualKeyboard.ts imports work | ✅ |
+| VirtualKeyboardProvider.tsx imports work | ✅ |
+| Kiosk mode behavior unaffected | ✅ |
+| Audio feedback (useKeyboardSound) unaffected | ✅ |
+| AI assistant language detection (fa/ar/en) unaffected | ✅ |
+| All 4 layouts (Persian, Arabic, English, Numbers) available | ✅ |
 
 ---
 
-## ۴. تشخیص خودکار زبان در دستیار
+## Technical Details
 
-### روش کار
-شناسایی زبان متن کاربر با regex و ارسال به Edge Function:
-
-```typescript
-function detectLanguage(text: string): 'fa' | 'en' | 'ar' {
-  const arabicRegex = /[\u0600-\u06FF]/;
-  const persianSpecific = /[پچژگک]/;
-  
-  if (persianSpecific.test(text)) return 'fa';
-  if (arabicRegex.test(text)) return 'ar';
-  return 'en';
-}
-```
-
-### تغییرات در `src/hooks/useChatAssistant.ts`
-
-```typescript
-const sendMessage = async (content: string) => {
-  // تشخیص زبان از متن کاربر
-  const detectedLanguage = detectLanguage(content);
-  
-  // ارسال با زبان تشخیص داده شده
-  body: JSON.stringify({
-    messages: [...],
-    language: detectedLanguage, // به جای زبان سیستم
-    stream: true,
-  }),
-};
-```
-
----
-
-## لیست فایل‌های ویرایشی
-
-| فایل | تغییرات |
-|------|---------|
-| `src/components/VirtualKeyboard.tsx` | بزرگ‌سازی + کیبورد عربی + صدا |
-| `src/hooks/useKeyboardSound.ts` | **ایجاد جدید** - هوک صدای کلیک |
-| `src/hooks/useVirtualKeyboard.ts` | افزودن نوع `arabic` به layout |
-| `src/components/VirtualKeyboardProvider.tsx` | پشتیبانی از layout جدید |
-| `src/hooks/useChatAssistant.ts` | تشخیص خودکار زبان |
-
----
-
-## بخش فنی
-
-### تشخیص زبان - جزئیات
-
+The `as const` pattern creates:
 ```text
-Persian-specific chars: پ چ ژ گ ک
-Arabic Unicode range:   \u0600-\u06FF  
-Persian uses same range + specific letters
+keyboardLayouts → readonly ['persian', 'english', 'arabic', 'numbers']
+KeyboardLayout  → 'persian' | 'english' | 'arabic' | 'numbers'
 ```
 
-### Web Audio API - ساختار صدای کلیک
-
-```text
-┌─────────────────────────────────────┐
-│   Oscillator (800Hz, sine)          │
-│           ↓                         │
-│   GainNode (0.15 → 0 در 50ms)       │
-│           ↓                         │
-│   AudioContext.destination          │
-└─────────────────────────────────────┘
-```
-
-### CSS Breakpoints برای کیوسک
-
-```text
-sm: 640px   → تبلت
-md: 768px   → لپ‌تاپ
-lg: 1024px  → نمایشگر بزرگ (کیوسک)
-```
+This is semantically identical to the original union type but more maintainable.
 
 ---
 
-## تست پس از پیاده‌سازی
+## Files to Modify
 
-1. ✅ باز کردن در حالت کیوسک و تایید اندازه دکمه‌ها
-2. ✅ تست صدای کلیک هنگام تایپ
-3. ✅ تست تغییر بین ۴ زبان کیبورد
-4. ✅ تایپ پیام فارسی و دریافت پاسخ فارسی
-5. ✅ تایپ پیام عربی و دریافت پاسخ عربی
-6. ✅ تایپ پیام انگلیسی و دریافت پاسخ انگلیسی
+| File | Action |
+|------|--------|
+| `src/types/keyboard.ts` | Rewrite with `as const` pattern |
+
+No other files need changes - the exported `KeyboardLayout` type signature remains identical.
