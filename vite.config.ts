@@ -5,7 +5,11 @@ import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
 // https://vitejs.dev/config/
+// Cache invalidation: 2026-01-27T12:00:00Z
 export default defineConfig(({ mode }) => ({
+  optimizeDeps: {
+    force: true, // Force dependency re-optimization
+  },
   server: {
     host: "::",
     port: 8080,
