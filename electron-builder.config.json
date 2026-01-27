@@ -24,7 +24,7 @@
   ],
   "extraResources": [
     {
-      "from": "public/favicon.png",
+      "from": "public/app-icon.png",
       "to": "icon.png"
     }
   ],
@@ -39,7 +39,7 @@
         "arch": ["x64"]
       }
     ],
-    "icon": "public/favicon.png",
+    "icon": "public/app-icon.png",
     "artifactName": "${productName}-${version}-${arch}.${ext}",
     "publisherName": "Wrestling Museum Iran"
   },
@@ -56,7 +56,6 @@
     "installerHeaderIcon": "public/favicon.ico",
     "installerLanguages": ["fa-IR", "en-US"],
     "language": "1065",
-    "license": "LICENSE",
     "warningsAsErrors": false,
     "runAfterFinish": true
   },
