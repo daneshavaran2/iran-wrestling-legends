@@ -1,111 +1,350 @@
 
-
-## برنامه جامع: تبدیل BMP به WEBP + Edge Function برای Thumbnail + قابلیت Zoom در FlipBook + بروزرسانی README + آماده‌سازی برای ویندوز
+## برنامه جامع: Splash Screen، Auto-Update، بهینه‌سازی سرعت پاسخگویی دستیار، و آماده‌سازی برای سرور مستقل
 
 ---
 
 ### خلاصه اجرایی
 
 این برنامه شامل ۵ بخش اصلی است:
-1. تبدیل تصاویر BMP به WEBP
-2. ایجاد Edge Function برای تولید خودکار Thumbnail
-3. قابلیت Zoom/Pinch در FlipBook
-4. بروزرسانی README حرفه‌ای
-5. آماده‌سازی Electron برای ویندوز
+1. Splash Screen زیبا با انیمیشن برای Electron
+2. قابلیت Auto-Update برای دریافت آپدیت‌های خودکار
+3. افزایش سرعت پاسخگویی دستیار هوش مصنوعی
+4. آماده‌سازی برای انتقال به سرور مستقل
+5. اضافه کردن اسکریپت‌های Electron به package.json
 
 ---
 
-## بخش اول: تبدیل BMP به WEBP
+## بخش اول: Splash Screen برای Electron
 
-### ۱.۱ بروزرسانی `imageCompressor.ts`
+### ۱.۱ بروزرسانی `electron/main.js`
 
-افزودن قابلیت تبدیل BMP به WEBP:
+افزودن Splash Window قبل از لود اپلیکیشن اصلی:
 
-```typescript
-// src/utils/imageCompressor.ts
+```javascript
+// electron/main.js - اضافات
 
-export async function convertToWebP(
-  file: File,
-  quality: number = 0.85
-): Promise<File> {
-  // تشخیص BMP
-  const isBMP = file.type === 'image/bmp' || 
-                file.name.toLowerCase().endsWith('.bmp');
-  
-  if (!isBMP && !file.type.startsWith('image/')) {
-    return file;
-  }
+let splashWindow;
 
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const canvas = document.createElement('canvas');
-    
-    img.onload = () => {
-      URL.revokeObjectURL(img.src);
-      canvas.width = img.width;
-      canvas.height = img.height;
-      
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return resolve(file);
-      
-      ctx.drawImage(img, 0, 0);
-      
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) return resolve(file);
-          
-          // تغییر نام فایل به .webp
-          const newName = file.name.replace(/\.[^.]+$/, '.webp');
-          const webpFile = new File([blob], newName, {
-            type: 'image/webp',
-            lastModified: Date.now(),
-          });
-          
-          resolve(webpFile);
-        },
-        'image/webp',
-        quality
-      );
-    };
-    
-    img.onerror = () => resolve(file);
-    img.src = URL.createObjectURL(file);
+function createSplashWindow() {
+  splashWindow = new BrowserWindow({
+    width: 500,
+    height: 400,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    center: true,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
   });
+
+  splashWindow.loadFile(path.join(__dirname, 'splash.html'));
+}
+
+function createWindow() {
+  // ابتدا splash را نشان بده
+  createSplashWindow();
+  
+  // ... کد فعلی createWindow ...
+  
+  // وقتی main window آماده شد
+  mainWindow.webContents.on('did-finish-load', () => {
+    // صبر کن splash حداقل 2 ثانیه نمایش داده شود
+    setTimeout(() => {
+      if (splashWindow && !splashWindow.isDestroyed()) {
+        splashWindow.close();
+      }
+      mainWindow.show();
+    }, 2000);
+  });
+  
+  // mainWindow را hidden شروع کن
+  mainWindow.hide();
 }
 ```
 
-### ۱.۲ بروزرسانی `useMediaUpload.ts`
+### ۱.۲ ایجاد `electron/splash.html`
 
-اعمال تبدیل خودکار قبل از آپلود:
-
-```typescript
-import { convertToWebP, compressImage } from '@/utils/imageCompressor';
-
-const uploadFile = async (file: File, ...args) => {
-  // تبدیل BMP به WebP
-  let processedFile = await convertToWebP(file);
-  // فشرده‌سازی
-  processedFile = await compressImage(processedFile);
+```html
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      width: 500px;
+      height: 400px;
+      background: radial-gradient(ellipse at center, #1a1a1a 0%, #0a0a0a 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Vazirmatn', 'Segoe UI', sans-serif;
+      color: white;
+      overflow: hidden;
+      border-radius: 20px;
+    }
+    
+    .glow {
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(205, 127, 50, 0.3) 0%, transparent 70%);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.2); opacity: 0.8; }
+    }
+    
+    .logo-container {
+      position: relative;
+      z-index: 10;
+      margin-bottom: 30px;
+    }
+    
+    .logo {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 3px solid rgba(205, 127, 50, 0.5);
+      box-shadow: 0 0 30px rgba(205, 127, 50, 0.4);
+      animation: float 3s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    h1 {
+      color: #cd7f32;
+      font-size: 24px;
+      margin-bottom: 10px;
+      text-shadow: 0 0 20px rgba(205, 127, 50, 0.5);
+    }
+    
+    p {
+      color: #888;
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+    
+    .progress-container {
+      width: 200px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #cd7f32, #ff8c00);
+      animation: loading 2s ease-in-out forwards;
+    }
+    
+    @keyframes loading {
+      0% { width: 0%; }
+      100% { width: 100%; }
+    }
+    
+    .loading-text {
+      margin-top: 15px;
+      font-size: 12px;
+      color: #666;
+    }
+    
+    /* Particles */
+    .particles {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: #cd7f32;
+      border-radius: 50%;
+      animation: sparkle 3s infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="glow"></div>
   
-  // ادامه آپلود...
-};
+  <div class="particles">
+    <script>
+      // Generate random particles
+      for (let i = 0; i < 15; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.top = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 3 + 's';
+        particle.style.opacity = Math.random() * 0.5 + 0.3;
+        document.querySelector('.particles').appendChild(particle);
+      }
+    </script>
+  </div>
+  
+  <div class="logo-container">
+    <img src="../public/app-icon.png" alt="Logo" class="logo">
+  </div>
+  
+  <h1>موزه افتخارات کشتی ایران</h1>
+  <p>Iran Wrestling Museum</p>
+  
+  <div class="progress-container">
+    <div class="progress-bar"></div>
+  </div>
+  
+  <div class="loading-text">در حال بارگذاری...</div>
+</body>
+</html>
 ```
 
 ---
 
-## بخش دوم: Edge Function برای تولید خودکار Thumbnail
+## بخش دوم: Auto-Update برای Electron
 
-### ۲.۱ ایجاد Edge Function جدید
+### ۲.۱ بروزرسانی `electron/main.js`
+
+```javascript
+// electron/main.js - اضافات Auto-Update
+
+const { autoUpdater } = require('electron-updater');
+const log = require('electron-log');
+
+// تنظیم لاگ
+autoUpdater.logger = log;
+autoUpdater.logger.transports.file.level = 'info';
+
+// غیرفعال کردن دانلود خودکار
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = true;
+
+// رویدادهای Auto-Update
+autoUpdater.on('checking-for-update', () => {
+  log.info('Checking for updates...');
+  sendStatusToWindow('در حال بررسی آپدیت...');
+});
+
+autoUpdater.on('update-available', (info) => {
+  log.info('Update available:', info.version);
+  sendStatusToWindow(`آپدیت جدید موجود است: ${info.version}`);
+  
+  // نمایش دیالوگ به کاربر
+  const { dialog } = require('electron');
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'آپدیت جدید',
+    message: `نسخه جدید ${info.version} موجود است. آیا می‌خواهید دانلود کنید؟`,
+    buttons: ['بله', 'بعداً'],
+    defaultId: 0,
+  }).then((result) => {
+    if (result.response === 0) {
+      autoUpdater.downloadUpdate();
+    }
+  });
+});
+
+autoUpdater.on('update-not-available', () => {
+  log.info('No update available');
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+  const percent = Math.round(progressObj.percent);
+  sendStatusToWindow(`دانلود آپدیت: ${percent}%`);
+});
+
+autoUpdater.on('update-downloaded', () => {
+  log.info('Update downloaded');
+  
+  const { dialog } = require('electron');
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'آپدیت آماده',
+    message: 'آپدیت دانلود شد. برنامه باید ریستارت شود.',
+    buttons: ['ریستارت'],
+  }).then(() => {
+    autoUpdater.quitAndInstall();
+  });
+});
+
+autoUpdater.on('error', (err) => {
+  log.error('Auto-updater error:', err);
+});
+
+function sendStatusToWindow(text) {
+  if (mainWindow) {
+    mainWindow.webContents.send('update-status', text);
+  }
+}
+
+// بررسی آپدیت بعد از 5 ثانیه از شروع برنامه
+app.whenReady().then(() => {
+  createWindow();
+  
+  setTimeout(() => {
+    autoUpdater.checkForUpdates();
+  }, 5000);
+  
+  // بررسی هر 4 ساعت
+  setInterval(() => {
+    autoUpdater.checkForUpdates();
+  }, 4 * 60 * 60 * 1000);
+});
+```
+
+### ۲.۲ بروزرسانی `electron-builder.config.json`
+
+```json
+{
+  "publish": {
+    "provider": "github",
+    "owner": "YOUR_GITHUB_USERNAME",
+    "repo": "YOUR_REPO_NAME"
+  }
+}
+```
+
+### ۲.۳ افزودن Dependencies
+
+```json
+// package.json - devDependencies
+{
+  "electron-updater": "^6.1.7",
+  "electron-log": "^5.1.1"
+}
+```
+
+---
+
+## بخش سوم: افزایش سرعت پاسخگویی دستیار (۲ برابر)
+
+### ۳.۱ استفاده از Streaming در Edge Function
 
 ```typescript
-// supabase/functions/generate-thumbnail/index.ts
+// supabase/functions/museum-assistant/index.ts - بروزرسانی کامل
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const getSystemPrompt = (language: string) => {
+  // ... همان کد قبلی ...
 };
 
 serve(async (req) => {
@@ -114,382 +353,264 @@ serve(async (req) => {
   }
 
   try {
-    const { imageUrl, bucket = 'album-media' } = await req.json();
+    const { messages, language = 'fa', stream = true } = await req.json();
     
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
+    }
 
-    // استفاده از Supabase Image Transform برای تولید thumbnail
-    const thumbnailUrl = imageUrl.replace(
-      '/storage/v1/object/public/',
-      '/storage/v1/render/image/public/'
-    ) + '?width=400&quality=60';
+    const systemPrompt = getSystemPrompt(language);
 
-    const mediumUrl = imageUrl.replace(
-      '/storage/v1/object/public/',
-      '/storage/v1/render/image/public/'
-    ) + '?width=800&quality=75';
-
-    return new Response(
-      JSON.stringify({ 
-        original: imageUrl,
-        thumbnail: thumbnailUrl,
-        medium: mediumUrl
+    // استفاده از مدل سریع‌تر + streaming
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-lite", // سریع‌ترین مدل
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages,
+        ],
+        stream: stream,
+        max_tokens: 500, // محدود کردن طول پاسخ
+        temperature: 0.7,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    });
+
+    if (!response.ok) {
+      // ... error handling قبلی ...
+    }
+
+    if (stream) {
+      // Streaming response
+      return new Response(response.body, {
+        headers: { 
+          ...corsHeaders, 
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+        },
+      });
+    } else {
+      // Non-streaming
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || "متأسفانه پاسخی دریافت نشد.";
+      return new Response(
+        JSON.stringify({ content }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
   } catch (error) {
-    console.error("Thumbnail generation error:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    // ... error handling ...
   }
 });
 ```
 
-### ۲.۲ بروزرسانی `config.toml`
-
-```toml
-[functions.generate-thumbnail]
-verify_jwt = false
-```
-
----
-
-## بخش سوم: قابلیت Zoom/Pinch در FlipBook
-
-### ۳.۱ بروزرسانی `FlipBook.tsx`
+### ۳.۲ بروزرسانی `useChatAssistant.ts` برای Streaming
 
 ```typescript
-// اضافه کردن state های جدید
-const [scale, setScale] = useState(1);
-const [position, setPosition] = useState({ x: 0, y: 0 });
-const [isDragging, setIsDragging] = useState(false);
-const lastPinchDistance = useRef<number | null>(null);
+// src/hooks/useChatAssistant.ts - پشتیبانی از Streaming
 
-// Pinch to zoom
-const handleTouchMove = (e: React.TouchEvent) => {
-  if (e.touches.length === 2) {
-    const touch1 = e.touches[0];
-    const touch2 = e.touches[1];
-    const distance = Math.hypot(
-      touch2.clientX - touch1.clientX,
-      touch2.clientY - touch1.clientY
-    );
-    
-    if (lastPinchDistance.current) {
-      const delta = distance - lastPinchDistance.current;
-      setScale(prev => Math.min(Math.max(prev + delta * 0.01, 1), 3));
+export const useChatAssistant = (): UseChatAssistantReturn => {
+  // ... کد قبلی ...
+
+  const sendMessage = useCallback(async (content: string) => {
+    if (!content.trim()) return;
+
+    const userMessage: Message = {
+      role: 'user',
+      content: content.trim(),
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/museum-assistant`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map(m => ({
+            role: m.role,
+            content: m.content,
+          })),
+          language,
+          stream: true,
+        }),
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error('Failed to get response');
+      }
+
+      // Streaming read
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let assistantContent = '';
+      let assistantMessageAdded = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ') || line.includes('[DONE]')) continue;
+          
+          try {
+            const json = JSON.parse(line.slice(6));
+            const delta = json.choices?.[0]?.delta?.content;
+            if (delta) {
+              assistantContent += delta;
+
+              // Update message in real-time
+              setMessages(prev => {
+                if (!assistantMessageAdded) {
+                  assistantMessageAdded = true;
+                  return [...prev, {
+                    role: 'assistant',
+                    content: assistantContent,
+                    timestamp: new Date(),
+                  }];
+                }
+                return prev.map((m, i) => 
+                  i === prev.length - 1 
+                    ? { ...m, content: assistantContent }
+                    : m
+                );
+              });
+            }
+          } catch (e) {
+            // Skip invalid JSON
+          }
+        }
+      }
+
+    } catch (err) {
+      // ... error handling ...
+    } finally {
+      setIsLoading(false);
     }
-    lastPinchDistance.current = distance;
-  }
+  }, [messages, language, t]);
+
+  // ... بقیه کد ...
 };
-
-// Double-tap to zoom
-const handleDoubleClick = () => {
-  if (scale > 1) {
-    setScale(1);
-    setPosition({ x: 0, y: 0 });
-  } else {
-    setScale(2);
-  }
-};
-
-// Mouse wheel zoom
-const handleWheel = (e: WheelEvent) => {
-  e.preventDefault();
-  const delta = e.deltaY > 0 ? -0.1 : 0.1;
-  setScale(prev => Math.min(Math.max(prev + delta, 1), 3));
-};
-
-// رندر تصویر با zoom
-<div 
-  className="relative overflow-hidden"
-  onDoubleClick={handleDoubleClick}
-  onWheel={handleWheel}
->
-  <img
-    src={currentPhoto.url}
-    style={{
-      transform: `scale(${scale}) translate(${position.x}px, ${position.y}px)`,
-      transition: isDragging ? 'none' : 'transform 0.2s',
-    }}
-  />
-  {scale > 1 && (
-    <button 
-      onClick={() => { setScale(1); setPosition({ x: 0, y: 0 }); }}
-      className="absolute top-2 right-2 bg-black/50 p-2 rounded-full"
-    >
-      <ZoomOut className="h-5 w-5" />
-    </button>
-  )}
-</div>
-```
-
-### ۳.۲ افزودن دکمه‌های Zoom به کنترل‌ها
-
-```typescript
-// دکمه‌های + و - برای zoom
-<div className="flex gap-2">
-  <button onClick={() => setScale(s => Math.min(s + 0.5, 3))}>
-    <ZoomIn className="h-5 w-5" />
-  </button>
-  <button onClick={() => setScale(s => Math.max(s - 0.5, 1))}>
-    <ZoomOut className="h-5 w-5" />
-  </button>
-</div>
 ```
 
 ---
 
-## بخش چهارم: README حرفه‌ای
+## بخش چهارم: آماده‌سازی برای سرور مستقل
 
-### ۴.۱ بروزرسانی کامل `README.md`
+### ۴.۱ فایل `src/lib/supabase.ts` (موجود و آماده)
+
+پروژه در حال حاضر دارای fallback credentials است که اجازه می‌دهد بدون تنظیم محیطی روی هر سرور کار کند:
+
+```typescript
+// این فایل از قبل موجود است و شامل fallback است
+const FALLBACK_URL = 'https://etbekvhdroqiddcteqdq.supabase.co';
+const FALLBACK_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
+```
+
+### ۴.۲ ایجاد فایل `DEPLOYMENT.md`
 
 ```markdown
-# موزه افتخارات کشتی ایران 🏛️
+# راهنمای استقرار روی سرور مستقل
 
-آرشیو دیجیتال جامع قهرمانان و افتخارات کشتی ایران
+## ۱. پیش‌نیازها
+- Node.js 18+ یا هر وب‌سرور (Apache/Nginx)
+- اتصال اینترنت (برای Supabase backend)
 
-## 📋 فهرست مطالب
-- [معرفی](#معرفی)
-- [ویژگی‌ها](#ویژگی‌ها)
-- [نصب و راه‌اندازی](#نصب-و-راه‌اندازی)
-- [استفاده آفلاین](#استفاده-آفلاین)
-- [ساخت نسخه دسکتاپ](#ساخت-نسخه-دسکتاپ)
-- [پشتیبانی](#پشتیبانی)
+## ۲. مراحل استقرار
 
-## معرفی
+### روش ۱: Static Hosting (ساده‌ترین)
 
-این اپلیکیشن برای نمایش در کیوسک‌های موزه کشتی ایران طراحی شده است.
-
-## ویژگی‌ها
-
-### 🎨 رابط کاربری
-- طراحی RTL فارسی
-- پشتیبانی از چند زبان (فارسی، انگلیسی، عربی)
-- تم روشن/تاریک
-- بهینه برای صفحات لمسی 55 اینچی
-- استایل Liquid Glass شفاف
-
-### 📸 مدیریت تصاویر
-- تبدیل خودکار BMP به WebP
-- بارگذاری پیش‌رونده (Progressive Loading)
-- بهینه‌سازی خودکار تصاویر
-- قابلیت Zoom/Pinch در گالری FlipBook
-- تولید خودکار Thumbnail
-
-### 📡 قابلیت آفلاین
-- PWA با Service Worker
-- کش 24 ساعته داده‌ها
-- همگام‌سازی خودکار
-- نشانگر وضعیت آفلاین
-
-### 🤖 هوش مصنوعی
-- دستیار هوشمند موزه
-- ترجمه خودکار محتوا
-- Text-to-Speech
-
-### 🎵 چندرسانه‌ای
-- موسیقی پس‌زمینه
-- گالری FlipBook با اسلایدشو
-- پخش‌کننده ویدیو
-
-## نصب و راه‌اندازی
-
-### پیش‌نیازها
-- Node.js 18+
-- npm یا bun
-
-### مراحل نصب
 \`\`\`bash
+# Clone پروژه
+git clone https://github.com/YOUR_REPO.git
+cd YOUR_REPO
+
+# نصب و build
 npm install
-npm run dev
+npm run build
+
+# فایل‌های dist/ را روی سرور آپلود کنید
 \`\`\`
 
-## استفاده آفلاین
+### روش ۲: Docker
 
-اپلیکیشن به صورت PWA کار می‌کند:
-- با اینترنت: همه قابلیت‌ها فعال
-- بدون اینترنت: نمایش داده‌های کش شده
-- بازگشت اینترنت: همگام‌سازی خودکار
+\`\`\`dockerfile
+FROM nginx:alpine
+COPY dist/ /usr/share/nginx/html/
+EXPOSE 80
+\`\`\`
 
-## ساخت نسخه دسکتاپ
+### روش ۳: PM2 + Vite Preview
 
-برای جزئیات بیشتر به فایل `DESKTOP_BUILD.md` مراجعه کنید.
+\`\`\`bash
+npm install pm2 -g
+pm2 start "npm run preview -- --host 0.0.0.0 --port 80" --name museum
+\`\`\`
 
-## پشتیبانی
+## ۳. داده‌ها
 
-تماس با تیم توسعه از طریق GitHub Issues
+همه داده‌ها در Supabase Cloud ذخیره شده‌اند:
+- ✅ تمام تصاویر، متون، و تنظیمات
+- ✅ اتوماتیک sync با هر نسخه
+- ✅ نیازی به انتقال داده نیست
 
----
-نسخه: 1.0.0 | تاریخ: بهمن ۱۴۰۴
-```
+برای backup:
+1. از پنل ادمین → پشتیبان‌گیری استفاده کنید
+2. فایل JSON و تصاویر دانلود می‌شوند
 
-### ۴.۲ ایجاد `KIOSK_README.md` برای مشتری
+## ۴. محدودیت‌ها
 
-```markdown
-# راهنمای نصب و استفاده - موزه کشتی ایران
-
-## پیش‌نیازها
-- ویندوز 10/11 (64-bit)
-- حداقل 4GB رم
-- WebView2 Runtime
-
-## نصب
-1. فایل `setup.exe` را اجرا کنید
-2. مراحل نصب را دنبال کنید
-
-## اجرا
-- دوبار کلیک روی آیکون برنامه
-
-## رفتار آنلاین/آفلاین
-
-| وضعیت | رفتار |
-|-------|-------|
-| 🟢 آنلاین | همه قابلیت‌ها، داده‌های زنده |
-| 🟡 آفلاین | نمایش آخرین داده‌ها، پیغام آفلاین |
-| 🔄 بازگشت | همگام‌سازی خودکار |
-
-## خروج از حالت کیوسک
-- کلید میانبر: Ctrl+Shift+Q
-
-## پشتیبانی
-تماس: [اطلاعات تماس]
+- نیاز به اتصال اینترنت برای داده‌های زنده
+- در حالت آفلاین، آخرین داده‌های کش شده نمایش داده می‌شوند
 ```
 
 ---
 
-## بخش پنجم: آماده‌سازی Electron برای ویندوز
+## بخش پنجم: اسکریپت‌های Electron در package.json
 
-### ۵.۱ نصب Dependencies
-
-```json
-// package.json - devDependencies
-{
-  "electron": "^28.0.0",
-  "electron-builder": "^24.9.0",
-  "concurrently": "^8.2.0"
-}
-```
-
-### ۵.۲ ایجاد `electron/main.js`
-
-```javascript
-const { app, BrowserWindow, globalShortcut } = require('electron');
-const path = require('path');
-
-let mainWindow;
-
-function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 1920,
-    height: 1080,
-    fullscreen: true,
-    kiosk: true,
-    frame: false,
-    autoHideMenuBar: true,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js'),
-    },
-  });
-
-  // Production: load dist/index.html
-  // Development: load localhost:8080
-  const isDev = process.env.NODE_ENV === 'development';
-  if (isDev) {
-    mainWindow.loadURL('http://localhost:8080');
-    mainWindow.webContents.openDevTools();
-  } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
-  }
-
-  // Disable keyboard shortcuts
-  mainWindow.webContents.on('before-input-event', (event, input) => {
-    // Block F12, Ctrl+Shift+I, Alt+F4, Esc
-    if (
-      input.key === 'F12' ||
-      (input.control && input.shift && input.key === 'I') ||
-      (input.alt && input.key === 'F4') ||
-      input.key === 'Escape'
-    ) {
-      event.preventDefault();
-    }
-  });
-
-  // Secret exit: Ctrl+Shift+Q
-  globalShortcut.register('CommandOrControl+Shift+Q', () => {
-    app.quit();
-  });
-}
-
-app.whenReady().then(createWindow);
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
-```
-
-### ۵.۳ ایجاد `electron/preload.js`
-
-```javascript
-const { contextBridge, ipcRenderer } = require('electron');
-
-contextBridge.exposeInMainWorld('electron', {
-  isElectron: true,
-  platform: process.platform,
-  onOffline: (callback) => ipcRenderer.on('offline', callback),
-  onOnline: (callback) => ipcRenderer.on('online', callback),
-});
-```
-
-### ۵.۴ ایجاد `electron-builder.config.json`
+### ۵.۱ تغییرات package.json
 
 ```json
 {
-  "appId": "ir.wrestling-museum.app",
-  "productName": "موزه کشتی ایران",
-  "directories": {
-    "output": "release"
-  },
-  "files": [
-    "dist/**/*",
-    "electron/**/*"
-  ],
-  "win": {
-    "target": [
-      { "target": "nsis", "arch": ["x64"] },
-      { "target": "portable", "arch": ["x64"] }
-    ],
-    "icon": "public/favicon.png"
-  },
-  "nsis": {
-    "oneClick": false,
-    "allowToChangeInstallationDirectory": true,
-    "installerLanguages": ["fa", "en"],
-    "language": 1065
-  },
-  "portable": {
-    "artifactName": "${productName}-Portable.exe"
-  }
-}
-```
-
-### ۵.۵ بروزرسانی `package.json` Scripts
-
-```json
-{
+  "name": "wrestling-museum-app",
+  "version": "1.0.0",
+  "main": "electron/main.js",
   "scripts": {
-    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:8080 && electron .\"",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:8080 && electron . --dev\"",
     "build-electron": "npm run build && electron-builder --win",
-    "build-portable": "npm run build && electron-builder --win portable"
+    "build-portable": "npm run build && electron-builder --win portable",
+    "build-installer": "npm run build && electron-builder --win nsis",
+    "publish-update": "npm run build && electron-builder --win --publish always"
   },
-  "main": "electron/main.js"
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.0",
+    "electron-updater": "^6.1.7",
+    "electron-log": "^5.1.1",
+    "concurrently": "^8.2.0",
+    "wait-on": "^7.2.0"
+  }
 }
 ```
 
@@ -499,56 +620,72 @@ contextBridge.exposeInMainWorld('electron', {
 
 | فایل | نوع | توضیحات |
 |------|-----|---------|
-| `src/utils/imageCompressor.ts` | بروزرسانی | افزودن تبدیل BMP به WebP |
-| `src/hooks/useMediaUpload.ts` | بروزرسانی | اعمال تبدیل خودکار |
-| `supabase/functions/generate-thumbnail/index.ts` | جدید | Edge Function تولید Thumbnail |
-| `supabase/config.toml` | بروزرسانی | افزودن تنظیمات Edge Function |
-| `src/components/ui/FlipBook.tsx` | بروزرسانی | قابلیت Zoom/Pinch |
-| `README.md` | بروزرسانی | مستندات کامل پروژه |
-| `KIOSK_README.md` | جدید | راهنمای مشتری |
-| `electron/main.js` | جدید | فایل اصلی Electron |
-| `electron/preload.js` | جدید | Bridge امن Electron |
-| `electron-builder.config.json` | جدید | تنظیمات ساخت EXE |
+| `electron/main.js` | بروزرسانی | Splash Screen + Auto-Update |
+| `electron/splash.html` | جدید | صفحه Splash زیبا با انیمیشن |
+| `electron-builder.config.json` | بروزرسانی | تنظیمات publish برای Auto-Update |
+| `supabase/functions/museum-assistant/index.ts` | بروزرسانی | Streaming + مدل سریع‌تر |
+| `src/hooks/useChatAssistant.ts` | بروزرسانی | پشتیبانی از Streaming |
+| `DEPLOYMENT.md` | جدید | راهنمای استقرار روی سرور |
 | `package.json` | بروزرسانی | اسکریپت‌های Electron |
 
 ---
 
-## مراحل Export و تحویل به مشتری
+## بهبود سرعت دستیار
 
-### مرحله ۱: Export کد
-```bash
-# در Lovable: Export to GitHub
-```
+```text
+قبل از بهینه‌سازی:
+┌────────────────────────────────────┐
+│  مدل: gemini-3-flash-preview      │
+│  حالت: Non-streaming              │
+│  زمان پاسخ: 3-5 ثانیه             │
+└────────────────────────────────────┘
 
-### مرحله ۲: Clone و نصب
-```bash
-git clone https://github.com/YOUR_REPO.git
-cd YOUR_REPO
-npm install
-```
+بعد از بهینه‌سازی:
+┌────────────────────────────────────┐
+│  مدل: gemini-2.5-flash-lite       │
+│  حالت: Streaming                  │
+│  زمان اولین token: <1 ثانیه       │
+│  تجربه کاربری: فوری               │
+└────────────────────────────────────┘
 
-### مرحله ۳: ساخت EXE
-```bash
-npm run build-electron
-```
-
-### مرحله ۴: تهیه بسته تحویل
-```
-📦 delivery.zip
-├── setup.exe              # نصب‌کننده
-├── موزه کشتی ایران-Portable.exe  # نسخه Portable
-└── README.txt             # راهنمای فارسی
+بهبود: ~3-5x سریع‌تر (اولین پاسخ)
 ```
 
 ---
 
-## نکات مهم
+## نکات مهم درباره انتقال به سرور دیگر
 
-1. **Electron vs Tauri**: با توجه به درخواست شما از Electron استفاده می‌کنیم (پروژه قبلاً راهنمای Tauri دارد)
+### داده‌ها خودکار منتقل می‌شوند:
+1. **Backend (Supabase)**: همه داده‌ها در cloud هستند
+2. **تصاویر**: از Supabase Storage سرو می‌شوند
+3. **تنظیمات**: در دیتابیس ذخیره شده‌اند
 
-2. **حالت آفلاین**: سیستم موجود با localStorage و Service Worker کار می‌کند و کاملاً آماده است
+### فقط کد frontend نیاز به deploy دارد:
+```bash
+git clone [repo-url]
+npm install
+npm run build
+# فایل‌های dist/ را آپلود کنید
+```
 
-3. **کد منبع**: فایل EXE شامل کد منبع نیست، فقط bundle شده Vite + Electron
+---
 
-4. **آیکون**: از `public/favicon.png` موجود استفاده می‌شود
+## دستورات تست محلی
 
+```bash
+# ۱. Clone از GitHub
+git clone https://github.com/YOUR_REPO.git
+cd YOUR_REPO
+
+# ۲. نصب Dependencies
+npm install
+npm install --save-dev electron electron-builder electron-updater electron-log concurrently wait-on
+
+# ۳. تست Electron در حالت توسعه
+npm run electron:dev
+
+# ۴. ساخت فایل EXE
+npm run build-electron
+
+# خروجی: release/ پوشه
+```
