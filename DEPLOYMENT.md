@@ -44,17 +44,27 @@ npm install
 # 3. Build برای production
 npm run build
 
-# 4. آپلود محتوای پوشه dist/ روی سرور
+# 4. آپلود محتوای پوشه build/ روی سرور
 ```
 
-فایل‌های `dist/` را در root وب‌سرور قرار دهید.
+فایل‌های `build/` را در root وب‌سرور قرار دهید.
+
+**یا از اسکریپت خودکار استفاده کنید:**
+```bash
+# Linux/macOS
+chmod +x scripts/deploy.sh
+./scripts/deploy.sh
+
+# Windows PowerShell
+.\scripts\deploy.ps1
+```
 
 **تنظیمات Nginx:**
 ```nginx
 server {
     listen 80;
     server_name your-domain.com;
-    root /var/www/museum/dist;
+    root /var/www/museum/build;
     index index.html;
 
     # SPA fallback
@@ -98,7 +108,7 @@ RUN npm run build
 
 # Production stage
 FROM nginx:alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/build /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
@@ -146,7 +156,7 @@ npm run build
 npm install -g serve
 
 # 4. اجرا با PM2
-pm2 start "serve -s dist -l 80" --name museum
+pm2 start "serve -s build -l 80" --name museum
 
 # 5. ذخیره برای اجرای خودکار
 pm2 save
@@ -229,7 +239,7 @@ sudo certbot --nginx -d your-domain.com
 ج: اپلیکیشن از داده‌های کش شده استفاده می‌کند.
 
 **س: چگونه آپدیت کنم؟**
-ج: فقط `git pull && npm run build` و جایگزینی فایل‌های dist/
+ج: فقط `git pull && npm run build` و جایگزینی فایل‌های build/
 
 ---
 
