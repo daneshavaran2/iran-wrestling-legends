@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { iranianProvinces, wrestlingStyles, medalTypes } from '@/data/wrestlers';
 
@@ -279,15 +279,17 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const getWrestlerById = (id: string) => wrestlers.find(w => w.id === id);
+  const getWrestlerById = useCallback((id: string) => 
+    wrestlers.find(w => w.id === id), [wrestlers]);
   
-  const getVisibleWrestlers = () => wrestlers.filter(w => w.is_visible);
+  const getVisibleWrestlers = useCallback(() => 
+    wrestlers.filter(w => w.is_visible), [wrestlers]);
   
-  const getAchievementsByWrestlerId = (id: string) => 
-    achievements.filter(a => a.wrestler_id === id);
+  const getAchievementsByWrestlerId = useCallback((id: string) => 
+    achievements.filter(a => a.wrestler_id === id), [achievements]);
   
-  const getMediaByWrestlerId = (id: string) => 
-    media.filter(m => m.wrestler_id === id).sort((a, b) => a.display_order - b.display_order);
+  const getMediaByWrestlerId = useCallback((id: string) => 
+    media.filter(m => m.wrestler_id === id).sort((a, b) => a.display_order - b.display_order), [media]);
 
   const addWrestler = async (wrestler: Omit<Wrestler, 'id' | 'created_at' | 'updated_at' | 'is_visible'>): Promise<Wrestler> => {
     const { data, error } = await supabase
@@ -486,29 +488,36 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
     saveToCache(CACHE_KEYS.MEDIA, updatedMedia);
   };
 
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    wrestlers,
+    achievements,
+    media,
+    isLoading,
+    error,
+    isOffline,
+    refreshWrestlers,
+    getWrestlerById,
+    getVisibleWrestlers,
+    getAchievementsByWrestlerId,
+    getMediaByWrestlerId,
+    addWrestler,
+    updateWrestler,
+    deleteWrestler,
+    toggleWrestlerVisibility,
+    addAchievement,
+    updateAchievement,
+    deleteAchievement,
+    addMedia,
+    deleteMedia,
+  }), [
+    wrestlers, achievements, media, isLoading, error, isOffline,
+    refreshWrestlers, getWrestlerById, getVisibleWrestlers,
+    getAchievementsByWrestlerId, getMediaByWrestlerId
+  ]);
+
   return (
-    <WrestlerContext.Provider value={{
-      wrestlers,
-      achievements,
-      media,
-      isLoading,
-      error,
-      isOffline,
-      refreshWrestlers,
-      getWrestlerById,
-      getVisibleWrestlers,
-      getAchievementsByWrestlerId,
-      getMediaByWrestlerId,
-      addWrestler,
-      updateWrestler,
-      deleteWrestler,
-      toggleWrestlerVisibility,
-      addAchievement,
-      updateAchievement,
-      deleteAchievement,
-      addMedia,
-      deleteMedia,
-    }}>
+    <WrestlerContext.Provider value={contextValue}>
       {children}
     </WrestlerContext.Provider>
   );

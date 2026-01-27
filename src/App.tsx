@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +16,15 @@ import { OfflineIndicator } from "@/components/OfflineIndicator";
 import AdminLayout from "@/components/AdminLayout";
 import { BackgroundMusicPlayer } from "@/components/BackgroundMusicPlayer";
 import InstallPrompt from "@/components/InstallPrompt";
+
+// Prefetch critical routes after initial load for 10x faster navigation
+const prefetchRoutes = () => {
+  setTimeout(() => {
+    import("./pages/WrestlersListPage");
+    import("./pages/AlbumsListPage");
+    import("./pages/HistoryListPage");
+  }, 2000);
+};
 
 // Lazy load public pages
 const MuseumHomePage = lazy(() => import("./pages/MuseumHomePage"));
@@ -63,21 +72,27 @@ const queryClient = new QueryClient({
   },
 });
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <LanguageProvider>
-      <ThemeProvider>
-        <TooltipProvider>
-          <AuthProvider>
-            <OfflineDataProvider>
-            <WrestlerProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <BackgroundMusicPlayer />
-              <OfflineIndicator />
-              <InstallPrompt />
-            <Suspense fallback={<LoadingSpinner />}>
+const App = () => {
+  // Prefetch routes after initial load
+  useEffect(() => {
+    prefetchRoutes();
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <LanguageProvider>
+        <ThemeProvider>
+          <TooltipProvider>
+            <AuthProvider>
+              <OfflineDataProvider>
+              <WrestlerProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <BackgroundMusicPlayer />
+                <OfflineIndicator />
+                <InstallPrompt />
+              <Suspense fallback={<LoadingSpinner />}>
               <PageTransition>
                 <Routes>
                   {/* Public Routes - Museum */}
@@ -205,17 +220,18 @@ const App = () => (
                 } />
                 
                   <Route path="*" element={<NotFound />} />
-                </Routes>
-              </PageTransition>
-            </Suspense>
-            </BrowserRouter>
-            </WrestlerProvider>
-            </OfflineDataProvider>
-          </AuthProvider>
-        </TooltipProvider>
-      </ThemeProvider>
-    </LanguageProvider>
-  </QueryClientProvider>
-);
+                  </Routes>
+                </PageTransition>
+              </Suspense>
+              </BrowserRouter>
+              </WrestlerProvider>
+              </OfflineDataProvider>
+            </AuthProvider>
+          </TooltipProvider>
+        </ThemeProvider>
+      </LanguageProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

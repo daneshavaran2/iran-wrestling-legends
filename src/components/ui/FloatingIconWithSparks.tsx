@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, forwardRef, memo } from 'react';
 import { cn } from '@/lib/utils';
 
 interface FloatingIconWithSparksProps {
@@ -9,13 +9,13 @@ interface FloatingIconWithSparksProps {
   sparkCount?: number;
 }
 
-export function FloatingIconWithSparks({ 
+const FloatingIconWithSparksInner = forwardRef<HTMLButtonElement, FloatingIconWithSparksProps>(({ 
   children, 
   className,
   onClick,
   title,
   sparkCount = 6
-}: FloatingIconWithSparksProps) {
+}, ref) => {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   useEffect(() => {
@@ -64,6 +64,7 @@ export function FloatingIconWithSparks({
       
       {/* Main button */}
       <button
+        ref={ref}
         onClick={onClick}
         className={cn("p-4 floating-icon-glass", className)}
         title={title}
@@ -72,4 +73,9 @@ export function FloatingIconWithSparks({
       </button>
     </div>
   );
-}
+});
+
+FloatingIconWithSparksInner.displayName = 'FloatingIconWithSparks';
+
+// Export memoized component
+export const FloatingIconWithSparks = memo(FloatingIconWithSparksInner);

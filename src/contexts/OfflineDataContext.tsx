@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAutoSync } from '@/hooks/useAutoSync';
 
@@ -289,14 +289,23 @@ export const OfflineDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   }, [isOffline, loadFromCache, saveToCache, cacheImages]);
 
-  // Refresh all data
+  // Refresh all data with concurrent fetching and timeout
   const refreshAllData = useCallback(async () => {
-    await Promise.all([
-      refreshHistory(),
-      refreshBuildings(),
-      refreshBooks(),
-      refreshAlbums(),
-    ]);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
+    
+    try {
+      // Use Promise.allSettled for resilient parallel fetching
+      await Promise.allSettled([
+        refreshHistory(),
+        refreshBuildings(),
+        refreshBooks(),
+        refreshAlbums(),
+      ]);
+    } finally {
+      clearTimeout(timeout);
+    }
+    
     setLastSyncTime(new Date());
     localStorage.setItem(CACHE_KEYS.TIMESTAMP, new Date().toISOString());
   }, [refreshHistory, refreshBuildings, refreshBooks, refreshAlbums]);
@@ -329,7 +338,8 @@ export const OfflineDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     getLastSyncFormatted,
   } = useAutoSync(refreshAllData, isOffline);
 
-  const value: OfflineDataContextType = {
+  // Memoize context value to prevent unnecessary re-renders
+  const value = useMemo<OfflineDataContextType>(() => ({
     historySections,
     buildings,
     books,
@@ -352,7 +362,13 @@ export const OfflineDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     syncNow,
     getTimeUntilNextSync,
     getLastSyncFormatted,
-  };
+  }), [
+    historySections, buildings, books, albums,
+    isLoadingHistory, isLoadingBuildings, isLoadingBooks, isLoadingAlbums,
+    isOffline, lastSyncTime, refreshAllData, refreshHistory, refreshBuildings,
+    refreshBooks, refreshAlbums, autoSyncSettings, updateAutoSyncSettings,
+    isSyncing, syncNow, getTimeUntilNextSync, getLastSyncFormatted
+  ]);
 
   return (
     <OfflineDataContext.Provider value={value}>
