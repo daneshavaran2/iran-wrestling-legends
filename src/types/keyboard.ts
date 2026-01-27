@@ -1,1 +1,8 @@
-export type KeyboardLayout = 'persian' | 'english' | 'arabic' | 'numbers';
+export const keyboardLayouts = [
+  'persian',
+  'english',
+  'arabic',
+  'numbers',
+] as const;
+
+export type KeyboardLayout = typeof keyboardLayouts[number];
