@@ -4,8 +4,6 @@ import { cn } from '@/lib/utils';
 import { useKeyboardSound } from '@/hooks/useKeyboardSound';
 import type { KeyboardLayout } from '@/types/keyboard';
 
-export type { KeyboardLayout };
-
 interface VirtualKeyboardProps {
   isOpen: boolean;
   layout: KeyboardLayout;
