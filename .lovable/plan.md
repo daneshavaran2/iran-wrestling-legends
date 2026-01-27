@@ -1,401 +1,183 @@
 
-## برنامه تست کامل روی سرور Liara و افزودن Background Sync با Service Worker
+## برنامه رفع هشدارهای ref در کامپوننت‌های MenuCard و ParallaxCard
 
 ---
 
-### بخش اول: بهبود Service Worker برای Background Sync
+### تشخیص مشکل
 
-#### وضعیت فعلی:
-Service Worker (`public/sw.js`) دارای:
-- Stale While Revalidate برای API
-- Cache First برای تصاویر
-- Navigation Preload
-- پیام‌رسانی با اپلیکیشن
+از کنسول لاگ‌ها:
+```
+Warning: Function components cannot be given refs.
+Check the render method of `MuseumHomePage`. → MenuCard
+Check the render method of `MenuCard`. → ParallaxCard
+```
 
-**نقاط ضعف:**
-1. Background Sync فقط یک placeholder است (خط 354-357)
-2. Periodic Sync پشتیبانی نمی‌شود
-3. اتصال مجدد به اینترنت باعث refresh خودکار نمی‌شود
+**علت مشکل:**
+React سعی می‌کند ref را به این کامپوننت‌های function پاس دهد، اما آن‌ها با `forwardRef` پیچیده نشده‌اند.
 
----
-
-### ۱.۱ پیاده‌سازی کامل Background Sync
-
-```javascript
-// public/sw.js - افزودن قابلیت‌های جدید
-
-// ثبت داده‌های pending برای sync
-const PENDING_SYNC_KEY = 'pending_sync_requests';
-
-// ذخیره درخواست‌های ناموفق برای sync بعدی
-async function savePendingSync(data) {
-  const pending = await getPendingSyncs();
-  pending.push({
-    ...data,
-    timestamp: Date.now(),
-    id: crypto.randomUUID()
-  });
-  
-  // ذخیره در IndexedDB
-  const db = await openSyncDB();
-  await db.put('pending', pending);
-}
-
-// اجرای Background Sync
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-museum-data') {
-    event.waitUntil(syncMuseumData());
-  }
-  if (event.tag === 'sync-images') {
-    event.waitUntil(syncImages());
-  }
-});
-
-// Periodic Background Sync (برای مرورگرهای پشتیبانی‌کننده)
-self.addEventListener('periodicsync', (event) => {
-  if (event.tag === 'museum-data-sync') {
-    event.waitUntil(syncMuseumData());
-  }
-});
-
-async function syncMuseumData() {
-  console.log('[SW] Background sync: Museum data');
-  
-  try {
-    // Fetch تمام داده‌ها از Supabase
-    const endpoints = [
-      'wrestlers?select=*',
-      'achievements?select=*',
-      'wrestler_media?select=*',
-      'history_sections?select=*',
-      'buildings?select=*',
-      'books?select=*',
-      'albums?select=*',
-    ];
-    
-    const cache = await caches.open(API_CACHE);
-    
-    for (const endpoint of endpoints) {
-      const url = `https://etbekvhdroqiddcteqdq.supabase.co/rest/v1/${endpoint}`;
-      try {
-        const response = await fetch(url, {
-          headers: {
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
-          }
-        });
-        if (response.ok) {
-          await cache.put(url, response.clone());
-        }
-      } catch (e) {
-        console.log(`[SW] Failed to sync ${endpoint}:`, e);
-      }
-    }
-    
-    // اطلاع به کلاینت
-    const clients = await self.clients.matchAll();
-    clients.forEach(client => {
-      client.postMessage({ 
-        type: 'BACKGROUND_SYNC_COMPLETE',
-        timestamp: Date.now()
-      });
-    });
-    
-  } catch (error) {
-    console.error('[SW] Background sync failed:', error);
-  }
-}
+```text
+┌──────────────────────────────────────────────────────────────┐
+│  MuseumHomePage                                              │
+│       │                                                      │
+│       ▼ (ref passed?)                                        │
+│  MenuCard (Function Component - no forwardRef) ❌            │
+│       │                                                      │
+│       ▼                                                      │
+│  ParallaxCard (Function Component - no forwardRef) ❌        │
+│       │                                                      │
+│       ▼                                                      │
+│  <div ref={ref}> (useParallax internal ref)                 │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### ۱.۲ ایجاد Hook برای مدیریت Background Sync
+### راه‌حل: استفاده از React.forwardRef
+
+## بخش ۱: تبدیل ParallaxCard به forwardRef
+
+### ۱.۱ بروزرسانی `src/components/ui/ParallaxCard.tsx`
 
 ```typescript
-// src/hooks/useBackgroundSync.ts
+import React, { forwardRef } from 'react';
+import { useParallax } from '@/hooks/useParallax';
+import { cn } from '@/lib/utils';
 
-export function useBackgroundSync() {
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'pending' | 'syncing'>('idle');
-  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+interface ParallaxCardProps {
+  children: React.ReactNode;
+  className?: string;
+  intensity?: number;
+  onClick?: () => void;
+}
 
-  // ثبت Periodic Background Sync
-  useEffect(() => {
-    const registerPeriodicSync = async () => {
-      if (!('serviceWorker' in navigator) || !('periodicSync' in ServiceWorkerRegistration.prototype)) {
-        console.log('Periodic Background Sync not supported');
-        return;
-      }
-      
-      try {
-        const registration = await navigator.serviceWorker.ready;
-        await registration.periodicSync.register('museum-data-sync', {
-          minInterval: 24 * 60 * 60 * 1000, // 24 ساعت
-        });
-        console.log('Periodic sync registered');
-      } catch (error) {
-        console.log('Periodic sync registration failed:', error);
-      }
-    };
-
-    registerPeriodicSync();
-  }, []);
-
-  // درخواست sync دستی
-  const requestSync = useCallback(async () => {
-    if (!('serviceWorker' in navigator) || !('SyncManager' in window)) {
-      console.log('Background Sync not supported');
-      return false;
-    }
+export const ParallaxCard = forwardRef<HTMLDivElement, ParallaxCardProps>(
+  function ParallaxCard({ children, className, intensity = 12, onClick }, externalRef) {
+    const { ref: internalRef, style, handlers } = useParallax(intensity);
     
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      await registration.sync.register('sync-museum-data');
-      setSyncStatus('pending');
-      return true;
-    } catch (error) {
-      console.error('Sync registration failed:', error);
-      return false;
-    }
-  }, []);
-
-  // گوش دادن به پیام‌های Service Worker
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'BACKGROUND_SYNC_COMPLETE') {
-        setSyncStatus('idle');
-        setLastSyncTime(new Date(event.data.timestamp));
-        toast.success('داده‌ها در پس‌زمینه به‌روز شد', {
-          icon: '🔄',
-          duration: 3000,
-        });
-      }
-      if (event.data?.type === 'SYNC_STARTED') {
-        setSyncStatus('syncing');
+    // ترکیب ref داخلی با ref خارجی
+    const combinedRef = (node: HTMLDivElement | null) => {
+      // @ts-ignore - set internal ref
+      internalRef.current = node;
+      
+      // Forward to external ref if provided
+      if (typeof externalRef === 'function') {
+        externalRef(node);
+      } else if (externalRef) {
+        externalRef.current = node;
       }
     };
 
-    navigator.serviceWorker?.addEventListener('message', handleMessage);
-    return () => {
-      navigator.serviceWorker?.removeEventListener('message', handleMessage);
-    };
-  }, []);
+    return (
+      <div
+        ref={combinedRef}
+        style={style}
+        onClick={onClick}
+        className={cn('transform-gpu cursor-pointer', className)}
+        {...handlers}
+      >
+        {children}
+      </div>
+    );
+  }
+);
+
+ParallaxCard.displayName = 'ParallaxCard';
+```
+
+**تغییرات کلیدی:**
+- استفاده از `forwardRef` برای دریافت ref از والد
+- ایجاد `combinedRef` برای ترکیب ref داخلی (از useParallax) با ref خارجی
+- افزودن `displayName` برای خوانایی بهتر در DevTools
+
+---
+
+## بخش ۲: تبدیل MenuCard به forwardRef
+
+### ۲.۱ بروزرسانی `MenuCard` در `src/pages/MuseumHomePage.tsx`
+
+```typescript
+import React, { forwardRef } from 'react';
+
+interface MenuCardProps {
+  title: string;
+  icon: React.ReactNode;
+  description: string;
+  onClick: () => void;
+  delay: number;
+}
+
+const MenuCard = forwardRef<HTMLDivElement, MenuCardProps>(
+  function MenuCard({ title, icon, description, onClick, delay }, ref) {
+    return (
+      <ParallaxCard
+        ref={ref}
+        onClick={onClick}
+        intensity={10}
+        className="w-full text-right focus:outline-none page-slide-up"
+      >
+        <div 
+          className="cyber-glass cyber-hud rounded-3xl p-5 md:p-6 xl:p-8 2xl:p-10 h-full flex flex-col items-center justify-center text-center min-h-[160px] md:min-h-[200px] xl:min-h-[260px] 2xl:min-h-[300px] group active:scale-[0.98] transition-transform"
+          style={{ animationDelay: `${delay}s` }}
+        >
+          <div className="mb-3 md:mb-4 p-4 md:p-5 xl:p-6 rounded-2xl cyber-glass text-primary group-hover:text-foreground group-hover:bg-primary/30 transition-all duration-300">
+            {icon}
+          </div>
+          <h2 className="text-lg md:text-xl xl:text-2xl 2xl:text-3xl font-bold mb-2 text-foreground group-hover:text-primary transition-all duration-300">
+            {title}
+          </h2>
+          <p className="text-muted-foreground text-sm md:text-base xl:text-lg 2xl:text-xl">
+            {description}
+          </p>
+        </div>
+      </ParallaxCard>
+    );
+  }
+);
+
+MenuCard.displayName = 'MenuCard';
+```
+
+---
+
+## بخش ۳: بروزرسانی useParallax hook
+
+### ۳.۱ بهبود `src/hooks/useParallax.ts` برای پشتیبانی از ref forwarding
+
+```typescript
+import { useState, useCallback, useRef, MutableRefObject } from 'react';
+
+interface ParallaxState {
+  rotateX: number;
+  rotateY: number;
+  scale: number;
+}
+
+export function useParallax(intensity: number = 15) {
+  const [transform, setTransform] = useState<ParallaxState>({
+    rotateX: 0,
+    rotateY: 0,
+    scale: 1,
+  });
+  const ref = useRef<HTMLDivElement>(null);
+
+  // ... existing handlers remain the same
+
+  const style: React.CSSProperties = {
+    transform: `perspective(1000px) rotateX(${transform.rotateX}deg) rotateY(${transform.rotateY}deg) scale(${transform.scale})`,
+    transition: 'transform 0.15s ease-out',
+    transformStyle: 'preserve-3d',
+  };
 
   return {
-    syncStatus,
-    lastSyncTime,
-    requestSync,
-    isSupported: 'SyncManager' in window,
+    ref,
+    style,
+    handlers: {
+      onTouchMove: handleTouchMove,
+      onMouseMove: handleMouseMove,
+      onMouseLeave: handleLeave,
+      onTouchEnd: handleLeave,
+    },
   };
-}
-```
-
----
-
-### بخش دوم: رفع مشکلات اتصال سرور Liara
-
-#### ۲.۱ بهبود Connection Resilience
-
-**مشکل:** سرور Liara ممکن است اتصال کندتری به Supabase داشته باشد
-
-```typescript
-// src/lib/supabase.ts - افزودن retry با exponential backoff
-
-export async function fetchWithRetry<T>(
-  fetchFn: () => Promise<T>,
-  maxRetries = 3,
-  baseDelay = 1000
-): Promise<T> {
-  let lastError: Error | null = null;
-  
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await fetchFn();
-    } catch (error) {
-      lastError = error as Error;
-      
-      // Exponential backoff
-      const delay = baseDelay * Math.pow(2, i);
-      console.log(`Retry ${i + 1}/${maxRetries} after ${delay}ms`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-  
-  throw lastError;
-}
-```
-
-#### ۲.۲ Health Check Endpoint
-
-```typescript
-// افزودن تست اتصال سریع
-export async function healthCheck(): Promise<{
-  status: 'healthy' | 'degraded' | 'offline';
-  latency: number;
-}> {
-  const start = Date.now();
-  
-  try {
-    const controller = new AbortController();
-    setTimeout(() => controller.abort(), 3000);
-    
-    const { error } = await supabase
-      .from('app_settings')
-      .select('id')
-      .limit(1)
-      .abortSignal(controller.signal);
-    
-    const latency = Date.now() - start;
-    
-    if (error) {
-      return { status: 'degraded', latency };
-    }
-    
-    return {
-      status: latency < 2000 ? 'healthy' : 'degraded',
-      latency
-    };
-  } catch {
-    return { status: 'offline', latency: 0 };
-  }
-}
-```
-
----
-
-### بخش سوم: نمایش وضعیت Sync در UI
-
-#### ۳.۱ کامپوننت وضعیت Sync
-
-```typescript
-// src/components/SyncStatusIndicator.tsx
-
-function SyncStatusIndicator() {
-  const { syncStatus, lastSyncTime } = useBackgroundSync();
-  const { isOffline } = useOfflineData();
-  
-  if (syncStatus === 'syncing') {
-    return (
-      <div className="flex items-center gap-2 text-primary">
-        <RefreshCw className="h-4 w-4 animate-spin" />
-        <span className="text-xs">در حال همگام‌سازی...</span>
-      </div>
-    );
-  }
-  
-  if (isOffline) {
-    return (
-      <div className="flex items-center gap-2 text-yellow-500">
-        <WifiOff className="h-4 w-4" />
-        <span className="text-xs">آفلاین</span>
-      </div>
-    );
-  }
-  
-  return (
-    <div className="flex items-center gap-2 text-green-500">
-      <CloudCheck className="h-4 w-4" />
-      <span className="text-xs">متصل</span>
-    </div>
-  );
-}
-```
-
-#### ۳.۲ یکپارچه‌سازی با AdminOfflineSettingsPage
-
-افزودن بخش "Background Sync" به صفحه تنظیمات آفلاین:
-
-```tsx
-{/* Background Sync Section */}
-<GlassCard className="p-6">
-  <div className="flex items-center gap-3 mb-6">
-    <CloudSync className="h-6 w-6 text-primary" />
-    <h2 className="text-xl font-semibold">همگام‌سازی پس‌زمینه</h2>
-  </div>
-  
-  <div className="space-y-4">
-    {/* وضعیت پشتیبانی */}
-    <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30">
-      <span>پشتیبانی مرورگر</span>
-      <span className={isSupported ? 'text-green-500' : 'text-yellow-500'}>
-        {isSupported ? 'پشتیبانی می‌شود' : 'پشتیبانی نمی‌شود'}
-      </span>
-    </div>
-    
-    {/* آخرین همگام‌سازی */}
-    <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30">
-      <span>آخرین همگام‌سازی پس‌زمینه</span>
-      <span>{lastSyncTime?.toLocaleString('fa-IR') || 'هنوز انجام نشده'}</span>
-    </div>
-    
-    {/* دکمه درخواست sync */}
-    <Button onClick={requestSync} disabled={syncStatus !== 'idle'}>
-      <CloudSync className="h-4 w-4 ml-2" />
-      درخواست همگام‌سازی
-    </Button>
-  </div>
-</GlassCard>
-```
-
----
-
-### بخش چهارم: تست‌های سناریوی مختلف شبکه
-
-#### ۴.۱ افزودن Network Condition Testing
-
-```typescript
-// src/hooks/useNetworkCondition.ts
-
-interface NetworkCondition {
-  type: 'excellent' | 'good' | 'fair' | 'poor' | 'offline';
-  effectiveType: string;
-  downlink: number;
-  rtt: number;
-}
-
-export function useNetworkCondition() {
-  const [condition, setCondition] = useState<NetworkCondition>({
-    type: 'good',
-    effectiveType: '4g',
-    downlink: 10,
-    rtt: 50,
-  });
-
-  useEffect(() => {
-    const updateCondition = () => {
-      if (!navigator.onLine) {
-        setCondition(prev => ({ ...prev, type: 'offline' }));
-        return;
-      }
-      
-      // @ts-ignore - Network Information API
-      const connection = navigator.connection || navigator.mozConnection;
-      
-      if (connection) {
-        const type = connection.effectiveType === '4g' ? 'excellent' :
-                     connection.effectiveType === '3g' ? 'good' :
-                     connection.effectiveType === '2g' ? 'fair' : 'poor';
-        
-        setCondition({
-          type,
-          effectiveType: connection.effectiveType,
-          downlink: connection.downlink || 0,
-          rtt: connection.rtt || 0,
-        });
-      }
-    };
-
-    updateCondition();
-    
-    window.addEventListener('online', updateCondition);
-    window.addEventListener('offline', updateCondition);
-    
-    return () => {
-      window.removeEventListener('online', updateCondition);
-      window.removeEventListener('offline', updateCondition);
-    };
-  }, []);
-
-  return condition;
 }
 ```
 
@@ -405,47 +187,26 @@ export function useNetworkCondition() {
 
 | فایل | تغییر | اولویت |
 |------|-------|--------|
-| `public/sw.js` | پیاده‌سازی کامل Background Sync و Periodic Sync | بحرانی |
-| `src/hooks/useBackgroundSync.ts` | ایجاد hook جدید برای مدیریت background sync | بحرانی |
-| `src/lib/supabase.ts` | افزودن fetchWithRetry و healthCheck | مهم |
-| `src/hooks/useNetworkCondition.ts` | ایجاد hook برای تشخیص وضعیت شبکه | مهم |
-| `src/components/SyncStatusIndicator.tsx` | کامپوننت نمایش وضعیت sync | مهم |
-| `src/pages/admin/AdminOfflineSettingsPage.tsx` | افزودن بخش Background Sync | بهبود |
+| `src/components/ui/ParallaxCard.tsx` | تبدیل به forwardRef با ترکیب ref‌ها | بحرانی |
+| `src/pages/MuseumHomePage.tsx` | تبدیل MenuCard به forwardRef | بحرانی |
 
 ---
 
-### معماری Background Sync
+### جریان داده بعد از رفع
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                        کاربر آنلاین                              │
-│  ┌──────────┐    ┌──────────────┐    ┌──────────────────────┐   │
-│  │   App    │───▶│ SW Message  │───▶│ Service Worker      │   │
-│  └──────────┘    └──────────────┘    │ - Cache API calls   │   │
-│                                       │ - Cache Images      │   │
-│                                       └──────────────────────┘   │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                        کاربر آفلاین                              │
-│  ┌──────────┐    ┌──────────────┐    ┌──────────────────────┐   │
-│  │   App    │───▶│ Cache API   │───▶│ Cached Data         │   │
-│  └──────────┘    └──────────────┘    └──────────────────────┘   │
-│       │                                                          │
-│       └──▶ Register sync event ──▶ Queued for later             │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     برگشت آنلاین                                 │
-│  ┌──────────────────────┐    ┌─────────────────────────────┐    │
-│  │ Service Worker       │    │ Background Sync Event       │    │
-│  │ sync event fires     │───▶│ - Fetch fresh data          │    │
-│  └──────────────────────┘    │ - Update cache              │    │
-│                               │ - Notify app                │    │
-│                               └─────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  MuseumHomePage                                              │
+│       │                                                      │
+│       ▼ (ref can be passed)                                  │
+│  MenuCard (forwardRef ✅)                                    │
+│       │                                                      │
+│       ▼ (ref forwarded)                                      │
+│  ParallaxCard (forwardRef ✅)                                │
+│       │                                                      │
+│       ▼ (combined with internal ref)                         │
+│  <div ref={combinedRef}> ✅                                  │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -453,19 +214,33 @@ export function useNetworkCondition() {
 ### نتایج مورد انتظار
 
 ```text
-عملکرد روی سرور Liara:
-┌──────────────────────────────────────────────────────┐
-│  ✅ اتصال اولیه: تلاش مجدد خودکار (3 بار)           │
-│  ✅ قطع اتصال: نمایش داده‌های کش شده                │
-│  ✅ برگشت آنلاین: sync خودکار در پس‌زمینه           │
-│  ✅ شبکه کند: timeout مناسب + fallback             │
-└──────────────────────────────────────────────────────┘
+قبل:
+┌────────────────────────────────────────────────┐
+│  ⚠️ Warning: Function components cannot be    │
+│     given refs. Check MenuCard                 │
+│  ⚠️ Warning: Function components cannot be    │
+│     given refs. Check ParallaxCard             │
+└────────────────────────────────────────────────┘
 
-Background Sync:
-┌──────────────────────────────────────────────────────┐
-│  ✅ ثبت Periodic Sync (24 ساعته)                    │
-│  ✅ Sync دستی با یک کلیک                            │
-│  ✅ اعلان موفقیت sync                               │
-│  ✅ ذخیره timestamp آخرین sync                      │
-└──────────────────────────────────────────────────────┘
+بعد:
+┌────────────────────────────────────────────────┐
+│  ✅ هیچ هشداری در کنسول نمایش داده نمی‌شود     │
+│  ✅ کامپوننت‌ها به درستی ref دریافت می‌کنند     │
+│  ✅ افکت پارالاکس همچنان کار می‌کند             │
+└────────────────────────────────────────────────┘
 ```
+
+---
+
+### تست عملکرد آفلاین
+
+پس از اعمال تغییرات، برای تست آفلاین:
+
+1. **باز کردن DevTools** (F12 یا Cmd+Option+I)
+2. **رفتن به تب Network**
+3. **تیک زدن گزینه "Offline"**
+4. **بررسی موارد زیر:**
+   - نمایش OfflineIndicator در بالای صفحه
+   - امکان مرور داده‌های کش شده
+   - نمایش toast آفلاین
+   - کار کردن Background Sync بعد از برگشت آنلاین
