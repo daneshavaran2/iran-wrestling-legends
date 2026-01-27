@@ -73,7 +73,7 @@ interface WrestlerContextType {
   deleteMedia: (id: string) => Promise<void>;
 }
 
-const WrestlerContext = createContext<WrestlerContextType | undefined>(undefined);
+export const WrestlerContext = createContext<WrestlerContextType | undefined>(undefined);
 
 // Helper functions for cache management
 function saveToCache<T>(key: string, data: T): void {

@@ -1,9 +1,14 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { WifiOff, RefreshCw } from 'lucide-react';
-import { useWrestlers } from '@/contexts/WrestlerContext';
+import { WrestlerContext } from '@/contexts/WrestlerContext';
 
 export function OfflineIndicator() {
-  const { isOffline, refreshWrestlers, isLoading } = useWrestlers();
+  const context = useContext(WrestlerContext);
+  
+  // Return null if context is not available (prevents crash during HMR)
+  if (!context) return null;
+  
+  const { isOffline, refreshWrestlers, isLoading } = context;
 
   if (!isOffline) return null;
 
