@@ -1,16 +1,16 @@
 
 
-# افزودن CI/CD با GitHub Actions و Docker Compose
+# ایجاد Workflow تست E2E با Playwright و تنظیمات Liara
 
 ## خلاصه
-این برنامه شامل ایجاد سیستم CI/CD خودکار با GitHub Actions و فایل docker-compose برای اجرای ساده‌تر با Docker است.
+این برنامه شامل اضافه کردن تست‌های خودکار End-to-End با Playwright و همچنین تنظیم فایل `liara.json` برای deploy خودکار به Liara است.
 
 ---
 
-## ۱. فایل‌های GitHub Actions
+## ۱. فایل‌های Playwright
 
-### `.github/workflows/ci.yml` - تست و بررسی کد
-این فایل هنگام هر push یا pull request اجرا می‌شود:
+### `.github/workflows/e2e.yml` - تست E2E
+یک workflow جدید برای اجرای تست‌های E2E:
 
 ```text
 ┌─────────────────────────────────────────────────┐
@@ -18,128 +18,141 @@
 ├─────────────────────────────────────────────────┤
 │  1. Checkout کد                                 │
 │  2. نصب Node.js 18                              │
-│  3. نصب dependencies (npm ci)                   │
-│  4. اجرای TypeScript type-check                 │
-│  5. اجرای ESLint                                │
-│  6. Build پروژه                                 │
+│  3. نصب dependencies                            │
+│  4. نصب Playwright browsers                    │
+│  5. Build پروژه                                 │
+│  6. اجرای تست‌های E2E                           │
+│  7. آپلود گزارش تست (در صورت خطا)               │
 └─────────────────────────────────────────────────┘
 ```
 
-### `.github/workflows/deploy.yml` - Deploy خودکار
-این فایل فقط هنگام push به branch اصلی اجرا می‌شود:
+### `playwright.config.ts` - تنظیمات Playwright
+تنظیمات شامل:
+- اجرای وب سرور روی پورت 4173
+- تست روی مرورگرهای Chrome, Firefox, Safari
+- اسکرین‌شات و ویدیو در صورت خطا
+- Retry برای flaky tests
+
+### `e2e/` - پوشه تست‌ها
+
+```text
+e2e/
+├── home.spec.ts       # تست صفحه اصلی
+├── navigation.spec.ts # تست ناوبری
+└── fixtures.ts        # داده‌های تست
+```
+
+---
+
+## ۲. فایل `liara.json`
+
+تنظیمات Liara بر اساس اطلاعات ارائه شده:
+
+```json
+{
+  "app": "koshtyiran",
+  "port": 80,
+  "team-id": "687f2bfec24fa7e8e27436cb",
+  "build": {
+    "location": "iran"
+  },
+  "disks": []
+}
+```
+
+---
+
+## ۳. آپدیت workflow های موجود
+
+### آپدیت `.github/workflows/deploy.yml`
+اضافه کردن job جدید برای deploy خودکار به Liara:
 
 ```text
 ┌─────────────────────────────────────────────────┐
-│  Trigger: Push to main/master                   │
+│  deploy-liara:                                  │
 ├─────────────────────────────────────────────────┤
-│  1. Build پروژه                                 │
-│  2. آپلود artifact                              │
-│  3. Deploy به سرور (اختیاری)                   │
-│     - SSH Deploy                                │
-│     - Docker Registry                           │
-│     - GitHub Pages                              │
+│  1. نصب Liara CLI                               │
+│  2. Login با API Token                          │
+│  3. Deploy به Liara                             │
 └─────────────────────────────────────────────────┘
 ```
 
 ---
 
-## ۲. فایل‌های Docker
+## ۴. آپدیت `package.json`
 
-### `Dockerfile` - ساخت image
-یک فایل Dockerfile بهینه‌شده multi-stage برای production:
+اضافه کردن Playwright به devDependencies و اسکریپت‌های جدید:
 
-```text
-┌──────────────────────────────────────┐
-│  Stage 1: Builder                    │
-│  - Node.js 18 Alpine                 │
-│  - npm ci                            │
-│  - npm run build                     │
-├──────────────────────────────────────┤
-│  Stage 2: Production                 │
-│  - Nginx Alpine                      │
-│  - کپی فایل‌های build                │
-│  - تنظیمات nginx برای SPA           │
-└──────────────────────────────────────┘
-```
-
-### `docker-compose.yml` - اجرای ساده
-امکان اجرا با یک دستور ساده:
-
-```bash
-docker-compose up -d
-```
-
-شامل:
-- سرویس اصلی museum
-- پورت 80
-- Restart policy: unless-stopped
-- Health check
-
-### `docker-compose.dev.yml` - محیط توسعه
-برای توسعه محلی با hot-reload:
-
-```bash
-docker-compose -f docker-compose.dev.yml up
+```json
+{
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.42.0"
+  }
+}
 ```
 
 ---
 
-## ۳. فایل `nginx.conf`
-تنظیمات بهینه Nginx شامل:
-- SPA fallback به index.html
-- Gzip compression
-- کش فایل‌های static
-- Security headers
+## لیست فایل‌های ایجادی/ویرایشی
 
----
-
-## ۴. فایل `.dockerignore`
-برای کاهش حجم image و سرعت بالاتر build
-
----
-
-## ۵. آپدیت مستندات
-بروزرسانی `DEPLOYMENT.md` با دستورالعمل‌های جدید
-
----
-
-## لیست فایل‌های ایجادی
-
-| فایل | توضیح |
-|------|-------|
-| `.github/workflows/ci.yml` | تست و lint خودکار |
-| `.github/workflows/deploy.yml` | Deploy خودکار |
-| `Dockerfile` | ساخت image production |
-| `docker-compose.yml` | اجرای production |
-| `docker-compose.dev.yml` | اجرای development |
-| `nginx.conf` | تنظیمات Nginx |
-| `.dockerignore` | فایل‌های ignore برای Docker |
+| فایل | نوع | توضیح |
+|------|-----|-------|
+| `.github/workflows/e2e.yml` | ایجاد | workflow تست E2E |
+| `playwright.config.ts` | ایجاد | تنظیمات Playwright |
+| `e2e/home.spec.ts` | ایجاد | تست صفحه اصلی |
+| `e2e/navigation.spec.ts` | ایجاد | تست ناوبری |
+| `liara.json` | ایجاد | تنظیمات Liara |
+| `.github/workflows/deploy.yml` | ویرایش | اضافه کردن deploy به Liara |
+| `package.json` | ویرایش | اضافه کردن Playwright |
+| `.gitignore` | ویرایش | اضافه کردن فولدرهای Playwright |
 
 ---
 
 ## بخش فنی
 
-### GitHub Secrets مورد نیاز (اختیاری)
-برای فعال‌سازی deploy خودکار به سرور:
-- `SSH_HOST` - آدرس سرور
-- `SSH_USER` - نام کاربری
-- `SSH_KEY` - کلید خصوصی SSH
-- `SSH_PATH` - مسیر deploy روی سرور
+### GitHub Secrets مورد نیاز برای Liara
 
-### دستورات Docker
+| Secret | توضیح |
+|--------|-------|
+| `LIARA_API_TOKEN` | توکن API از پنل Liara |
+
+برای دریافت توکن:
+1. ورود به پنل Liara
+2. Settings → API Keys
+3. ایجاد توکن جدید
+
+### دستورات محلی Playwright
 
 ```bash
-# اجرای production
-docker-compose up -d
+# نصب dependencies
+npm install
 
-# اجرای development
-docker-compose -f docker-compose.dev.yml up
+# نصب مرورگرها
+npx playwright install
 
-# ساخت image دستی
-docker build -t wrestling-museum:latest .
+# اجرای تست‌ها
+npm run test:e2e
 
-# مشاهده لاگ‌ها
-docker-compose logs -f
+# اجرای تست با رابط گرافیکی
+npm run test:e2e:ui
+
+# مشاهده گزارش
+npx playwright show-report
+```
+
+### دستور Deploy به Liara
+
+```bash
+# با Liara CLI
+liara deploy --team-id 687f2bfec24fa7e8e27436cb
+
+# یا از اسکریپت موجود
+./scripts/deploy.sh
+# سپس انتخاب گزینه 3 (Liara)
 ```
 
 ### ساختار نهایی
@@ -149,12 +162,13 @@ project/
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml
-│       └── deploy.yml
-├── Dockerfile
-├── docker-compose.yml
-├── docker-compose.dev.yml
-├── nginx.conf
-├── .dockerignore
-└── DEPLOYMENT.md (آپدیت شده)
+│       ├── deploy.yml (آپدیت شده)
+│       └── e2e.yml (جدید)
+├── e2e/
+│   ├── home.spec.ts
+│   └── navigation.spec.ts
+├── liara.json (جدید)
+├── playwright.config.ts (جدید)
+└── package.json (آپدیت شده)
 ```
 
