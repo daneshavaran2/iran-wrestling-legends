@@ -29,9 +29,99 @@
 
 ---
 
-## 🚀 روش‌های استقرار
+## 🤖 GitHub Actions (CI/CD خودکار)
 
-### روش ۱: Static Hosting (ساده‌ترین)
+پروژه شامل دو workflow از پیش تنظیم شده است:
+
+### CI - تست و بررسی کد
+فایل: `.github/workflows/ci.yml`
+
+هنگام هر push یا pull request اجرا می‌شود:
+- ✅ TypeScript type-check
+- ✅ ESLint
+- ✅ Build پروژه
+- ✅ آپلود artifact
+
+### Deploy - استقرار خودکار
+فایل: `.github/workflows/deploy.yml`
+
+هنگام push به branch اصلی:
+- ✅ Build پروژه
+- ✅ آپلود artifact
+- ⚙️ Deploy به سرور (نیاز به تنظیم secrets)
+
+### تنظیم GitHub Secrets (اختیاری)
+
+برای فعال‌سازی deploy خودکار به سرور، در Settings → Secrets:
+
+| Secret | توضیح |
+|--------|-------|
+| `SSH_HOST` | آدرس سرور (مثال: `192.168.1.100`) |
+| `SSH_USER` | نام کاربری SSH |
+| `SSH_KEY` | کلید خصوصی SSH |
+| `SSH_PATH` | مسیر deploy (مثال: `/var/www/museum`) |
+
+برای Docker Registry:
+| Secret | توضیح |
+|--------|-------|
+| `DOCKER_USERNAME` | نام کاربری Docker Hub |
+| `DOCKER_PASSWORD` | رمز عبور Docker Hub |
+
+---
+
+## 🐳 Docker Compose (ساده‌ترین روش)
+
+### اجرای Production
+
+```bash
+# Clone پروژه
+git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
+cd YOUR_REPO
+
+# اجرا با یک دستور
+docker-compose up -d
+
+# مشاهده لاگ‌ها
+docker-compose logs -f
+
+# متوقف کردن
+docker-compose down
+```
+
+سایت روی پورت `80` در دسترس خواهد بود.
+
+### اجرای Development (با hot-reload)
+
+```bash
+docker-compose -f docker-compose.dev.yml up
+```
+
+سایت روی پورت `8080` در دسترس خواهد بود.
+
+### دستورات مفید Docker
+
+```bash
+# ساخت image دستی
+docker build -t wrestling-museum:latest .
+
+# اجرای container
+docker run -d -p 80:80 --name museum wrestling-museum
+
+# مشاهده وضعیت
+docker ps
+
+# ورود به container
+docker exec -it wrestling-museum sh
+
+# حذف container و image
+docker-compose down --rmi all
+```
+
+---
+
+## 🚀 روش‌های دیگر استقرار
+
+### روش ۱: Static Hosting (بدون Docker)
 
 ```bash
 # 1. Clone پروژه
@@ -94,56 +184,7 @@ server {
 
 ---
 
-### روش ۲: Docker
-
-**Dockerfile:**
-```dockerfile
-# Build stage
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-
-# Production stage
-FROM nginx:alpine
-COPY --from=builder /app/build /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
-```
-
-**nginx.conf:**
-```nginx
-server {
-    listen 80;
-    root /usr/share/nginx/html;
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-}
-```
-
-**اجرا:**
-```bash
-# Build image
-docker build -t wrestling-museum .
-
-# Run container
-docker run -d -p 80:80 --name museum wrestling-museum
-```
-
----
-
-### روش ۳: PM2 + Node.js
+### روش ۲: PM2 + Node.js
 
 ```bash
 # 1. نصب PM2
@@ -165,7 +206,7 @@ pm2 startup
 
 ---
 
-### روش ۴: Liara (ایران)
+### روش ۳: Liara (ایران)
 
 ```bash
 # 1. نصب Liara CLI
@@ -240,6 +281,9 @@ sudo certbot --nginx -d your-domain.com
 
 **س: چگونه آپدیت کنم؟**
 ج: فقط `git pull && npm run build` و جایگزینی فایل‌های build/
+
+**س: چگونه Docker آپدیت کنم؟**
+ج: `git pull && docker-compose up -d --build`
 
 ---
 
