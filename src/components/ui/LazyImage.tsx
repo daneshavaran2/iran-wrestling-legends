@@ -9,6 +9,8 @@ interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   maxRetries?: number;
   /** How to fit the image: 'contain' shows full image, 'cover' fills container */
   objectFit?: 'contain' | 'cover';
+  /** Position of the image within container (e.g., 'top', 'center', 'top center') */
+  objectPosition?: string;
 }
 
 export function LazyImage({ 
@@ -19,6 +21,7 @@ export function LazyImage({
   thumbnailSrc,
   maxRetries = 2,
   objectFit = 'contain',
+  objectPosition = 'center',
   ...props 
 }: LazyImageProps) {
   const [isInView, setIsInView] = useState(false);
@@ -95,6 +98,7 @@ export function LazyImage({
                 objectFit === 'contain' ? 'object-contain' : 'object-cover',
                 thumbnailLoaded ? 'opacity-100' : 'opacity-0'
               )}
+              style={{ objectPosition }}
               onLoad={() => setThumbnailLoaded(true)}
               loading="lazy"
               decoding="async"
@@ -110,6 +114,7 @@ export function LazyImage({
               objectFit === 'contain' ? 'object-contain' : 'object-cover',
               isLoaded ? 'opacity-100' : 'opacity-0'
             )}
+            style={{ objectPosition }}
             onLoad={() => setIsLoaded(true)}
             onError={handleError}
             loading="lazy"
