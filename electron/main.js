@@ -1,13 +1,60 @@
-const { app, BrowserWindow, globalShortcut, Menu, shell } = require('electron');
+const { app, BrowserWindow, globalShortcut, Menu, shell, dialog, ipcMain } = require('electron');
 const path = require('path');
+
+// Auto-updater (only in production builds)
+let autoUpdater;
+let log;
+
+try {
+  autoUpdater = require('electron-updater').autoUpdater;
+  log = require('electron-log');
+  
+  // Configure logging
+  autoUpdater.logger = log;
+  autoUpdater.logger.transports.file.level = 'info';
+  
+  // Disable auto download - ask user first
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+} catch (e) {
+  // electron-updater not available (development mode)
+  console.log('Auto-updater not available:', e.message);
+}
 
 // Keep a global reference of the window object
 let mainWindow;
+let splashWindow;
 
 // Check if running in development
 const isDev = process.env.NODE_ENV === 'development' || process.argv.includes('--dev');
 
+function createSplashWindow() {
+  splashWindow = new BrowserWindow({
+    width: 500,
+    height: 400,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    center: true,
+    resizable: false,
+    skipTaskbar: true,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  splashWindow.loadFile(path.join(__dirname, 'splash.html'));
+  
+  splashWindow.on('closed', () => {
+    splashWindow = null;
+  });
+}
+
 function createWindow() {
+  // Show splash first
+  createSplashWindow();
+
   // Create the browser window
   mainWindow = new BrowserWindow({
     width: 1920,
@@ -17,7 +64,8 @@ function createWindow() {
     frame: isDev,
     autoHideMenuBar: !isDev,
     backgroundColor: '#0a0a0a',
-    icon: path.join(__dirname, '../public/favicon.png'),
+    show: false, // Start hidden, show after loaded
+    icon: path.join(__dirname, '../public/app-icon.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -47,6 +95,23 @@ function createWindow() {
     // Production: load from dist folder
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
+
+  // When main window is ready
+  mainWindow.webContents.on('did-finish-load', () => {
+    // Wait for splash to show at least 2.5 seconds
+    setTimeout(() => {
+      if (splashWindow && !splashWindow.isDestroyed()) {
+        splashWindow.close();
+      }
+      mainWindow.show();
+      
+      if (!isDev) {
+        mainWindow.setFullScreen(true);
+      }
+      
+      mainWindow.webContents.send('online-status', navigator.onLine);
+    }, 2500);
+  });
 
   // Disable navigation to external URLs
   mainWindow.webContents.on('will-navigate', (event, url) => {
@@ -112,8 +177,17 @@ function createWindow() {
 
   // Secret exit shortcut: Ctrl+Shift+Q
   globalShortcut.register('CommandOrControl+Shift+Q', () => {
-    console.log('Secret exit triggered');
-    app.quit();
+    dialog.showMessageBox(mainWindow, {
+      type: 'question',
+      buttons: ['خروج', 'انصراف'],
+      defaultId: 1,
+      title: 'خروج از برنامه',
+      message: 'آیا می‌خواهید از برنامه خارج شوید؟',
+    }).then((result) => {
+      if (result.response === 0) {
+        app.quit();
+      }
+    });
   });
 
   // Handle window close
@@ -128,16 +202,98 @@ function createWindow() {
       event.preventDefault();
     });
   }
+}
 
-  // Send online/offline status to renderer
-  mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.send('online-status', navigator.onLine);
+// Auto-updater event handlers
+function setupAutoUpdater() {
+  if (!autoUpdater) return;
+
+  autoUpdater.on('checking-for-update', () => {
+    log.info('Checking for updates...');
+    sendStatusToWindow('در حال بررسی آپدیت...');
   });
+
+  autoUpdater.on('update-available', (info) => {
+    log.info('Update available:', info.version);
+    
+    dialog.showMessageBox(mainWindow, {
+      type: 'info',
+      title: 'آپدیت جدید',
+      message: `نسخه جدید ${info.version} موجود است.\nآیا می‌خواهید دانلود کنید؟`,
+      detail: `نسخه فعلی: ${app.getVersion()}`,
+      buttons: ['بله، دانلود شود', 'بعداً'],
+      defaultId: 0,
+    }).then((result) => {
+      if (result.response === 0) {
+        autoUpdater.downloadUpdate();
+        sendStatusToWindow('در حال دانلود آپدیت...');
+      }
+    });
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    log.info('No update available');
+  });
+
+  autoUpdater.on('download-progress', (progressObj) => {
+    const percent = Math.round(progressObj.percent);
+    log.info(`Download progress: ${percent}%`);
+    sendStatusToWindow(`دانلود آپدیت: ${percent}%`);
+    
+    if (mainWindow) {
+      mainWindow.setProgressBar(progressObj.percent / 100);
+    }
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    log.info('Update downloaded:', info.version);
+    
+    if (mainWindow) {
+      mainWindow.setProgressBar(-1); // Remove progress bar
+    }
+    
+    dialog.showMessageBox(mainWindow, {
+      type: 'info',
+      title: 'آپدیت آماده نصب',
+      message: `نسخه ${info.version} دانلود شد.\nبرنامه باید ریستارت شود.`,
+      buttons: ['ریستارت و نصب'],
+    }).then(() => {
+      autoUpdater.quitAndInstall();
+    });
+  });
+
+  autoUpdater.on('error', (err) => {
+    log.error('Auto-updater error:', err);
+    sendStatusToWindow('خطا در بررسی آپدیت');
+  });
+}
+
+function sendStatusToWindow(text) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-status', text);
+  }
+}
+
+function checkForUpdates() {
+  if (!autoUpdater || isDev) return;
+  
+  try {
+    autoUpdater.checkForUpdates();
+  } catch (e) {
+    log?.error('Check for updates failed:', e);
+  }
 }
 
 // This method will be called when Electron has finished initialization
 app.whenReady().then(() => {
   createWindow();
+  setupAutoUpdater();
+
+  // Check for updates after 5 seconds
+  setTimeout(checkForUpdates, 5000);
+  
+  // Check every 4 hours
+  setInterval(checkForUpdates, 4 * 60 * 60 * 1000);
 
   app.on('activate', () => {
     // On macOS re-create window when dock icon is clicked
@@ -170,9 +326,6 @@ app.on('certificate-error', (event, webContents, url, error, certificate, callba
   }
 });
 
-// Disable hardware acceleration if needed (for some kiosk systems)
-// app.disableHardwareAcceleration();
-
 // Single instance lock - prevent multiple instances
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
@@ -186,3 +339,7 @@ if (!gotTheLock) {
     }
   });
 }
+
+// IPC handlers
+ipcMain.handle('get-app-version', () => app.getVersion());
+ipcMain.handle('check-for-updates', () => checkForUpdates());

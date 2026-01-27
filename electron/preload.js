@@ -17,6 +17,12 @@ contextBridge.exposeInMainWorld('electron', {
     return ipcRenderer.invoke('get-app-version');
   },
   
+  // Update handling
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  onUpdateStatus: (callback) => {
+    ipcRenderer.on('update-status', (event, message) => callback(message));
+  },
+  
   // Window controls (if needed in future)
   minimize: () => ipcRenderer.send('window-minimize'),
   maximize: () => ipcRenderer.send('window-maximize'),

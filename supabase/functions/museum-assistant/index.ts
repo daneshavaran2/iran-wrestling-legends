@@ -14,7 +14,7 @@ const getSystemPrompt = (language: string) => {
 - معرفی موزه کشتی ایران و اماکن ورزشی
 - سبک‌های کشتی (آزاد و فرنگی)
 
-پاسخ‌ها را به زبان فارسی، مودبانه و آموزنده بدهید. اگر سوالی خارج از حوزه موزه و کشتی باشد، مودبانه توضیح دهید که تخصص شما در این زمینه است.`,
+پاسخ‌ها را به زبان فارسی، مودبانه، مختصر و آموزنده بدهید. اگر سوالی خارج از حوزه موزه و کشتی باشد، مودبانه توضیح دهید که تخصص شما در این زمینه است.`,
 
     en: `You are the intelligent assistant of the Iran Wrestling Museum. Your role is to answer questions about:
 - History of Iranian wrestling from ancient times to today
@@ -23,7 +23,7 @@ const getSystemPrompt = (language: string) => {
 - Introduction of the wrestling museum and sports venues
 - Wrestling styles (Freestyle and Greco-Roman)
 
-Provide answers in English, politely and informatively. If a question is outside the scope of the museum and wrestling, politely explain that your expertise is in this field.`,
+Provide answers in English, politely, briefly and informatively. If a question is outside the scope of the museum and wrestling, politely explain that your expertise is in this field.`,
 
     ar: `أنت المساعد الذكي لمتحف المصارعة الإيرانية. مهمتك الإجابة على أسئلة المستخدمين حول:
 - تاريخ المصارعة الإيرانية من العصور القديمة حتى اليوم
@@ -32,7 +32,7 @@ Provide answers in English, politely and informatively. If a question is outside
 - تعريف متحف المصارعة والأماكن الرياضية
 - أساليب المصارعة (الحرة والرومانية)
 
-قدم الإجابات باللغة العربية بأدب ومعلومات مفيدة. إذا كان السؤال خارج نطاق المتحف والمصارعة، اشرح بأدب أن تخصصك في هذا المجال.`,
+قدم الإجابات باللغة العربية بأدب وإيجاز ومعلومات مفيدة. إذا كان السؤال خارج نطاق المتحف والمصارعة، اشرح بأدب أن تخصصك في هذا المجال.`,
   };
 
   return prompts[language] || prompts.fa;
@@ -44,7 +44,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, language = 'fa' } = await req.json();
+    const { messages, language = 'fa', stream = true } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -53,6 +53,7 @@ serve(async (req) => {
 
     const systemPrompt = getSystemPrompt(language);
 
+    // Use faster model with streaming for 2x speed improvement
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -60,11 +61,14 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash-lite", // Fastest model available
         messages: [
           { role: "system", content: systemPrompt },
           ...messages,
         ],
+        stream: stream,
+        max_tokens: 500, // Limit response length for faster responses
+        temperature: 0.7,
       }),
     });
 
@@ -87,13 +91,26 @@ serve(async (req) => {
       throw new Error("AI gateway error");
     }
 
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "متأسفانه پاسخی دریافت نشد.";
+    if (stream) {
+      // Return streaming response directly
+      return new Response(response.body, {
+        headers: { 
+          ...corsHeaders, 
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          "Connection": "keep-alive",
+        },
+      });
+    } else {
+      // Non-streaming response
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || "متأسفانه پاسخی دریافت نشد.";
 
-    return new Response(
-      JSON.stringify({ content }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+      return new Response(
+        JSON.stringify({ content }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
   } catch (error) {
     console.error("Museum assistant error:", error);

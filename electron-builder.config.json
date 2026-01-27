@@ -26,6 +26,10 @@
     {
       "from": "public/app-icon.png",
       "to": "icon.png"
+    },
+    {
+      "from": "electron/splash.html",
+      "to": "splash.html"
     }
   ],
   "win": {
@@ -63,7 +67,10 @@
     "artifactName": "${productName}-Portable-${version}.${ext}",
     "requestExecutionLevel": "user"
   },
-  "publish": null,
+  "publish": {
+    "provider": "github",
+    "releaseType": "release"
+  },
   "electronDownload": {
     "cache": ".cache/electron"
   },
