@@ -755,6 +755,22 @@
   -webkit-user-select: auto;
 }
 
+/* Virtual Keyboard Slide Animation */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.25s ease-out forwards;
+}
+
 /* 55-inch Kiosk Optimization (1920px+) */
 @media (min-width: 1920px) {
   html {
