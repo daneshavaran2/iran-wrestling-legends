@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { History, Users, Building2, BookOpen, Images, Info, Settings } from 'lucide-react';
 import { ParallaxCard } from '@/components/ui/ParallaxCard';
@@ -18,30 +18,35 @@ interface MenuCardProps {
   delay: number;
 }
 
-function MenuCard({ title, icon, description, onClick, delay }: MenuCardProps) {
-  return (
-    <ParallaxCard
-      onClick={onClick}
-      intensity={10}
-      className="w-full text-right focus:outline-none page-slide-up"
-    >
-      <div 
-        className="cyber-glass cyber-hud rounded-3xl p-5 md:p-6 xl:p-8 2xl:p-10 h-full flex flex-col items-center justify-center text-center min-h-[160px] md:min-h-[200px] xl:min-h-[260px] 2xl:min-h-[300px] group active:scale-[0.98] transition-transform"
-        style={{ animationDelay: `${delay}s` }}
+const MenuCard = forwardRef<HTMLDivElement, MenuCardProps>(
+  function MenuCard({ title, icon, description, onClick, delay }, ref) {
+    return (
+      <ParallaxCard
+        ref={ref}
+        onClick={onClick}
+        intensity={10}
+        className="w-full text-right focus:outline-none page-slide-up"
       >
-        <div className="mb-3 md:mb-4 p-4 md:p-5 xl:p-6 rounded-2xl cyber-glass text-primary group-hover:text-foreground group-hover:bg-primary/30 transition-all duration-300">
-          {icon}
+        <div 
+          className="cyber-glass cyber-hud rounded-3xl p-5 md:p-6 xl:p-8 2xl:p-10 h-full flex flex-col items-center justify-center text-center min-h-[160px] md:min-h-[200px] xl:min-h-[260px] 2xl:min-h-[300px] group active:scale-[0.98] transition-transform"
+          style={{ animationDelay: `${delay}s` }}
+        >
+          <div className="mb-3 md:mb-4 p-4 md:p-5 xl:p-6 rounded-2xl cyber-glass text-primary group-hover:text-foreground group-hover:bg-primary/30 transition-all duration-300">
+            {icon}
+          </div>
+          <h2 className="text-lg md:text-xl xl:text-2xl 2xl:text-3xl font-bold mb-2 text-foreground group-hover:text-primary transition-all duration-300">
+            {title}
+          </h2>
+          <p className="text-muted-foreground text-sm md:text-base xl:text-lg 2xl:text-xl">
+            {description}
+          </p>
         </div>
-        <h2 className="text-lg md:text-xl xl:text-2xl 2xl:text-3xl font-bold mb-2 text-foreground group-hover:text-primary transition-all duration-300">
-          {title}
-        </h2>
-        <p className="text-muted-foreground text-sm md:text-base xl:text-lg 2xl:text-xl">
-          {description}
-        </p>
-      </div>
-    </ParallaxCard>
-  );
-}
+      </ParallaxCard>
+    );
+  }
+);
+
+MenuCard.displayName = 'MenuCard';
 
 export default function MuseumHomePage() {
   useKioskMode();
