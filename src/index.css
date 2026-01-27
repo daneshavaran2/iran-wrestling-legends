@@ -1,6 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* Build trigger */
 
 /* Vazirmatn Local Font */
 @font-face {
