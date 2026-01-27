@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, Trash2, HardDrive, Clock, Users, History, Building2, BookOpen, Images, Image, RefreshCw, Bell, Timer, FlaskConical, CheckCircle2, XCircle, Loader2, FileText, AlertTriangle } from 'lucide-react';
+import { Download, Trash2, HardDrive, Clock, Users, History, Building2, BookOpen, Images, Image, RefreshCw, Bell, Timer, FlaskConical, CheckCircle2, XCircle, Loader2, FileText, AlertTriangle, CloudCog, Signal } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -10,6 +10,9 @@ import { DownloadProgressCard } from '@/components/DownloadProgressCard';
 import { useOfflineDownload, DEFAULT_SECTIONS, DownloadSection } from '@/hooks/useOfflineDownload';
 import { useOfflineData } from '@/contexts/OfflineDataContext';
 import { useOfflineTest } from '@/hooks/useOfflineTest';
+import { useBackgroundSync } from '@/hooks/useBackgroundSync';
+import { useNetworkCondition, getNetworkQualityLabel, getNetworkQualityColor } from '@/hooks/useNetworkCondition';
+import { SyncStatusIndicator } from '@/components/SyncStatusIndicator';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -58,6 +61,8 @@ export default function AdminOfflineSettingsPage() {
   } = useOfflineData();
 
   const { runTest, isRunning: isTestRunning, result: testResult, getSwStatusLabel, getSwStatusColor } = useOfflineTest();
+  const { syncStatus, lastSyncTime, requestSync, isSupported: isBackgroundSyncSupported, getLastSyncFormatted: getBackgroundSyncFormatted } = useBackgroundSync();
+  const networkCondition = useNetworkCondition();
 
   const handleStartDownload = () => {
     startFullDownload();
@@ -112,11 +117,14 @@ export default function AdminOfflineSettingsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">تنظیمات آفلاین</h1>
-        <p className="text-muted-foreground">
-          ذخیره داده‌ها برای استفاده بدون اتصال به اینترنت
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">تنظیمات آفلاین</h1>
+          <p className="text-muted-foreground">
+            ذخیره داده‌ها برای استفاده بدون اتصال به اینترنت
+          </p>
+        </div>
+        <SyncStatusIndicator />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -401,6 +409,107 @@ export default function AdminOfflineSettingsPage() {
             <RefreshCw className={`h-4 w-4 ml-2 ${isSyncing ? 'animate-spin' : ''}`} />
             {isSyncing ? 'در حال به‌روزرسانی...' : 'به‌روزرسانی دستی'}
           </Button>
+        </div>
+      </GlassCard>
+
+      {/* Background Sync Section */}
+      <GlassCard className="p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <CloudCog className="h-6 w-6 text-primary" />
+          <h2 className="text-xl font-semibold">همگام‌سازی پس‌زمینه</h2>
+        </div>
+
+        <div className="space-y-4">
+          {/* Browser Support Status */}
+          <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50">
+            <div className="flex items-center gap-3">
+              <Signal className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <span className="font-medium">پشتیبانی مرورگر</span>
+                <p className="text-xs text-muted-foreground">
+                  قابلیت همگام‌سازی خودکار در پس‌زمینه
+                </p>
+              </div>
+            </div>
+            <span className={isBackgroundSyncSupported ? 'text-green-500 font-medium' : 'text-amber-500 font-medium'}>
+              {isBackgroundSyncSupported ? 'پشتیبانی می‌شود' : 'پشتیبانی نمی‌شود'}
+            </span>
+          </div>
+
+          {/* Network Condition */}
+          <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50">
+            <div className="flex items-center gap-3">
+              <Signal className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <span className="font-medium">وضعیت شبکه</span>
+                <p className="text-xs text-muted-foreground">
+                  کیفیت اتصال فعلی
+                </p>
+              </div>
+            </div>
+            <span className={`font-medium ${getNetworkQualityColor(networkCondition.type)}`}>
+              {getNetworkQualityLabel(networkCondition.type)}
+              {networkCondition.effectiveType && networkCondition.effectiveType !== 'none' && (
+                <span className="text-muted-foreground text-xs mr-2">
+                  ({networkCondition.effectiveType.toUpperCase()})
+                </span>
+              )}
+            </span>
+          </div>
+
+          {/* Last Background Sync */}
+          <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50">
+            <div className="flex items-center gap-3">
+              <Clock className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <span className="font-medium">آخرین همگام‌سازی پس‌زمینه</span>
+                <p className="text-xs text-muted-foreground">
+                  به‌روزرسانی خودکار توسط Service Worker
+                </p>
+              </div>
+            </div>
+            <span className="font-medium">
+              {getBackgroundSyncFormatted() || 'هنوز انجام نشده'}
+            </span>
+          </div>
+
+          {/* Sync Status */}
+          {syncStatus !== 'idle' && (
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-primary/10 border border-primary/30">
+              <RefreshCw className="h-5 w-5 text-primary animate-spin" />
+              <span className="font-medium text-primary">
+                {syncStatus === 'syncing' ? 'در حال همگام‌سازی...' : 'در انتظار همگام‌سازی...'}
+              </span>
+            </div>
+          )}
+
+          {/* Request Sync Button */}
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={async () => {
+              const success = await requestSync();
+              if (success) {
+                toast.info('درخواست همگام‌سازی ارسال شد', {
+                  description: 'داده‌ها در پس‌زمینه به‌روز می‌شوند',
+                });
+              } else {
+                toast.error('همگام‌سازی پس‌زمینه پشتیبانی نمی‌شود', {
+                  description: 'از دانلود دستی استفاده کنید',
+                });
+              }
+            }}
+            disabled={syncStatus !== 'idle' || !networkCondition.isOnline}
+          >
+            <CloudCog className={`h-4 w-4 ml-2 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
+            {syncStatus === 'idle' ? 'درخواست همگام‌سازی پس‌زمینه' : 'در حال همگام‌سازی...'}
+          </Button>
+
+          {!isBackgroundSyncSupported && (
+            <p className="text-xs text-muted-foreground text-center">
+              مرورگر شما از همگام‌سازی پس‌زمینه پشتیبانی نمی‌کند. از دانلود دستی استفاده کنید.
+            </p>
+          )}
         </div>
       </GlassCard>
 

@@ -1,8 +1,12 @@
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const STATIC_CACHE = `iran-wrestling-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `iran-wrestling-dynamic-${CACHE_VERSION}`;
 const API_CACHE = `iran-wrestling-api-${CACHE_VERSION}`;
 const IMAGE_CACHE = `iran-wrestling-images-${CACHE_VERSION}`;
+
+// Supabase configuration
+const SUPABASE_URL = 'https://etbekvhdroqiddcteqdq.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0YmVrdmhkcm9xaWRkY3RlcWRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNjU4MTUsImV4cCI6MjA4Mjk0MTgxNX0.cDiwofOdALtJ349janVwJtuItIRwvY3DC8ihO0rmlPU';
 
 const STATIC_ASSETS = [
   '/',
@@ -14,6 +18,20 @@ const STATIC_ASSETS = [
   '/fonts/Vazirmatn-Bold.woff2',
   '/fonts/Vazirmatn-Medium.woff2',
   '/fonts/Vazirmatn-Light.woff2',
+];
+
+// API endpoints to sync
+const SYNC_ENDPOINTS = [
+  'wrestlers?select=*&is_visible=eq.true',
+  'achievements?select=*',
+  'wrestler_media?select=*',
+  'history_sections?select=*',
+  'buildings?select=*',
+  'books?select=*',
+  'albums?select=*',
+  'album_photos?select=*',
+  'about_media?select=*',
+  'app_settings?select=*',
 ];
 
 // Maximum cache sizes
@@ -40,6 +58,14 @@ async function limitCacheSize(cacheName, maxSize) {
 // Helper: Check if response is cacheable
 function isCacheable(response) {
   return response && response.status === 200 && response.type !== 'opaque';
+}
+
+// Helper: Notify all clients
+async function notifyClients(message) {
+  const clients = await self.clients.matchAll();
+  clients.forEach(client => {
+    client.postMessage(message);
+  });
 }
 
 // Install event - cache static assets
@@ -82,10 +108,7 @@ self.addEventListener('activate', (event) => {
       );
       
       // Notify all clients about update
-      const clients = await self.clients.matchAll();
-      clients.forEach((client) => {
-        client.postMessage({ type: 'SW_UPDATED' });
-      });
+      await notifyClients({ type: 'SW_UPDATED' });
     })()
   );
   self.clients.claim();
@@ -342,16 +365,132 @@ self.addEventListener('message', (event) => {
       })()
     );
   }
-});
 
-// Background sync for offline actions
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-data') {
-    event.waitUntil(syncData());
+  // Trigger manual background sync
+  if (event.data?.type === 'TRIGGER_SYNC') {
+    event.waitUntil(syncMuseumData());
   }
 });
 
-async function syncData() {
-  // Implement background sync logic if needed
-  console.log('[SW] Background sync triggered');
+// Background Sync event handler
+self.addEventListener('sync', (event) => {
+  console.log('[SW] Sync event received:', event.tag);
+  
+  if (event.tag === 'sync-museum-data') {
+    event.waitUntil(syncMuseumData());
+  }
+  
+  if (event.tag === 'sync-images') {
+    event.waitUntil(syncImages());
+  }
+});
+
+// Periodic Background Sync event handler (for supported browsers)
+self.addEventListener('periodicsync', (event) => {
+  console.log('[SW] Periodic sync event received:', event.tag);
+  
+  if (event.tag === 'museum-data-sync') {
+    event.waitUntil(syncMuseumData());
+  }
+});
+
+// Sync all museum data from Supabase
+async function syncMuseumData() {
+  console.log('[SW] Background sync: Starting museum data sync');
+  
+  // Notify clients that sync started
+  await notifyClients({ type: 'SYNC_STARTED' });
+  
+  try {
+    const cache = await caches.open(API_CACHE);
+    let successCount = 0;
+    let totalEndpoints = SYNC_ENDPOINTS.length;
+    
+    for (const endpoint of SYNC_ENDPOINTS) {
+      const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
+      
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (response.ok) {
+          await cache.put(url, response.clone());
+          successCount++;
+          
+          // Notify progress
+          await notifyClients({ 
+            type: 'SYNC_PROGRESS', 
+            progress: Math.round((successCount / totalEndpoints) * 100),
+            endpoint: endpoint.split('?')[0],
+          });
+        }
+      } catch (err) {
+        console.log(`[SW] Failed to sync ${endpoint}:`, err);
+      }
+    }
+    
+    console.log(`[SW] Background sync complete: ${successCount}/${totalEndpoints} endpoints synced`);
+    
+    // Notify clients that sync is complete
+    await notifyClients({ 
+      type: 'BACKGROUND_SYNC_COMPLETE',
+      timestamp: Date.now(),
+      successCount,
+      totalEndpoints,
+    });
+    
+  } catch (error) {
+    console.error('[SW] Background sync failed:', error);
+    await notifyClients({ type: 'SYNC_ERROR', error: error.message });
+  }
+}
+
+// Sync images from cached data
+async function syncImages() {
+  console.log('[SW] Background sync: Starting image sync');
+  
+  try {
+    const apiCache = await caches.open(API_CACHE);
+    const imageCache = await caches.open(IMAGE_CACHE);
+    
+    // Get cached wrestler data
+    const wrestlersRequest = new Request(`${SUPABASE_URL}/rest/v1/wrestlers?select=*&is_visible=eq.true`);
+    const wrestlersResponse = await apiCache.match(wrestlersRequest);
+    
+    if (wrestlersResponse) {
+      const wrestlers = await wrestlersResponse.json();
+      const imageUrls = wrestlers
+        .filter(w => w.image_url)
+        .map(w => w.image_url);
+      
+      // Cache images in parallel (batch of 5)
+      for (let i = 0; i < imageUrls.length; i += 5) {
+        const batch = imageUrls.slice(i, i + 5);
+        await Promise.all(
+          batch.map(async (url) => {
+            try {
+              const exists = await imageCache.match(url);
+              if (!exists) {
+                const response = await fetch(url);
+                if (response.ok) {
+                  await imageCache.put(url, response);
+                }
+              }
+            } catch (e) {
+              // Ignore individual image failures
+            }
+          })
+        );
+      }
+    }
+    
+    console.log('[SW] Image sync complete');
+  } catch (error) {
+    console.error('[SW] Image sync failed:', error);
+  }
 }

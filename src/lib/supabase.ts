@@ -52,3 +52,63 @@ export const testConnection = async (): Promise<boolean> => {
     return false;
   }
 };
+
+// Fetch with retry and exponential backoff
+export async function fetchWithRetry<T>(
+  fetchFn: () => Promise<T>,
+  maxRetries = 3,
+  baseDelay = 1000
+): Promise<T> {
+  let lastError: Error | null = null;
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fetchFn();
+    } catch (error) {
+      lastError = error as Error;
+      
+      // Don't retry on the last attempt
+      if (i < maxRetries - 1) {
+        // Exponential backoff with jitter
+        const delay = baseDelay * Math.pow(2, i) + Math.random() * 500;
+        console.log(`[Supabase] Retry ${i + 1}/${maxRetries} after ${Math.round(delay)}ms`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  throw lastError;
+}
+
+// Health check endpoint
+export async function healthCheck(): Promise<{
+  status: 'healthy' | 'degraded' | 'offline';
+  latency: number;
+}> {
+  const start = Date.now();
+  
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    
+    const { error } = await supabase
+      .from('app_settings')
+      .select('id')
+      .limit(1)
+      .abortSignal(controller.signal);
+    
+    clearTimeout(timeout);
+    const latency = Date.now() - start;
+    
+    if (error) {
+      return { status: 'degraded', latency };
+    }
+    
+    return {
+      status: latency < 2000 ? 'healthy' : 'degraded',
+      latency
+    };
+  } catch {
+    return { status: 'offline', latency: 0 };
+  }
+}
