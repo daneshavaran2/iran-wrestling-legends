@@ -3,10 +3,18 @@ import { Upload, X, Image as ImageIcon, Film, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GoldButton } from './ui/GoldButton';
 
+interface UploadProgressItem {
+  fileName: string;
+  progress: number;
+  status?: 'compressing' | 'uploading' | 'complete';
+  originalSize?: number;
+  compressedSize?: number;
+}
+
 interface UploadDropzoneProps {
   onFilesSelected: (files: File[]) => void;
   isUploading?: boolean;
-  uploadProgress?: { fileName: string; progress: number }[];
+  uploadProgress?: UploadProgressItem[];
   accept?: string;
   minSizeMB?: number;
   maxSizeMB?: number;
@@ -173,21 +181,50 @@ export function UploadDropzone({
         )}
       </label>
 
-      {/* Upload Progress */}
+      {/* Upload Progress with Compression Info */}
       {uploadProgress.length > 0 && (
         <div className="space-y-2">
           {uploadProgress.map((item, index) => (
             <div key={index} className="glass-card p-3">
               <div className="flex items-center justify-between text-sm mb-2">
-                <span className="truncate">{item.fileName}</span>
-                <span className="text-primary">{item.progress}%</span>
+                <span className="truncate max-w-[50%]">{item.fileName}</span>
+                <div className="flex items-center gap-2">
+                  {item.status === 'compressing' && (
+                    <span className="text-yellow-500 text-xs flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      فشرده‌سازی...
+                    </span>
+                  )}
+                  {item.status === 'uploading' && (
+                    <span className="text-blue-500 text-xs">آپلود...</span>
+                  )}
+                  {item.status === 'complete' && item.compressedSize && item.originalSize && (
+                    <span className="text-green-500 text-xs">
+                      ✓ {Math.round((1 - item.compressedSize / item.originalSize) * 100)}% کاهش
+                    </span>
+                  )}
+                  <span className="text-primary font-medium">{item.progress}%</span>
+                </div>
               </div>
               <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-primary rounded-full transition-all duration-300"
+                  className={cn(
+                    "h-full rounded-full transition-all duration-300",
+                    item.status === 'compressing' 
+                      ? 'bg-yellow-500' 
+                      : item.status === 'complete' 
+                        ? 'bg-green-500' 
+                        : 'bg-primary'
+                  )}
                   style={{ width: `${item.progress}%` }}
                 />
               </div>
+              {/* نمایش جزئیات حجم */}
+              {item.originalSize && item.compressedSize && item.status === 'complete' && (
+                <div className="text-xs text-muted-foreground mt-1 text-left">
+                  {(item.originalSize / 1024).toFixed(0)}KB → {(item.compressedSize / 1024).toFixed(0)}KB
+                </div>
+              )}
             </div>
           ))}
         </div>

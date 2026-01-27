@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { LazyImage } from '@/components/ui/LazyImage';
 import { Wrestler, wrestlingStyles } from '@/data/wrestlers';
+import { getThumbnailUrl, getTinyThumbnailUrl } from '@/utils/imageOptimizer';
 
 interface WrestlerCardProps {
   wrestler: Wrestler;
@@ -20,7 +21,8 @@ export function WrestlerCard({ wrestler, className }: WrestlerCardProps) {
       >
         <div className="relative overflow-hidden rounded-2xl mb-4 2xl:mb-6 aspect-[3/4]">
           <LazyImage
-            src={wrestler.image_url || undefined}
+            src={getThumbnailUrl(wrestler.image_url)}
+            thumbnailSrc={getTinyThumbnailUrl(wrestler.image_url)}
             alt={wrestler.name}
             className="w-full h-full transition-transform duration-500 group-hover:scale-110"
           />
