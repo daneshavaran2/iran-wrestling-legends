@@ -1,6 +1,8 @@
 /**
- * Keyboard layout types for virtual keyboard
+ * Virtual keyboard layout types for kiosk mode
+ * Supports: Persian, English, Arabic, and Numbers
  */
+
 export const keyboardLayouts = [
   'persian',
   'english',
@@ -8,4 +10,4 @@ export const keyboardLayouts = [
   'numbers',
 ] as const;
 
-export type KeyboardLayout = (typeof keyboardLayouts)[number];
+export type KeyboardLayout = typeof keyboardLayouts[number];
