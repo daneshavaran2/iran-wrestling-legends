@@ -16,6 +16,7 @@ import { OfflineIndicator } from "@/components/OfflineIndicator";
 import AdminLayout from "@/components/AdminLayout";
 import { BackgroundMusicPlayer } from "@/components/BackgroundMusicPlayer";
 import InstallPrompt from "@/components/InstallPrompt";
+import { VirtualKeyboardProvider } from "@/components/VirtualKeyboardProvider";
 
 // Prefetch critical routes after initial load for 10x faster navigation
 const prefetchRoutes = () => {
@@ -86,6 +87,7 @@ const App = () => {
             <AuthProvider>
               <OfflineDataProvider>
               <WrestlerProvider>
+              <VirtualKeyboardProvider>
               <Toaster />
               <Sonner />
               <BrowserRouter>
@@ -224,6 +226,7 @@ const App = () => {
                 </PageTransition>
               </Suspense>
               </BrowserRouter>
+              </VirtualKeyboardProvider>
               </WrestlerProvider>
               </OfflineDataProvider>
             </AuthProvider>
