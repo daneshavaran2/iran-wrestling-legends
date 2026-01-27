@@ -1,15 +1,17 @@
-# ساخت فایل EXE برای ویندوز با Tauri
+# ساخت فایل EXE برای ویندوز با Electron
 
 این راهنما نحوه تبدیل اپلیکیشن وب موزه کشتی ایران به یک برنامه دسکتاپ ویندوز (فایل EXE) را توضیح می‌دهد.
 
-## مزایای Tauri نسبت به Electron
+---
 
-| ویژگی | Tauri | Electron |
-|-------|-------|----------|
-| حجم فایل | ~10-20 MB | ~150+ MB |
-| مصرف حافظه | کم | زیاد |
-| سرعت | بسیار سریع | متوسط |
-| امنیت | بالا | متوسط |
+## 📋 فهرست مطالب
+
+- [پیش‌نیازها](#پیش‌نیازها)
+- [مراحل ساخت با Electron](#مراحل-ساخت-با-electron)
+- [ساختار فایل‌ها](#ساختار-فایل‌ها)
+- [دستورات Build](#دستورات-build)
+- [رفع مشکلات](#رفع-مشکلات)
+- [تنظیمات پیشرفته](#تنظیمات-پیشرفته)
 
 ---
 
@@ -19,17 +21,13 @@
 - دانلود از: https://nodejs.org
 - نسخه ۱۸ یا بالاتر
 
-### ۲. نصب Rust
-- دانلود از: https://rustup.rs
-- پس از نصب، ترمینال را ببندید و دوباره باز کنید
-
-### ۳. نصب Visual Studio Build Tools (ویندوز)
-- دانلود از: https://visualstudio.microsoft.com/visual-cpp-build-tools/
-- در نصب، گزینه "Desktop development with C++" را انتخاب کنید
+### ۲. سیستم‌عامل
+- ویندوز ۱۰ یا ۱۱ (۶۴ بیتی)
+- حداقل ۸ گیگابایت RAM (پیشنهادی ۱۶GB)
 
 ---
 
-## مراحل ساخت
+## مراحل ساخت با Electron
 
 ### مرحله ۱: انتقال پروژه به GitHub
 
@@ -50,167 +48,203 @@ cd YOUR_REPO
 npm install
 ```
 
-### مرحله ۴: نصب Tauri CLI
+### مرحله ۴: نصب Electron Dependencies
 
 ```bash
-npm install -D @tauri-apps/cli@latest @tauri-apps/api@latest
+npm install --save-dev electron@^28.0.0 electron-builder@^24.9.0 concurrently@^8.2.0 wait-on@^7.2.0
 ```
 
-### مرحله ۵: راه‌اندازی Tauri
+### مرحله ۵: اضافه کردن اسکریپت‌ها به package.json
 
-```bash
-npx tauri init
-```
-
-در پاسخ به سوالات:
-- **App name:** `موزه کشتی ایران`
-- **Window title:** `موزه افتخارات کشتی ایران`
-- **Frontend dev URL:** `http://localhost:8080`
-- **Frontend dist:** `../dist`
-- **Dev command:** `npm run dev`
-- **Build command:** `npm run build`
-
-### مرحله ۶: تنظیمات Tauri
-
-فایل `src-tauri/tauri.conf.json` را ویرایش کنید:
+در فایل `package.json` این خطوط را اضافه کنید:
 
 ```json
 {
-  "build": {
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build",
-    "devUrl": "http://localhost:8080",
-    "frontendDist": "../dist"
-  },
-  "bundle": {
-    "active": true,
-    "targets": ["nsis", "msi"],
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/icon.ico"],
-    "identifier": "ir.wrestling-museum.app",
-    "windows": {
-      "wix": {
-        "language": ["fa-IR", "en-US"]
-      }
-    }
-  },
-  "app": {
-    "windows": [
-      {
-        "title": "موزه افتخارات کشتی ایران",
-        "width": 1280,
-        "height": 800,
-        "resizable": true,
-        "fullscreen": false,
-        "center": true
-      }
-    ]
+  "main": "electron/main.js",
+  "scripts": {
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:8080 && electron .\"",
+    "build-electron": "npm run build && electron-builder --win",
+    "build-portable": "npm run build && electron-builder --win portable",
+    "build-installer": "npm run build && electron-builder --win nsis"
   }
 }
 ```
 
-### مرحله ۷: اضافه کردن آیکون
-
-1. آیکون‌های مورد نیاز را در `src-tauri/icons/` قرار دهید:
-   - `icon.ico` (برای ویندوز)
-   - `32x32.png`
-   - `128x128.png`
-   - `128x128@2x.png`
-
-2. یا از ابزار Tauri برای تولید آیکون استفاده کنید:
-```bash
-npx tauri icon path/to/your/icon.png
-```
-
-### مرحله ۸: ساخت فایل EXE
+### مرحله ۶: ساخت فایل EXE
 
 ```bash
-npm run tauri build
+# ساخت هر دو نسخه (Installer + Portable)
+npm run build-electron
+
+# فقط نسخه Portable
+npm run build-portable
+
+# فقط نسخه Installer (NSIS)
+npm run build-installer
 ```
 
-### مرحله ۹: یافتن فایل خروجی
+### مرحله ۷: یافتن فایل خروجی
 
-پس از اتمام build، فایل‌های نصب در این مسیر قرار می‌گیرند:
+پس از اتمام build، فایل‌ها در پوشه `release/` قرار می‌گیرند:
 
 ```
-src-tauri/target/release/bundle/
-├── nsis/
-│   └── موزه کشتی ایران_x.x.x_x64-setup.exe  # نصب‌کننده NSIS
-└── msi/
-    └── موزه کشتی ایران_x.x.x_x64.msi        # نصب‌کننده MSI
+release/
+├── موزه کشتی ایران-1.0.0-x64.exe    # نصب‌کننده NSIS
+├── موزه کشتی ایران-Portable-1.0.0.exe  # نسخه Portable
+└── win-unpacked/                      # پوشه unpacked
 ```
 
 ---
 
-## اجرای حالت توسعه
+## ساختار فایل‌ها
 
-برای تست برنامه قبل از build:
+پروژه شامل فایل‌های Electron زیر است:
 
-```bash
-npm run tauri dev
+```
+project/
+├── electron/
+│   ├── main.js          # فایل اصلی Electron
+│   └── preload.js       # Bridge امن
+├── electron-builder.config.json  # تنظیمات ساخت
+├── public/
+│   ├── favicon.png      # آیکون اصلی
+│   ├── favicon.ico      # آیکون ICO
+│   └── app-icon.png     # آیکون ۵۱۲×۵۱۲
+└── KIOSK_README.md      # راهنمای مشتری
 ```
 
 ---
 
-## رفع مشکلات رایج
+## دستورات Build
 
-### خطای WebView2
-اگر خطای WebView2 دریافت کردید:
-- WebView2 Runtime را از سایت مایکروسافت دانلود و نصب کنید
-- یا در `tauri.conf.json` گزینه `embedWebview2` را `true` کنید
+| دستور | توضیحات |
+|-------|---------|
+| `npm run dev` | اجرای وب در حالت توسعه |
+| `npm run electron:dev` | اجرای Electron در حالت توسعه |
+| `npm run build-electron` | ساخت هر دو نوع EXE |
+| `npm run build-portable` | ساخت فقط Portable EXE |
+| `npm run build-installer` | ساخت فقط NSIS Installer |
 
-### خطای Rust
+---
+
+## رفع مشکلات
+
+### خطای node-gyp
+
 ```bash
-rustup update
+npm install -g node-gyp
+npm rebuild
 ```
 
-### خطای Build
+### خطای Electron download
+
 ```bash
-npm run build
-npx tauri build --verbose
+# پاک کردن cache
+npm cache clean --force
+rmdir /s /q node_modules\.cache
+
+# نصب مجدد
+npm install
 ```
+
+### خطای Build در ویندوز
+
+1. Visual Studio Build Tools را نصب کنید
+2. PowerShell را به عنوان Admin اجرا کنید:
+```powershell
+Set-ExecutionPolicy RemoteSigned
+```
+
+### فایل EXE باز نمی‌شود
+
+- مطمئن شوید WebView2 Runtime نصب است
+- آنتی‌ویروس را موقتاً غیرفعال کنید
 
 ---
 
 ## تنظیمات پیشرفته
 
+### تغییر آیکون
+
+1. یک فایل PNG با ابعاد ۵۱۲×۵۱۲ آماده کنید
+2. با ابزار آنلاین به ICO تبدیل کنید (https://icoconvert.com)
+3. فایل را در `public/favicon.ico` قرار دهید
+
+### غیرفعال کردن DevTools
+
+در `electron/main.js`:
+```javascript
+// خط زیر را حذف یا کامنت کنید:
+// mainWindow.webContents.openDevTools();
+```
+
+### تغییر میانبر خروج
+
+در `electron/main.js`:
+```javascript
+// میانبر فعلی: Ctrl+Shift+Q
+globalShortcut.register('CommandOrControl+Shift+Q', () => {
+  app.quit();
+});
+
+// تغییر به میانبر دیگر:
+globalShortcut.register('CommandOrControl+Alt+X', () => {
+  app.quit();
+});
+```
+
 ### فعال کردن Auto-Update
 
-در `tauri.conf.json`:
-
-```json
-{
-  "plugins": {
-    "updater": {
-      "active": true,
-      "endpoints": ["https://your-update-server.com/check"],
-      "pubkey": "YOUR_PUBLIC_KEY"
-    }
-  }
-}
+```bash
+npm install electron-updater
 ```
 
-### غیرفعال کردن DevTools در Production
+در `electron/main.js`:
+```javascript
+const { autoUpdater } = require('electron-updater');
 
-در `tauri.conf.json`:
-
-```json
-{
-  "app": {
-    "withDevtools": false
-  }
-}
+app.whenReady().then(() => {
+  autoUpdater.checkForUpdatesAndNotify();
+});
 ```
+
+---
+
+## بسته تحویل به مشتری
+
+پس از build، این فایل‌ها را زیپ کنید:
+
+```
+📦 تحویل_موزه_کشتی.zip
+├── موزه کشتی ایران-Setup.exe   # نصب‌کننده
+├── موزه کشتی ایران-Portable.exe  # Portable
+└── راهنما.txt                    # کپی از KIOSK_README.md
+```
+
+---
+
+## Tauri (جایگزین)
+
+اگر نیاز به حجم کمتر دارید، می‌توانید از Tauri استفاده کنید:
+
+| ویژگی | Electron | Tauri |
+|-------|----------|-------|
+| حجم فایل | ~150 MB | ~10-20 MB |
+| مصرف RAM | زیاد | کم |
+| سازگاری | بالا | متوسط |
+| پیچیدگی | کم | متوسط |
+
+برای Tauri، نیاز به نصب Rust دارید. راهنمای کامل در مستندات Tauri موجود است.
 
 ---
 
 ## منابع
 
-- [مستندات Tauri](https://tauri.app/v1/guides/)
-- [راهنمای Windows Bundle](https://tauri.app/v1/guides/building/windows)
-- [Tauri GitHub](https://github.com/tauri-apps/tauri)
+- [مستندات Electron](https://electronjs.org/docs)
+- [electron-builder](https://www.electron.build/)
+- [electron-updater](https://www.electron.build/auto-update)
 
 ---
 
-## نیاز به کمک؟
-
-اگر در هر مرحله با مشکل مواجه شدید، می‌توانید از طریق GitHub Issues پروژه سوال خود را مطرح کنید.
+**نسخه:** 1.0.0  
+**تاریخ:** بهمن ۱۴۰۴
