@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { convertToWebP, compressImage } from '@/utils/imageCompressor';
+import { optimizeImage } from '@/utils/imageCompressor';
 
 interface UploadProgress {
   fileName: string;
   progress: number;
-  status?: 'processing' | 'uploading' | 'complete';
+  status?: 'compressing' | 'uploading' | 'complete';
+  originalSize?: number;
+  compressedSize?: number;
 }
 
 export function useMediaUpload() {
@@ -18,50 +20,76 @@ export function useMediaUpload() {
     setError(null);
 
     try {
-      // نمایش وضعیت پردازش
-      setUploadProgress(prev => [...prev, { fileName: file.name, progress: 0, status: 'processing' }]);
-
-      // مرحله ۱: تبدیل BMP به WebP
-      let processedFile = await convertToWebP(file);
+      const originalSize = file.size;
       
-      // مرحله ۲: فشرده‌سازی تصویر
-      processedFile = await compressImage(processedFile);
+      // نمایش وضعیت فشرده‌سازی
+      setUploadProgress(prev => [...prev, { 
+        fileName: file.name, 
+        progress: 0, 
+        status: 'compressing',
+        originalSize 
+      }]);
+
+      // فشرده‌سازی و بهینه‌سازی تصویر (تبدیل به WebP با کاهش حجم)
+      const processedFile = await optimizeImage(file, {
+        maxWidth: 1920,
+        maxHeight: 1080,
+        quality: 0.82,
+        outputFormat: 'webp'
+      });
+      
+      const compressedSize = processedFile.size;
+      const compressionRatio = originalSize > 0 ? Math.round((1 - compressedSize / originalSize) * 100) : 0;
 
       // بروزرسانی وضعیت به آپلود
       setUploadProgress(prev => 
-        prev.map(p => p.fileName === file.name ? { ...p, progress: 10, status: 'uploading' } : p)
+        prev.map(p => p.fileName === file.name ? { 
+          ...p, 
+          progress: 30, 
+          status: 'uploading',
+          compressedSize 
+        } : p)
       );
 
       const fileExt = processedFile.name.split('.').pop();
       const fileName = `${folderId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
+      // ✅ آپلود فایل فشرده شده (نه فایل اصلی!)
       const { data, error: uploadError } = await supabase.storage
         .from(bucket)
-        .upload(fileName, file, {
-          cacheControl: '3600',
+        .upload(fileName, processedFile, {
+          cacheControl: '31536000', // 1 year cache
           upsert: false,
         });
 
       if (uploadError) throw uploadError;
 
       setUploadProgress(prev => 
-        prev.map(p => p.fileName === file.name ? { ...p, progress: 100 } : p)
+        prev.map(p => p.fileName === file.name ? { 
+          ...p, 
+          progress: 100, 
+          status: 'complete' 
+        } : p)
       );
+
+      // نمایش نتیجه در کنسول
+      console.log(`✅ آپلود موفق: ${file.name} | کاهش ${compressionRatio}% (${(originalSize / 1024).toFixed(0)}KB → ${(compressedSize / 1024).toFixed(0)}KB)`);
 
       const { data: urlData } = supabase.storage
         .from(bucket)
         .getPublicUrl(data.path);
 
       return urlData.publicUrl;
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'خطا در آپلود فایل';
       console.error('Upload error:', err);
-      setError(err.message || 'خطا در آپلود فایل');
+      setError(errorMessage);
       throw err;
     } finally {
       setIsUploading(false);
       setTimeout(() => {
         setUploadProgress([]);
-      }, 2000);
+      }, 3000);
     }
   };
 

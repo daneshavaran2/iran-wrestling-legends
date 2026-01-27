@@ -1,10 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
 interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   fallback?: string;
   /** Low-res thumbnail for progressive loading */
   thumbnailSrc?: string;
+  /** Maximum retry attempts on error */
+  maxRetries?: number;
 }
 
 export function LazyImage({ 
@@ -13,12 +15,15 @@ export function LazyImage({
   className, 
   fallback = '/placeholder.svg',
   thumbnailSrc,
+  maxRetries = 2,
   ...props 
 }: LazyImageProps) {
   const [isInView, setIsInView] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [currentSrc, setCurrentSrc] = useState(src);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,7 +44,34 @@ export function LazyImage({
     return () => observer.disconnect();
   }, []);
 
-  const imageSrc = hasError ? fallback : (src || fallback);
+  // Reset state when src changes
+  useEffect(() => {
+    setCurrentSrc(src);
+    setIsLoaded(false);
+    setThumbnailLoaded(false);
+    setHasError(false);
+    setRetryCount(0);
+  }, [src]);
+
+  const handleError = useCallback(() => {
+    if (retryCount < maxRetries && currentSrc && currentSrc !== fallback) {
+      // Retry with cache-busting parameter
+      setRetryCount(prev => prev + 1);
+      setIsLoaded(false);
+      
+      const retryDelay = 500 * (retryCount + 1);
+      setTimeout(() => {
+        const separator = currentSrc.includes('?') ? '&' : '?';
+        setCurrentSrc(`${src}${separator}retry=${retryCount + 1}&t=${Date.now()}`);
+      }, retryDelay);
+    } else {
+      // Use fallback after max retries
+      setHasError(true);
+      setIsLoaded(true);
+    }
+  }, [retryCount, maxRetries, currentSrc, src, fallback]);
+
+  const imageSrc = hasError ? fallback : (currentSrc || fallback);
 
   return (
     <div ref={containerRef} className={cn('relative overflow-hidden', className)}>
@@ -74,10 +106,7 @@ export function LazyImage({
               isLoaded ? 'opacity-100' : 'opacity-0'
             )}
             onLoad={() => setIsLoaded(true)}
-            onError={() => {
-              setHasError(true);
-              setIsLoaded(true);
-            }}
+            onError={handleError}
             loading="lazy"
             decoding="async"
             {...props}
