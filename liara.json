@@ -1,0 +1,9 @@
+{
+  "app": "koshtyiran",
+  "port": 80,
+  "team-id": "687f2bfec24fa7e8e27436cb",
+  "build": {
+    "location": "iran"
+  },
+  "disks": []
+}
