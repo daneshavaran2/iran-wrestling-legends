@@ -1,10 +1,10 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import VirtualKeyboard from './VirtualKeyboard';
+import VirtualKeyboard, { type KeyboardLayout } from './VirtualKeyboard';
 import { useVirtualKeyboard } from '@/hooks/useVirtualKeyboard';
 
 interface VirtualKeyboardContextType {
   isOpen: boolean;
-  layout: 'persian' | 'english' | 'numbers';
+  layout: KeyboardLayout;
   closeKeyboard: () => void;
 }
 

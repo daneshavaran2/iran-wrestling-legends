@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage, type Language } from '@/contexts/LanguageContext';
 
 export interface Message {
   role: 'user' | 'assistant';
@@ -17,8 +17,28 @@ interface UseChatAssistantReturn {
   stopStreaming: () => void;
 }
 
+/**
+ * Detect language from user input text
+ * Persian-specific chars: پ چ ژ گ ک
+ * Arabic range: \u0600-\u06FF (includes Persian)
+ */
+function detectLanguage(text: string): Language {
+  // Persian-specific characters (not in standard Arabic)
+  const persianSpecific = /[پچژگک]/;
+  // General Arabic/Persian range
+  const arabicRange = /[\u0600-\u06FF]/;
+  
+  if (persianSpecific.test(text)) {
+    return 'fa';
+  }
+  if (arabicRange.test(text)) {
+    return 'ar';
+  }
+  return 'en';
+}
+
 export const useChatAssistant = (): UseChatAssistantReturn => {
-  const { language, t } = useLanguage();
+  const { t } = useLanguage();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +60,9 @@ export const useChatAssistant = (): UseChatAssistantReturn => {
       content: content.trim(),
       timestamp: new Date(),
     };
+
+    // Detect language from user's message
+    const detectedLanguage = detectLanguage(content.trim());
 
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
@@ -63,7 +86,7 @@ export const useChatAssistant = (): UseChatAssistantReturn => {
             role: m.role,
             content: m.content,
           })),
-          language,
+          language: detectedLanguage, // Use detected language instead of system language
           stream: true,
         }),
         signal: abortControllerRef.current.signal,
@@ -186,7 +209,7 @@ export const useChatAssistant = (): UseChatAssistantReturn => {
       setIsLoading(false);
       abortControllerRef.current = null;
     }
-  }, [messages, language, t]);
+  }, [messages, t]);
 
   const clearHistory = useCallback(() => {
     stopStreaming();

@@ -1,9 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import type { KeyboardLayout } from '@/components/VirtualKeyboard';
 
 interface VirtualKeyboardState {
   isOpen: boolean;
   targetInput: HTMLInputElement | HTMLTextAreaElement | null;
-  layout: 'persian' | 'english' | 'numbers';
+  layout: KeyboardLayout;
 }
 
 export function useVirtualKeyboard() {
@@ -161,7 +162,7 @@ export function useVirtualKeyboard() {
     });
   }, [state.targetInput]);
 
-  const setLayout = useCallback((layout: 'persian' | 'english' | 'numbers') => {
+  const setLayout = useCallback((layout: KeyboardLayout) => {
     setState(prev => ({ ...prev, layout }));
   }, []);
 
