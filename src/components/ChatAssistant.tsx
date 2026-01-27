@@ -191,6 +191,9 @@ const ChatAssistantInner = forwardRef<HTMLDivElement, Record<string, never>>((_p
                 placeholder={t('assistant.placeholder')}
                 className="flex-1 bg-muted/30 border-gold/20 focus:border-gold/50"
                 disabled={isLoading}
+                autoComplete="off"
+                autoCorrect="off"
+                inputMode="text"
               />
               <Button
                 onClick={handleSend}

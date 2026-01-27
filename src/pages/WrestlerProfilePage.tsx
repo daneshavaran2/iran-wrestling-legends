@@ -61,11 +61,21 @@ function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }
   const [isMuted, setIsMuted] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   const { t } = useLanguage();
 
+  // Handle retry
+  const handleRetry = () => {
+    setHasError(false);
+    setRetryCount(prev => prev + 1);
+  };
+
   // Handle video ready and autoplay
   useEffect(() => {
+    // Skip if no valid src
+    if (!src || src.trim() === '') return;
+    
     const video = videoRef.current;
     if (!video) return;
 
@@ -92,10 +102,13 @@ function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
     };
-  }, []);
+  }, [src, retryCount]);
 
   // Pause on scroll out of view
   useEffect(() => {
+    // Skip if no valid src
+    if (!src || src.trim() === '') return;
+    
     const video = videoRef.current;
     if (!video) return;
 
@@ -109,7 +122,17 @@ function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }
 
     window.addEventListener('scroll', handleScroll, true);
     return () => window.removeEventListener('scroll', handleScroll, true);
-  }, []);
+  }, [src]);
+
+  // Early check for empty URL (after hooks)
+  if (!src || src.trim() === '') {
+    return (
+      <ProfileEmptyState
+        icon={<Play className="h-16 w-16" />}
+        title={t('profile.empty.noIntro')}
+      />
+    );
+  }
 
   const togglePlay = () => {
     const video = videoRef.current;
@@ -138,16 +161,21 @@ function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }
 
   if (hasError) {
     return (
-      <ProfileEmptyState
-        icon={<AlertCircle className="h-16 w-16 text-destructive" />}
-        title="خطا در بارگذاری ویدیو"
-        description="فرمت ویدیو پشتیبانی نمی‌شود یا فایل در دسترس نیست"
-      />
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="glass-card p-8 flex flex-col items-center gap-4 animate-fade-in">
+          <AlertCircle className="h-16 w-16 text-destructive" />
+          <h3 className="text-xl font-bold">خطا در بارگذاری ویدیو</h3>
+          <p className="text-muted-foreground max-w-md">فرمت‌های پشتیبانی‌شده: MP4، WebM</p>
+          <GoldButton onClick={handleRetry} variant="outline" className="mt-4">
+            تلاش مجدد
+          </GoldButton>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="relative rounded-3xl overflow-hidden group cyber-glass cyber-hud">
+    <div key={retryCount} className="relative rounded-3xl overflow-hidden group cyber-glass cyber-hud">
       {/* Loading Spinner */}
       {!isReady && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
