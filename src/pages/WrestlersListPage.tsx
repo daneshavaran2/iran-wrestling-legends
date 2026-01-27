@@ -17,8 +17,10 @@ export default function WrestlersListPage() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   
-  const { getVisibleWrestlers, isLoading, error } = useWrestlers();
-  const visibleWrestlers = getVisibleWrestlers();
+  const { wrestlers, getVisibleWrestlers, isLoading, error } = useWrestlers();
+  
+  // Use useMemo with wrestlers dependency to re-calculate after fetch completes
+  const visibleWrestlers = useMemo(() => getVisibleWrestlers(), [wrestlers]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStyle, setSelectedStyle] = useState<'all' | 'freestyle' | 'greco-roman'>('all');
   const [selectedProvince, setSelectedProvince] = useState<string>('all');

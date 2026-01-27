@@ -1,11 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, forwardRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight, Trophy, Image as ImageIcon, BookOpen, X, Play, Pause, Volume2, VolumeX, Heart, TrendingUp } from 'lucide-react';
+import { ArrowRight, Trophy, Image as ImageIcon, BookOpen, X, Play, Pause, Volume2, VolumeX, Heart, TrendingUp, Loader2, AlertCircle } from 'lucide-react';
 import sampleWrestlerImage from '@/assets/sample-wrestler.jpg';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { SkeletonProfile } from '@/components/ui/skeleton-cards';
-import { EmptyState, ErrorState } from '@/components/ui/StateComponents';
 import { MediaGallery } from '@/components/MediaGallery';
 import { SparkParticles } from '@/components/ui/SparkParticles';
 import { TranslatedContent } from '@/components/TranslatedContent';
@@ -23,23 +22,88 @@ const medalEmojis = {
 
 type TabType = 'intro' | 'bio' | 'success' | 'achievements' | 'social' | 'media';
 
-// Intro Video Component with autoplay muted and tap-to-play sound
+// Empty State Component (inline to avoid ref issues)
+const ProfileEmptyState = forwardRef<HTMLDivElement, { icon: React.ReactNode; title: string; description?: string }>(
+  ({ icon, title, description }, ref) => (
+    <div ref={ref} className="flex flex-col items-center justify-center py-16 text-center">
+      <div className="glass-card p-8 flex flex-col items-center gap-4 animate-fade-in">
+        <div className="text-muted-foreground">{icon}</div>
+        <h3 className="text-xl font-bold">{title}</h3>
+        {description && <p className="text-muted-foreground max-w-md">{description}</p>}
+      </div>
+    </div>
+  )
+);
+ProfileEmptyState.displayName = 'ProfileEmptyState';
+
+// Error State Component (inline to avoid ref issues)
+const ProfileErrorState = forwardRef<HTMLDivElement, { message: string; onRetry?: () => void }>(
+  ({ message, onRetry }, ref) => (
+    <div ref={ref} className="flex flex-col items-center justify-center py-16 text-center">
+      <div className="glass-card p-8 flex flex-col items-center gap-4">
+        <AlertCircle className="h-16 w-16 text-destructive animate-scale-in" />
+        <p className="text-lg text-muted-foreground">{message}</p>
+        {onRetry && (
+          <GoldButton onClick={onRetry} variant="outline" className="mt-4">
+            تلاش مجدد
+          </GoldButton>
+        )}
+      </div>
+    </div>
+  )
+);
+ProfileErrorState.displayName = 'ProfileErrorState';
+
+// Intro Video Component with improved autoplay handling and error states
 function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
+  const { t } = useLanguage();
+
+  // Handle video ready and autoplay
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    // Pause on scroll
+    const handleCanPlay = () => {
+      setIsReady(true);
+      // Try to autoplay (will work if muted)
+      video.play()
+        .then(() => setIsPlaying(true))
+        .catch(() => {
+          // Autoplay blocked, user needs to tap
+          setIsPlaying(false);
+        });
+    };
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+
+    return () => {
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+    };
+  }, []);
+
+  // Pause on scroll out of view
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
     const handleScroll = () => {
       const rect = video.getBoundingClientRect();
       const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
       if (!isVisible && !video.paused) {
         video.pause();
-        setIsPlaying(false);
       }
     };
 
@@ -52,11 +116,9 @@ function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }
     if (!video) return;
     
     if (video.paused) {
-      video.play();
-      setIsPlaying(true);
+      video.play().catch(() => {});
     } else {
       video.pause();
-      setIsPlaying(false);
     }
   };
 
@@ -69,23 +131,59 @@ function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }
     setIsMuted(video.muted);
   };
 
-  const { t } = useLanguage();
+  const handleError = () => {
+    setHasError(true);
+    console.error('Error loading video:', src);
+  };
+
+  if (hasError) {
+    return (
+      <ProfileEmptyState
+        icon={<AlertCircle className="h-16 w-16 text-destructive" />}
+        title="خطا در بارگذاری ویدیو"
+        description="فرمت ویدیو پشتیبانی نمی‌شود یا فایل در دسترس نیست"
+      />
+    );
+  }
 
   return (
     <div className="relative rounded-3xl overflow-hidden group cyber-glass cyber-hud">
+      {/* Loading Spinner */}
+      {!isReady && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )}
+
       <div className="aspect-video w-full">
         <video
           ref={videoRef}
           src={src}
-          autoPlay
-          muted
+          muted={isMuted}
           loop
           playsInline
-          className="w-full h-full object-contain bg-black/50"
+          preload="auto"
+          onError={handleError}
+          className={cn(
+            "w-full h-full object-contain bg-black/50 transition-opacity duration-300",
+            !isReady && "opacity-0"
+          )}
           onClick={togglePlay}
         />
       </div>
       
+      {/* Large Play Button for mobile/when paused */}
+      {isReady && !isPlaying && (
+        <div 
+          className="absolute inset-0 flex items-center justify-center cursor-pointer z-10"
+          onClick={togglePlay}
+        >
+          <div className="p-6 rounded-full bg-primary/80 hover:bg-primary transition-colors shadow-lg">
+            <Play className="h-12 w-12 text-white" />
+          </div>
+        </div>
+      )}
+
       {/* Controls Overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
         <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
@@ -141,7 +239,7 @@ export default function WrestlerProfilePage() {
   if (!wrestler) {
     return (
       <div className="h-screen flex items-center justify-center p-8">
-        <ErrorState 
+        <ProfileErrorState 
           message={t('profile.labels.notFound')} 
           onRetry={() => navigate('/wrestlers')} 
         />
@@ -281,10 +379,9 @@ export default function WrestlerProfilePage() {
                   />
                 </div>
               ) : (
-                <EmptyState
+                <ProfileEmptyState
                   icon={<Play className="h-16 w-16" />}
                   title={t('profile.empty.noIntro')}
-                  description=""
                 />
               )}
             </div>
@@ -303,10 +400,9 @@ export default function WrestlerProfilePage() {
                   </div>
                 </div>
               ) : (
-                <EmptyState
+                <ProfileEmptyState
                   icon={<BookOpen className="h-16 w-16" />}
                   title={t('profile.empty.noBio')}
-                  description=""
                 />
               )}
             </div>
@@ -329,10 +425,9 @@ export default function WrestlerProfilePage() {
                   </div>
                 </div>
               ) : (
-                <EmptyState
+                <ProfileEmptyState
                   icon={<TrendingUp className="h-16 w-16" />}
                   title={t('profile.empty.noSuccess')}
-                  description=""
                 />
               )}
             </div>
@@ -385,10 +480,9 @@ export default function WrestlerProfilePage() {
                   ))}
                 </div>
               ) : (
-                <EmptyState
+                <ProfileEmptyState
                   icon={<Trophy className="h-16 w-16" />}
                   title={t('profile.empty.noAchievements')}
-                  description=""
                 />
               )}
             </div>
@@ -411,10 +505,9 @@ export default function WrestlerProfilePage() {
                   </div>
                 </div>
               ) : (
-                <EmptyState
+                <ProfileEmptyState
                   icon={<Heart className="h-16 w-16" />}
                   title={t('profile.empty.noSocial')}
-                  description=""
                 />
               )}
             </div>
@@ -425,10 +518,9 @@ export default function WrestlerProfilePage() {
               {media.length > 0 ? (
                 <MediaGallery items={media.map(m => ({ id: m.id, type: m.type, url: m.url, thumbnail: m.thumbnail, title: m.title }))} />
               ) : (
-                <EmptyState
+                <ProfileEmptyState
                   icon={<ImageIcon className="h-16 w-16" />}
                   title={t('profile.empty.noMedia')}
-                  description=""
                 />
               )}
             </div>
