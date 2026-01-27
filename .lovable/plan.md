@@ -1,220 +1,246 @@
 
-
-## برنامه جامع: نمایش حجم Storage، مقایسه فشرده‌سازی و رفع مشکل زوم تصاویر
+## برنامه رفع سه مشکل: تعداد صفر، تصویر باریک و کلیپ پخش نشدنی
 
 ---
 
 ### تشخیص مشکلات
 
-#### 🔴 مشکل بحرانی: تصاویر زوم/برش شده
+#### مشکل ۱: تعداد کشتی‌گیران صفر
 
-از تصویر ارسالی مشخص است که عکس کشتی‌گیر بریده شده و فقط بخشی از بدن نمایش داده می‌شود. علت:
-
-```typescript
-// src/components/ui/LazyImage.tsx - خط 91 و 105
-className="... object-cover ..."  // ❌ باعث برش تصویر می‌شود
-// باید باشد:
-className="... object-contain ..."  // ✅ تصویر کامل نمایش داده می‌شود
+```text
+┌──────────────────────────────────────────────────────────┐
+│ دیتابیس: 39 کشتی‌گیر | 11 نفر visible                     │
+│ صفحه نشان می‌دهد: 0 یا 11                                │
+│                                                          │
+│ علت: getVisibleWrestlers() قبل از اتمام fetch            │
+│       خوانده می‌شود و آرایه خالی برمی‌گرداند              │
+└──────────────────────────────────────────────────────────┘
 ```
 
-`object-cover` تصویر را طوری بزرگ می‌کند که کل container را پر کند، و بخش‌های اضافی را برش می‌دهد. برای تصاویر پرتره این باعث می‌شود صورت بریده شود.
-
----
-
-### راه‌حل‌های پیشنهادی
-
-## بخش اول: رفع مشکل زوم/برش تصاویر
-
-### ۱.۱ بروزرسانی `src/components/ui/LazyImage.tsx`
-
-تغییر از `object-cover` به `object-contain` با پس‌زمینه مناسب:
-
+**مشکل در کد:**
 ```typescript
-// تغییر کلاس‌های thumbnail
-<img
-  src={thumbnailSrc}
-  className={cn(
-    'absolute inset-0 w-full h-full object-contain bg-muted/30 ...'
-    //                              ^^^^^^^^^^^^^^ تصویر کامل
-  )}
-/>
+// WrestlersListPage.tsx
+const { getVisibleWrestlers, isLoading, error } = useWrestlers();
+const visibleWrestlers = getVisibleWrestlers(); // ❌ خارج از useMemo
 
-// تغییر کلاس‌های تصویر اصلی
-<img
-  src={imageSrc}
-  className={cn(
-    'w-full h-full object-contain bg-muted/20 ...'
-    //             ^^^^^^^^^^^^^^ تصویر کامل
-  )}
-/>
+// وقتی isLoading=true است، wrestlers هنوز خالی است
+// اما visibleWrestlers قبل از لود محاسبه شده
 ```
 
-### ۱.۲ افزودن prop برای انتخاب حالت نمایش
+#### مشکل ۲: تصویر باریک
+
+از تصویر ارسالی مشخص است که تصویر کشتی‌گیر به صورت عمودی باریک شده. علت:
 
 ```typescript
-interface LazyImageProps {
-  // ...existing props
-  /** نحوه نمایش: contain (کامل) یا cover (پر کردن) */
-  objectFit?: 'contain' | 'cover';
-}
-
-// استفاده:
-<LazyImage
-  src={...}
-  objectFit="contain"  // نمایش کامل تصویر
-/>
-```
-
----
-
-## بخش دوم: نمایش حجم Storage در داشبورد ادمین
-
-### ۲.۱ وضعیت فعلی Storage
-
-بررسی دیتابیس نشان می‌دهد:
-
-| Bucket | حجم فعلی |
-|--------|----------|
-| wrestler-media | 239.30 MB |
-| album-media | 35.84 MB |
-| building-media | 7.52 MB |
-| **مجموع** | **~283 MB** |
-
-### ۲.۲ ایجاد Hook برای دریافت آمار Storage
-
-```typescript
-// src/hooks/useStorageStats.ts
-
-interface StorageStats {
-  buckets: {
-    name: string;
-    sizeBytes: number;
-    sizeMB: number;
-    fileCount: number;
-  }[];
-  totalSizeBytes: number;
-  totalSizeMB: number;
-  totalFiles: number;
-  isLoading: boolean;
-  error: string | null;
-}
-
-export function useStorageStats(): StorageStats {
-  // محاسبه حجم هر bucket با استفاده از list API
-  // ...
-}
-```
-
-### ۲.۳ بروزرسانی داشبورد ادمین
-
-```typescript
-// src/pages/admin/AdminDashboardPage.tsx
-
-// افزودن کارت Storage
-<GlassCard className="p-6">
-  <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-    <HardDrive className="h-5 w-5 text-primary" />
-    فضای ذخیره‌سازی
-  </h2>
-  
-  {/* نوار پیشرفت برای هر bucket */}
-  <div className="space-y-3">
-    {storageStats.buckets.map(bucket => (
-      <div key={bucket.name}>
-        <div className="flex justify-between text-sm mb-1">
-          <span>{bucket.name}</span>
-          <span>{bucket.sizeMB.toFixed(1)} MB</span>
-        </div>
-        <Progress value={(bucket.sizeMB / storageStats.totalSizeMB) * 100} />
-      </div>
-    ))}
-  </div>
-  
-  <div className="mt-4 pt-4 border-t">
-    <div className="text-2xl font-bold text-primary">
-      {storageStats.totalSizeMB.toFixed(1)} MB
-    </div>
-    <div className="text-sm text-muted-foreground">
-      مجموع فضای استفاده شده
-    </div>
-  </div>
-</GlassCard>
-```
-
----
-
-## بخش سوم: مقایسه قبل/بعد فشرده‌سازی
-
-### ۳.۱ افزودن ذخیره تاریخچه به CompressionSettings
-
-```typescript
-// ذخیره نتایج هر فشرده‌سازی در localStorage
-interface CompressionHistory {
-  timestamp: string;
-  bucket: string;
-  originalSize: number;
-  compressedSize: number;
-  savedBytes: number;
-  filesProcessed: number;
-}
-
-const COMPRESSION_HISTORY_KEY = 'compression_history';
-
-// نمایش کارت مقایسه:
-<GlassCard className="p-4 bg-green-500/10 border-green-500/30">
-  <h4 className="font-medium text-green-500 flex items-center gap-2">
-    <CheckCircle className="h-4 w-4" />
-    صرفه‌جویی کل
-  </h4>
-  <div className="mt-2 grid grid-cols-3 gap-4 text-center">
-    <div>
-      <div className="text-lg font-bold text-muted-foreground">
-        {formatBytes(totalOriginal)}
-      </div>
-      <div className="text-xs text-muted-foreground">قبل</div>
-    </div>
-    <div>
-      <div className="text-2xl">→</div>
-    </div>
-    <div>
-      <div className="text-lg font-bold text-green-500">
-        {formatBytes(totalCompressed)}
-      </div>
-      <div className="text-xs text-muted-foreground">بعد</div>
-    </div>
-  </div>
-  <div className="mt-2 text-center text-green-500 font-bold">
-    {Math.round((1 - totalCompressed / totalOriginal) * 100)}% کاهش حجم
-  </div>
-</GlassCard>
-```
-
----
-
-## بخش چهارم: بهبود فشرده‌سازی دسته‌ای
-
-### ۴.۱ افزودن دکمه "فشرده‌سازی همه"
-
-```typescript
-// یک دکمه برای اجرای فشرده‌سازی روی تمام buckets
-<Button
-  onClick={handleCompressAll}
-  disabled={batchProgress.isRunning}
-  className="w-full gold-button"
->
-  <Zap className="h-4 w-4 ml-2" />
-  فشرده‌سازی تمام تصاویر
-</Button>
-```
-
-### ۴.۲ نمایش آمار پیشرفت بهتر
-
-```typescript
-// افزودن ETA و سرعت
-<div className="text-sm text-muted-foreground">
-  ⏱️ زمان تخمینی: {formatTime(estimatedTime)}
-  📊 سرعت: {(processedPerSecond).toFixed(1)} فایل/ثانیه
+// WrestlerCard.tsx
+<div className="... aspect-[3/4]">  // Container 3:4 (پرتره)
+  <LazyImage
+    objectFit="contain"  // ← مشکل! تصویر را کوچک می‌کند تا کل دیده شود
+  />
 </div>
+```
+
+`object-contain` باعث می‌شود اگر تصویر نسبت متفاوتی داشته باشد، با فضای خالی اطراف نمایش داده شود. برای تصاویر پرتره کشتی‌گیران، `object-cover` بهتر است اما با `object-position: top` تا صورت بریده نشود.
+
+#### مشکل ۳: کلیپ پخش نمی‌شود
+
+```typescript
+// WrestlerProfilePage.tsx - IntroVideo
+<video
+  autoPlay        // ✓ صحیح
+  muted           // ✓ صحیح
+  loop            // ✓ صحیح
+  playsInline     // ✓ صحیح
+  src={src}       // ❌ فرمت .mov در iOS مشکل‌ساز
+/>
+```
+
+مشکلات احتمالی:
+1. فرمت `.mov` در مرورگرهای غیر-Apple پشتیبانی نمی‌شود
+2. autoPlay در iOS نیاز به تعامل اولیه کاربر دارد
+3. عدم مدیریت خطای لود ویدیو
+
+---
+
+### راه‌حل‌ها
+
+## بخش اول: رفع تعداد صفر کشتی‌گیران
+
+### ۱.۱ بروزرسانی `src/pages/WrestlersListPage.tsx`
+
+تبدیل `visibleWrestlers` به `useMemo` با وابستگی صحیح:
+
+```typescript
+// قبل:
+const visibleWrestlers = getVisibleWrestlers();
+
+// بعد:
+const { wrestlers, getVisibleWrestlers, isLoading, error } = useWrestlers();
+
+const visibleWrestlers = useMemo(() => {
+  return getVisibleWrestlers();
+}, [wrestlers]); // ← وابستگی به wrestlers برای re-render بعد از fetch
+```
+
+### ۱.۲ اضافه کردن loading state بهتر
+
+نمایش skeleton تا زمانی که داده‌ها آماده نیستند:
+
+```typescript
+// نمایش تعداد فقط بعد از لود
+{!isLoading && (
+  <p className="text-muted-foreground">
+    {t('wrestler.count').replace('{count}', String(filteredWrestlers.length))}
+  </p>
+)}
+```
+
+---
+
+## بخش دوم: رفع تصویر باریک
+
+### ۲.۱ بروزرسانی `src/components/WrestlerCard.tsx`
+
+تغییر به `object-cover` با `object-position: center top`:
+
+```typescript
+<LazyImage
+  src={getThumbnailUrl(wrestler.image_url)}
+  thumbnailSrc={getTinyThumbnailUrl(wrestler.image_url)}
+  alt={wrestler.name}
+  className="w-full h-full transition-transform duration-500 group-hover:scale-110"
+  objectFit="cover"         // ← تغییر از contain به cover
+  objectPosition="top"      // ← صورت بالا بماند
+/>
+```
+
+### ۲.۲ بروزرسانی `src/components/ui/LazyImage.tsx`
+
+افزودن prop برای `objectPosition`:
+
+```typescript
+interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+  // ...existing props
+  objectFit?: 'contain' | 'cover';
+  objectPosition?: string;  // ← جدید: مثل 'top', 'center', 'top center'
+}
+
+// در className:
+className={cn(
+  'w-full h-full ...',
+  objectFit === 'contain' ? 'object-contain' : 'object-cover',
+)}
+style={{ objectPosition: objectPosition || 'center' }}
+```
+
+---
+
+## بخش سوم: رفع پخش نشدن کلیپ
+
+### ۳.۱ بروزرسانی `IntroVideo` در `src/pages/WrestlerProfilePage.tsx`
+
+افزودن مدیریت خطا و fallback:
+
+```typescript
+function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);  // ← شروع با false
+  const [isMuted, setIsMuted] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+
+  // تلاش برای autoPlay بعد از لود
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleCanPlay = () => {
+      setIsReady(true);
+      video.play()
+        .then(() => setIsPlaying(true))
+        .catch(() => setIsPlaying(false)); // Autoplay blocked
+    };
+
+    video.addEventListener('canplay', handleCanPlay);
+    return () => video.removeEventListener('canplay', handleCanPlay);
+  }, []);
+
+  const handleError = () => {
+    setHasError(true);
+    console.error('Error loading video:', src);
+  };
+
+  if (hasError) {
+    return (
+      <EmptyState
+        icon={<AlertCircle className="h-16 w-16 text-destructive" />}
+        title="خطا در بارگذاری ویدیو"
+        description="فرمت ویدیو پشتیبانی نمی‌شود یا فایل در دسترس نیست"
+      />
+    );
+  }
+
+  return (
+    <div className="relative rounded-3xl overflow-hidden group cyber-glass cyber-hud">
+      {!isReady && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )}
+      
+      <div className="aspect-video w-full">
+        <video
+          ref={videoRef}
+          src={src}
+          muted={isMuted}
+          loop
+          playsInline
+          preload="auto"
+          onError={handleError}
+          className={cn(
+            "w-full h-full object-contain bg-black/50",
+            !isReady && "opacity-0"
+          )}
+          onClick={togglePlay}
+        />
+      </div>
+      
+      {/* دکمه پخش بزرگ در وسط برای موبایل */}
+      {isReady && !isPlaying && (
+        <div 
+          className="absolute inset-0 flex items-center justify-center cursor-pointer"
+          onClick={togglePlay}
+        >
+          <div className="p-6 rounded-full bg-primary/80 hover:bg-primary transition-colors">
+            <Play className="h-12 w-12 text-white" />
+          </div>
+        </div>
+      )}
+      
+      {/* Controls Overlay - existing code */}
+    </div>
+  );
+}
+```
+
+### ۳.۲ پشتیبانی از فرمت‌های مختلف
+
+افزودن تشخیص فرمت و هشدار در پنل ادمین:
+
+```typescript
+// در صفحه ویرایش کشتی‌گیر
+const SUPPORTED_VIDEO_FORMATS = ['.mp4', '.webm'];
+const isVideoSupported = (url: string) => {
+  return SUPPORTED_VIDEO_FORMATS.some(ext => url.toLowerCase().endsWith(ext));
+};
+
+// هشدار در UI
+{wrestler.intro_video_url && !isVideoSupported(wrestler.intro_video_url) && (
+  <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-sm">
+    ⚠️ فرمت ویدیو (.mov) ممکن است در برخی مرورگرها پشتیبانی نشود. 
+    پیشنهاد: از فرمت MP4 یا WebM استفاده کنید.
+  </div>
+)}
 ```
 
 ---
@@ -223,34 +249,34 @@ const COMPRESSION_HISTORY_KEY = 'compression_history';
 
 | فایل | تغییر | اولویت |
 |------|-------|--------|
-| `src/components/ui/LazyImage.tsx` | تغییر `object-cover` به `object-contain` | 🔴 بحرانی |
-| `src/hooks/useStorageStats.ts` | ایجاد hook برای آمار storage | 🟠 مهم |
-| `src/pages/admin/AdminDashboardPage.tsx` | افزودن کارت فضای ذخیره‌سازی | 🟠 مهم |
-| `src/components/admin/CompressionSettings.tsx` | افزودن تاریخچه و مقایسه قبل/بعد | 🟡 بهبود |
+| `src/pages/WrestlersListPage.tsx` | استفاده از useMemo برای visibleWrestlers | بحرانی |
+| `src/components/WrestlerCard.tsx` | تغییر objectFit به cover + objectPosition | بحرانی |
+| `src/components/ui/LazyImage.tsx` | افزودن prop objectPosition | مهم |
+| `src/pages/WrestlerProfilePage.tsx` | بهبود IntroVideo با error handling | مهم |
+| `src/pages/admin/AdminWrestlerEditPage.tsx` | هشدار فرمت ویدیو | اختیاری |
 
 ---
 
 ## نتایج مورد انتظار
 
 ```text
-مشکل زوم تصویر:
+مشکل تعداد صفر:
 ┌────────────────────────────────────────┐
-│  قبل: فقط سینه و مدال نمایش داده شد   │
-│  بعد: تصویر کامل از سر تا کمر          │
+│  قبل: گاهی "۰ کشتی‌گیر" نمایش می‌داد    │
+│  بعد: همیشه تعداد صحیح (۱۱ کشتی‌گیر)   │
 └────────────────────────────────────────┘
 
-داشبورد ادمین:
+مشکل تصویر باریک:
 ┌────────────────────────────────────────┐
-│  📊 فضای ذخیره‌سازی                     │
-│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
-│  wrestler-media  ████████████░░ 239 MB │
-│  album-media     ██░░░░░░░░░░░░  36 MB │
-│  building-media  █░░░░░░░░░░░░░   8 MB │
-│  ────────────────────────────────────  │
-│  مجموع: 283 MB                         │
-│                                         │
-│  📉 صرفه‌جویی از فشرده‌سازی:            │
-│  500 MB → 283 MB (43% کاهش)            │
+│  قبل: تصویر باریک با فضای خالی اطراف   │
+│  بعد: تصویر کامل container را پر کند   │
+│       با صورت در بالای تصویر           │
+└────────────────────────────────────────┘
+
+مشکل کلیپ پخش نشدنی:
+┌────────────────────────────────────────┐
+│  قبل: صفحه خالی یا خطا                 │
+│  بعد: دکمه پخش بزرگ + loading state   │
+│       + پیام خطای مناسب               │
 └────────────────────────────────────────┘
 ```
-
