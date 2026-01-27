@@ -1,10 +1,14 @@
 import React from 'react';
-import { Users, Trophy, Image, TrendingUp } from 'lucide-react';
+import { Users, Trophy, Image, TrendingUp, HardDrive, RefreshCw } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { useWrestlers } from '@/contexts/WrestlerContext';
+import { useStorageStats } from '@/hooks/useStorageStats';
+import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
 
 export default function AdminDashboardPage() {
   const { wrestlers, achievements, media } = useWrestlers();
+  const storageStats = useStorageStats();
 
   const stats = [
     {
@@ -46,6 +50,28 @@ export default function AdminDashboardPage() {
 
   const recentWrestlers = wrestlers.slice(-5).reverse();
 
+  // Get compression history for before/after comparison
+  const getCompressionHistory = () => {
+    try {
+      const saved = localStorage.getItem('compression_history');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.warn('Failed to load compression history:', e);
+    }
+    return { totalOriginal: 0, totalCompressed: 0, savedBytes: 0, lastUpdated: null };
+  };
+
+  const compressionHistory = getCompressionHistory();
+  const hasSavings = compressionHistory.savedBytes > 0;
+
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header */}
@@ -80,8 +106,102 @@ export default function AdminDashboardPage() {
         })}
       </div>
 
-      {/* Recent Wrestlers */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      {/* Storage Stats & Recent Wrestlers */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Storage Stats Card */}
+        <GlassCard className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <HardDrive className="h-5 w-5 text-primary" />
+              فضای ذخیره‌سازی
+            </h2>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={storageStats.refresh}
+              disabled={storageStats.isLoading}
+            >
+              <RefreshCw className={`h-4 w-4 ${storageStats.isLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+
+          {storageStats.isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="animate-pulse">
+                  <div className="h-4 bg-muted rounded w-full mb-2" />
+                  <div className="h-2 bg-muted/50 rounded w-full" />
+                </div>
+              ))}
+            </div>
+          ) : storageStats.error ? (
+            <p className="text-destructive text-sm">{storageStats.error}</p>
+          ) : (
+            <div className="space-y-3">
+              {storageStats.buckets.map(bucket => (
+                <div key={bucket.name}>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-muted-foreground">{bucket.displayName}</span>
+                    <span className="font-medium">{bucket.sizeMB.toFixed(1)} MB</span>
+                  </div>
+                  <Progress 
+                    value={storageStats.totalSizeMB > 0 
+                      ? (bucket.sizeMB / storageStats.totalSizeMB) * 100 
+                      : 0
+                    } 
+                    className="h-2"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {bucket.fileCount} فایل
+                  </p>
+                </div>
+              ))}
+
+              <div className="mt-4 pt-4 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">مجموع:</span>
+                  <span className="text-2xl font-bold text-primary">
+                    {storageStats.totalSizeMB.toFixed(1)} MB
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {storageStats.totalFiles} فایل در کل
+                </p>
+              </div>
+
+              {/* Compression Savings */}
+              {hasSavings && (
+                <div className="mt-4 p-3 rounded-xl bg-green-500/10 border border-green-500/30">
+                  <h4 className="text-sm font-medium text-green-500 mb-2">
+                    صرفه‌جویی از فشرده‌سازی
+                  </h4>
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                    <div>
+                      <div className="font-bold text-muted-foreground">
+                        {formatBytes(compressionHistory.totalOriginal)}
+                      </div>
+                      <div className="text-muted-foreground">قبل</div>
+                    </div>
+                    <div className="text-lg">→</div>
+                    <div>
+                      <div className="font-bold text-green-500">
+                        {formatBytes(compressionHistory.totalCompressed)}
+                      </div>
+                      <div className="text-muted-foreground">بعد</div>
+                    </div>
+                  </div>
+                  <div className="text-center mt-2">
+                    <span className="text-green-500 font-bold">
+                      {Math.round((compressionHistory.savedBytes / compressionHistory.totalOriginal) * 100)}% کاهش
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </GlassCard>
+
+        {/* Recent Wrestlers */}
         <GlassCard className="p-6">
           <h2 className="text-xl font-bold mb-4">آخرین کشتی‌گیرهای اضافه شده</h2>
           {recentWrestlers.length > 0 ? (
@@ -134,7 +254,7 @@ export default function AdminDashboardPage() {
               ۳. تصاویر و ویدیوها را می‌توانید با Drag & Drop آپلود کنید.
             </p>
             <p>
-              ۴. اطلاعات ۳۸ کشتی‌گیر اولیه در سیستم ثبت شده که می‌توانید تکمیل کنید.
+              ۴. برای فشرده‌سازی تصاویر موجود، به تنظیمات عمومی مراجعه کنید.
             </p>
           </div>
         </GlassCard>

@@ -7,6 +7,8 @@ interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   thumbnailSrc?: string;
   /** Maximum retry attempts on error */
   maxRetries?: number;
+  /** How to fit the image: 'contain' shows full image, 'cover' fills container */
+  objectFit?: 'contain' | 'cover';
 }
 
 export function LazyImage({ 
@@ -16,6 +18,7 @@ export function LazyImage({
   fallback = '/placeholder.svg',
   thumbnailSrc,
   maxRetries = 2,
+  objectFit = 'contain',
   ...props 
 }: LazyImageProps) {
   const [isInView, setIsInView] = useState(false);
@@ -88,7 +91,8 @@ export function LazyImage({
               src={thumbnailSrc}
               alt={alt}
               className={cn(
-                'absolute inset-0 w-full h-full object-cover transition-opacity duration-200 blur-[2px] scale-105',
+                'absolute inset-0 w-full h-full transition-opacity duration-200 blur-[2px] scale-105 bg-muted/30',
+                objectFit === 'contain' ? 'object-contain' : 'object-cover',
                 thumbnailLoaded ? 'opacity-100' : 'opacity-0'
               )}
               onLoad={() => setThumbnailLoaded(true)}
@@ -102,7 +106,8 @@ export function LazyImage({
             src={imageSrc}
             alt={alt}
             className={cn(
-              'w-full h-full object-cover transition-opacity duration-300',
+              'w-full h-full transition-opacity duration-300 bg-muted/20',
+              objectFit === 'contain' ? 'object-contain' : 'object-cover',
               isLoaded ? 'opacity-100' : 'opacity-0'
             )}
             onLoad={() => setIsLoaded(true)}

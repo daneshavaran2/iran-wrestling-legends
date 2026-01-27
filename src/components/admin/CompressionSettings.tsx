@@ -33,8 +33,10 @@ interface BatchProgress {
   skipped: number;
   failed: number;
   savedBytes: number;
+  originalBytes: number;
   isRunning: boolean;
   currentFile?: string;
+  startTime?: number;
 }
 
 // Storage key for persisting settings
@@ -75,7 +77,9 @@ export default function CompressionSettings() {
     skipped: 0,
     failed: 0,
     savedBytes: 0,
-    isRunning: false
+    originalBytes: 0,
+    isRunning: false,
+    startTime: undefined
   });
 
   // Load saved settings on mount
@@ -114,7 +118,9 @@ export default function CompressionSettings() {
       skipped: 0,
       failed: 0,
       savedBytes: 0,
-      isRunning: true
+      originalBytes: 0,
+      isRunning: true,
+      startTime: Date.now()
     });
 
     try {
@@ -165,6 +171,7 @@ export default function CompressionSettings() {
       }
 
       let totalSaved = 0;
+      let totalOriginal = 0;
       let processed = 0;
       let skipped = 0;
       let failed = 0;
@@ -211,6 +218,7 @@ export default function CompressionSettings() {
           if (optimizedFile.size < file.size) {
             const savedBytes = file.size - optimizedFile.size;
             totalSaved += savedBytes;
+            totalOriginal += file.size;
 
             // Generate new path with .webp extension
             const newPath = fileInfo.path.replace(/\.[^.]+$/, '.webp');
@@ -239,7 +247,8 @@ export default function CompressionSettings() {
             processed: processed,
             skipped: skipped,
             failed: failed,
-            savedBytes: totalSaved
+            savedBytes: totalSaved,
+            originalBytes: totalOriginal
           }));
 
         } catch (e) {
@@ -250,6 +259,21 @@ export default function CompressionSettings() {
 
       const savedMB = (totalSaved / (1024 * 1024)).toFixed(2);
       toast.success(`فشرده‌سازی کامل شد! ${savedMB}MB صرفه‌جویی شد`);
+
+      // Save compression history to localStorage for dashboard display
+      try {
+        const historyKey = 'compression_history';
+        const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '{}');
+        const updatedHistory = {
+          totalOriginal: (existingHistory.totalOriginal || 0) + totalOriginal,
+          totalCompressed: (existingHistory.totalCompressed || 0) + (totalOriginal - totalSaved),
+          savedBytes: (existingHistory.savedBytes || 0) + totalSaved,
+          lastUpdated: new Date().toISOString()
+        };
+        localStorage.setItem(historyKey, JSON.stringify(updatedHistory));
+      } catch (e) {
+        console.warn('Failed to save compression history:', e);
+      }
 
     } catch (error) {
       console.error('Batch compression failed:', error);
@@ -398,13 +422,29 @@ export default function CompressionSettings() {
                   {batchProgress.currentFile}
                 </p>
               )}
+              {/* ETA calculation */}
+              {batchProgress.startTime && batchProgress.processed > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  {(() => {
+                    const elapsed = (Date.now() - batchProgress.startTime) / 1000;
+                    const rate = (batchProgress.processed + batchProgress.skipped) / elapsed;
+                    const remaining = batchProgress.total - (batchProgress.processed + batchProgress.skipped);
+                    const eta = remaining / rate;
+                    const minutes = Math.floor(eta / 60);
+                    const seconds = Math.floor(eta % 60);
+                    return (
+                      <span>⏱️ زمان باقیمانده: {minutes > 0 ? `${minutes} دقیقه و ` : ''}{seconds} ثانیه | 📊 سرعت: {rate.toFixed(1)} فایل/ثانیه</span>
+                    );
+                  })()}
+                </div>
+              )}
               <div className="flex gap-4 text-xs text-muted-foreground">
-                <span className="text-green-500">✓ {batchProgress.processed} فشرده شد</span>
-                <span className="text-yellow-500">⏭ {batchProgress.skipped} رد شد</span>
+                <span className="text-primary">✓ {batchProgress.processed} فشرده شد</span>
+                <span className="text-accent">⏭ {batchProgress.skipped} رد شد</span>
                 <span className="text-destructive">✗ {batchProgress.failed} خطا</span>
               </div>
               {batchProgress.savedBytes > 0 && (
-                <p className="text-sm text-green-500 font-medium">
+                <p className="text-sm text-primary font-medium">
                   💾 {formatBytes(batchProgress.savedBytes)} صرفه‌جویی شد
                 </p>
               )}
