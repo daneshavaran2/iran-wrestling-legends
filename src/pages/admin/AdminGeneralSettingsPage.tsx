@@ -16,6 +16,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/button';
 import { useOfflineTest } from '@/hooks/useOfflineTest';
 import { toast } from 'sonner';
+import CompressionSettings from '@/components/admin/CompressionSettings';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -339,6 +340,9 @@ export default function AdminGeneralSettingsPage() {
           </div>
         </div>
       </GlassCard>
+
+      {/* Compression Settings Section */}
+      <CompressionSettings />
     </div>
   );
 }

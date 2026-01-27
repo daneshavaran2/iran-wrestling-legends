@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { optimizeImage } from '@/utils/imageCompressor';
+import { getCompressionSettings } from '@/components/admin/CompressionSettings';
 
 interface UploadProgress {
   fileName: string;
@@ -30,12 +31,15 @@ export function useMediaUpload() {
         originalSize 
       }]);
 
-      // فشرده‌سازی و بهینه‌سازی تصویر (تبدیل به WebP با کاهش حجم)
+      // دریافت تنظیمات فشرده‌سازی از پنل ادمین
+      const compressionSettings = getCompressionSettings();
+      
+      // فشرده‌سازی و بهینه‌سازی تصویر با تنظیمات ذخیره شده
       const processedFile = await optimizeImage(file, {
-        maxWidth: 1920,
-        maxHeight: 1080,
-        quality: 0.82,
-        outputFormat: 'webp'
+        maxWidth: compressionSettings.maxWidth,
+        maxHeight: compressionSettings.maxHeight,
+        quality: compressionSettings.quality / 100, // تبدیل درصد به مقدار 0-1
+        outputFormat: compressionSettings.outputFormat
       });
       
       const compressedSize = processedFile.size;
