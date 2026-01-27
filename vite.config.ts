@@ -99,6 +99,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
+    outDir: "build",
     target: "esnext",
     minify: "esbuild",
     cssMinify: true,
