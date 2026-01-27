@@ -7,11 +7,12 @@ interface ParallaxCardProps {
   className?: string;
   intensity?: number;
   onClick?: () => void;
+  style?: React.CSSProperties;
 }
 
 export const ParallaxCard = forwardRef<HTMLDivElement, ParallaxCardProps>(
-  function ParallaxCard({ children, className, intensity = 12, onClick }, externalRef) {
-    const { ref: internalRef, style, handlers } = useParallax(intensity);
+  function ParallaxCard({ children, className, intensity = 12, onClick, style: externalStyle }, externalRef) {
+    const { ref: internalRef, style: parallaxStyle, handlers } = useParallax(intensity);
 
     // Combine internal ref with external ref
     const combinedRef = (node: HTMLDivElement | null) => {
@@ -28,10 +29,13 @@ export const ParallaxCard = forwardRef<HTMLDivElement, ParallaxCardProps>(
       }
     };
 
+    // Combine parallax style with external style
+    const combinedStyle = { ...parallaxStyle, ...externalStyle };
+
     return (
       <div
         ref={combinedRef}
-        style={style}
+        style={combinedStyle}
         onClick={onClick}
         className={cn('transform-gpu cursor-pointer', className)}
         {...handlers}
