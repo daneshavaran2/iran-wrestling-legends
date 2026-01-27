@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import type { KeyboardLayout } from '@/components/VirtualKeyboard';
+import type { KeyboardLayout } from '@/types/keyboard';
 
 interface VirtualKeyboardState {
   isOpen: boolean;

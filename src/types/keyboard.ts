@@ -1,0 +1,1 @@
+export type KeyboardLayout = 'persian' | 'english' | 'arabic' | 'numbers';
