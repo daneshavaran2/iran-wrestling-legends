@@ -1,334 +1,471 @@
 
-## برنامه رفع مشکلات: زوم تصاویر، خطای اتصال سرور و ترجمه‌های گمشده
+## برنامه تست کامل روی سرور Liara و افزودن Background Sync با Service Worker
 
 ---
 
-### تشخیص مشکلات از تصاویر ارسالی
+### بخش اول: بهبود Service Worker برای Background Sync
 
-#### 🔴 مشکل ۱: تصاویر بیش از حد زوم شده (IMG_7070, IMG_7069)
+#### وضعیت فعلی:
+Service Worker (`public/sw.js`) دارای:
+- Stale While Revalidate برای API
+- Cache First برای تصاویر
+- Navigation Preload
+- پیام‌رسانی با اپلیکیشن
 
-از تصاویر مشخص است که فقط صورت کشتی‌گیر دیده می‌شود و بدن بریده شده است. با اینکه `objectFit="cover"` و `objectPosition="top"` تنظیم شده، مشکل این است که:
+**نقاط ضعف:**
+1. Background Sync فقط یک placeholder است (خط 354-357)
+2. Periodic Sync پشتیبانی نمی‌شود
+3. اتصال مجدد به اینترنت باعث refresh خودکار نمی‌شود
 
-```text
-┌─────────────────────────────────────────────────────────────┐
-│  تصویر اصلی کشتی‌گیر: نسبت ابعاد 3:5 (پرتره بلند)           │
-│  Container کارت: نسبت ابعاد 3:4 (کوتاه‌تر)                  │
-│                                                             │
-│  نتیجه با object-cover + top:                               │
-│  تصویر از بالا شروع می‌شود ولی چون container کوتاه‌تر است، │
-│  تصویر زوم می‌شود تا عرض را پر کند → صورت بزرگ می‌شود!      │
-└─────────────────────────────────────────────────────────────┘
-```
+---
 
-**راه‌حل**: تغییر `objectPosition` به `center 20%` یا تنظیم نسبت ابعاد container و افزودن قابلیت تنظیم فقط عرض:
+### ۱.۱ پیاده‌سازی کامل Background Sync
 
-```typescript
-// WrestlerCard.tsx
-<LazyImage
-  objectFit="cover"
-  objectPosition="center 20%"  // 20% از بالا - نه top که سر بریده شود
-/>
-```
+```javascript
+// public/sw.js - افزودن قابلیت‌های جدید
 
-#### 🔴 مشکل ۲: خطای اتصال روی سرور Liara (IMG_7072)
+// ثبت داده‌های pending برای sync
+const PENDING_SYNC_KEY = 'pending_sync_requests';
 
-پیام خطا: "خطا در بارگذاری اطلاعات. لطفاً اتصال اینترنت را بررسی کنید"
+// ذخیره درخواست‌های ناموفق برای sync بعدی
+async function savePendingSync(data) {
+  const pending = await getPendingSyncs();
+  pending.push({
+    ...data,
+    timestamp: Date.now(),
+    id: crypto.randomUUID()
+  });
+  
+  // ذخیره در IndexedDB
+  const db = await openSyncDB();
+  await db.put('pending', pending);
+}
 
-این خطا زمانی ظاهر می‌شود که:
-1. Supabase API پاسخ نمی‌دهد یا timeout می‌شود
-2. CORS مشکل دارد
-3. شبکه کند است و درخواست‌ها timeout می‌شوند
+// اجرای Background Sync
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-museum-data') {
+    event.waitUntil(syncMuseumData());
+  }
+  if (event.tag === 'sync-images') {
+    event.waitUntil(syncImages());
+  }
+});
 
-**بررسی کد فعلی:**
-```typescript
-// WrestlerContext.tsx - خط 234
-setError('خطا در بارگذاری اطلاعات. لطفاً اتصال اینترنت را بررسی کنید.');
-```
+// Periodic Background Sync (برای مرورگرهای پشتیبانی‌کننده)
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag === 'museum-data-sync') {
+    event.waitUntil(syncMuseumData());
+  }
+});
 
-این پیام خطا خیلی کلی است. باید:
-1. Timeout طولانی‌تر تنظیم شود
-2. Retry mechanism اضافه شود
-3. پیام خطای دقیق‌تر نمایش داده شود
-
-#### 🔴 مشکل ۳: ترجمه گمشده (IMG_7071)
-
-پیام "history.noContentDesc" به جای متن ترجمه شده نمایش داده می‌شود:
-
-```typescript
-// HistoryListPage.tsx - خط 60
-<p className="text-muted-foreground">
-  {t('history.noContentDesc')}  // ❌ این کلید در locales وجود ندارد!
-</p>
-```
-
-**فایل fa.json فعلی:**
-```json
-"history": {
-  "title": "تاریخچه کشتی ایران",
-  "subtitle": "سفری در گذر زمان",
-  "noContent": "محتوای تاریخچه موجود نیست"
-  // ❌ noContentDesc وجود ندارد!
+async function syncMuseumData() {
+  console.log('[SW] Background sync: Museum data');
+  
+  try {
+    // Fetch تمام داده‌ها از Supabase
+    const endpoints = [
+      'wrestlers?select=*',
+      'achievements?select=*',
+      'wrestler_media?select=*',
+      'history_sections?select=*',
+      'buildings?select=*',
+      'books?select=*',
+      'albums?select=*',
+    ];
+    
+    const cache = await caches.open(API_CACHE);
+    
+    for (const endpoint of endpoints) {
+      const url = `https://etbekvhdroqiddcteqdq.supabase.co/rest/v1/${endpoint}`;
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+          }
+        });
+        if (response.ok) {
+          await cache.put(url, response.clone());
+        }
+      } catch (e) {
+        console.log(`[SW] Failed to sync ${endpoint}:`, e);
+      }
+    }
+    
+    // اطلاع به کلاینت
+    const clients = await self.clients.matchAll();
+    clients.forEach(client => {
+      client.postMessage({ 
+        type: 'BACKGROUND_SYNC_COMPLETE',
+        timestamp: Date.now()
+      });
+    });
+    
+  } catch (error) {
+    console.error('[SW] Background sync failed:', error);
+  }
 }
 ```
 
 ---
 
-### راه‌حل‌های پیشنهادی
-
-## بخش اول: رفع زوم بیش از حد تصاویر
-
-### ۱.۱ تغییر `objectPosition` در WrestlerCard
+### ۱.۲ ایجاد Hook برای مدیریت Background Sync
 
 ```typescript
-// src/components/WrestlerCard.tsx
-<LazyImage
-  src={getThumbnailUrl(wrestler.image_url)}
-  thumbnailSrc={getTinyThumbnailUrl(wrestler.image_url)}
-  alt={wrestler.name}
-  className="w-full h-full transition-transform duration-500 group-hover:scale-110"
-  objectFit="cover"
-  objectPosition="center 15%"  // ← تغییر از "top" به "center 15%"
-/>
-```
+// src/hooks/useBackgroundSync.ts
 
-این تغییر باعث می‌شود:
-- تصویر از 15% بالای مرکز شروع شود
-- صورت کشتی‌گیر در مرکز بماند
-- بخش‌های کمتری از سر و پا بریده شود
+export function useBackgroundSync() {
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'pending' | 'syncing'>('idle');
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
-### ۱.۲ تغییر نسبت ابعاد container (اختیاری)
+  // ثبت Periodic Background Sync
+  useEffect(() => {
+    const registerPeriodicSync = async () => {
+      if (!('serviceWorker' in navigator) || !('periodicSync' in ServiceWorkerRegistration.prototype)) {
+        console.log('Periodic Background Sync not supported');
+        return;
+      }
+      
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.periodicSync.register('museum-data-sync', {
+          minInterval: 24 * 60 * 60 * 1000, // 24 ساعت
+        });
+        console.log('Periodic sync registered');
+      } catch (error) {
+        console.log('Periodic sync registration failed:', error);
+      }
+    };
 
-اگر تصاویر همچنان زوم بودند، نسبت ابعاد را کمی بلندتر کنیم:
+    registerPeriodicSync();
+  }, []);
 
-```typescript
-// از aspect-[3/4] به aspect-[3/4.5] یا aspect-[2/3]
-<div className="relative overflow-hidden rounded-2xl mb-4 2xl:mb-6 aspect-[2/3]">
+  // درخواست sync دستی
+  const requestSync = useCallback(async () => {
+    if (!('serviceWorker' in navigator) || !('SyncManager' in window)) {
+      console.log('Background Sync not supported');
+      return false;
+    }
+    
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.sync.register('sync-museum-data');
+      setSyncStatus('pending');
+      return true;
+    } catch (error) {
+      console.error('Sync registration failed:', error);
+      return false;
+    }
+  }, []);
+
+  // گوش دادن به پیام‌های Service Worker
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'BACKGROUND_SYNC_COMPLETE') {
+        setSyncStatus('idle');
+        setLastSyncTime(new Date(event.data.timestamp));
+        toast.success('داده‌ها در پس‌زمینه به‌روز شد', {
+          icon: '🔄',
+          duration: 3000,
+        });
+      }
+      if (event.data?.type === 'SYNC_STARTED') {
+        setSyncStatus('syncing');
+      }
+    };
+
+    navigator.serviceWorker?.addEventListener('message', handleMessage);
+    return () => {
+      navigator.serviceWorker?.removeEventListener('message', handleMessage);
+    };
+  }, []);
+
+  return {
+    syncStatus,
+    lastSyncTime,
+    requestSync,
+    isSupported: 'SyncManager' in window,
+  };
+}
 ```
 
 ---
 
-## بخش دوم: رفع خطای اتصال روی سرور خارجی
+### بخش دوم: رفع مشکلات اتصال سرور Liara
 
-### ۲.۱ بهبود Error Handling در WrestlerContext
+#### ۲.۱ بهبود Connection Resilience
 
-```typescript
-// src/contexts/WrestlerContext.tsx
-
-const fetchWrestlers = async (): Promise<boolean> => {
-  try {
-    // افزودن timeout برای جلوگیری از انتظار بی‌نهایت
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000); // 15 ثانیه
-
-    const { data, error } = await supabase
-      .from('wrestlers')
-      .select('*')
-      .order('name')
-      .abortSignal(controller.signal);
-
-    clearTimeout(timeout);
-
-    if (error) throw error;
-    
-    // ... rest of code
-    return true;
-  } catch (err: any) {
-    console.error('Error fetching wrestlers:', err);
-    
-    // بررسی نوع خطا و ارائه پیام مناسب
-    if (err.name === 'AbortError') {
-      console.log('Request timed out, using cached data');
-    }
-    
-    return false;
-  }
-};
-```
-
-### ۲.۲ افزودن Retry Logic خودکار
+**مشکل:** سرور Liara ممکن است اتصال کندتری به Supabase داشته باشد
 
 ```typescript
-const refreshWrestlers = async (retryCount = 0) => {
-  setIsLoading(true);
-  setError(null);
+// src/lib/supabase.ts - افزودن retry با exponential backoff
+
+export async function fetchWithRetry<T>(
+  fetchFn: () => Promise<T>,
+  maxRetries = 3,
+  baseDelay = 1000
+): Promise<T> {
+  let lastError: Error | null = null;
   
-  const results = await Promise.all([
-    fetchWrestlers(),
-    fetchAchievements(),
-    fetchMedia()
-  ]);
-  
-  const allSucceeded = results.every(r => r === true);
-  
-  if (!allSucceeded) {
-    // تلاش مجدد خودکار (حداکثر 2 بار)
-    if (retryCount < 2 && !isOffline) {
-      console.log(`Retrying... (attempt ${retryCount + 2})`);
-      setTimeout(() => refreshWrestlers(retryCount + 1), 2000);
-      return;
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fetchFn();
+    } catch (error) {
+      lastError = error as Error;
+      
+      // Exponential backoff
+      const delay = baseDelay * Math.pow(2, i);
+      console.log(`Retry ${i + 1}/${maxRetries} after ${delay}ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
-    
-    const hasCachedData = wrestlers.length > 0;
-    
-    if (hasCachedData) {
-      setIsOffline(true);
-      setError('نمایش داده‌های ذخیره شده (آفلاین)');
-    } else {
-      setError('خطا در اتصال به سرور. لطفاً دوباره تلاش کنید.');
-    }
-  } else {
-    setIsOffline(false);
   }
   
-  setIsLoading(false);
-};
+  throw lastError;
+}
 ```
 
-### ۲.۳ بهبود Connection Test در lib/supabase.ts
+#### ۲.۲ Health Check Endpoint
 
 ```typescript
-// src/lib/supabase.ts - افزودن تست اتصال با timeout
-export const testConnection = async (): Promise<boolean> => {
+// افزودن تست اتصال سریع
+export async function healthCheck(): Promise<{
+  status: 'healthy' | 'degraded' | 'offline';
+  latency: number;
+}> {
+  const start = Date.now();
+  
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
+    setTimeout(() => controller.abort(), 3000);
     
     const { error } = await supabase
-      .from('wrestlers')
+      .from('app_settings')
       .select('id')
       .limit(1)
       .abortSignal(controller.signal);
     
-    clearTimeout(timeout);
-    return !error;
-  } catch {
-    return false;
-  }
-};
-```
-
----
-
-## بخش سوم: افزودن ترجمه‌های گمشده
-
-### ۳.۱ بروزرسانی fa.json
-
-```json
-{
-  "history": {
-    "title": "تاریخچه کشتی ایران",
-    "subtitle": "سفری در گذر زمان",
-    "noContent": "محتوای تاریخچه موجود نیست",
-    "noContentDesc": "محتوایی برای نمایش وجود ندارد. به زودی اطلاعات بیشتری اضافه خواهد شد."
-  }
-}
-```
-
-### ۳.۲ بروزرسانی en.json
-
-```json
-{
-  "history": {
-    "title": "History of Iranian Wrestling",
-    "subtitle": "A Journey Through Time",
-    "noContent": "No history content available",
-    "noContentDesc": "No content to display. More information will be added soon."
-  }
-}
-```
-
-### ۳.۳ بروزرسانی ar.json
-
-```json
-{
-  "history": {
-    "title": "تاريخ المصارعة الإيرانية",
-    "subtitle": "رحلة عبر الزمن",
-    "noContent": "لا يوجد محتوى تاريخي",
-    "noContentDesc": "لا يوجد محتوى للعرض. سيتم إضافة المزيد من المعلومات قريباً."
-  }
-}
-```
-
----
-
-## بخش چهارم: بهینه‌سازی Preload تصاویر
-
-### ۴.۱ افزودن Preload در لیست کشتی‌گیران
-
-```typescript
-// src/pages/WrestlersListPage.tsx
-
-useEffect(() => {
-  // Preload تصاویر 6 کشتی‌گیر اول برای لود سریع‌تر
-  if (filteredWrestlers.length > 0) {
-    const firstSixImages = filteredWrestlers
-      .slice(0, 6)
-      .map(w => getThumbnailUrl(w.image_url))
-      .filter(Boolean);
+    const latency = Date.now() - start;
     
-    preloadImages(firstSixImages);
+    if (error) {
+      return { status: 'degraded', latency };
+    }
+    
+    return {
+      status: latency < 2000 ? 'healthy' : 'degraded',
+      latency
+    };
+  } catch {
+    return { status: 'offline', latency: 0 };
   }
-}, [filteredWrestlers]);
+}
 ```
 
-### ۴.۲ افزودن Link Preload در Head
+---
+
+### بخش سوم: نمایش وضعیت Sync در UI
+
+#### ۳.۱ کامپوننت وضعیت Sync
 
 ```typescript
-// در LazyImage - برای تصاویر اولیه
-useEffect(() => {
-  if (src && isInView) {
-    // Hint به مرورگر برای دانلود سریع‌تر
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.as = 'image';
-    link.href = src;
-    document.head.appendChild(link);
+// src/components/SyncStatusIndicator.tsx
+
+function SyncStatusIndicator() {
+  const { syncStatus, lastSyncTime } = useBackgroundSync();
+  const { isOffline } = useOfflineData();
+  
+  if (syncStatus === 'syncing') {
+    return (
+      <div className="flex items-center gap-2 text-primary">
+        <RefreshCw className="h-4 w-4 animate-spin" />
+        <span className="text-xs">در حال همگام‌سازی...</span>
+      </div>
+    );
+  }
+  
+  if (isOffline) {
+    return (
+      <div className="flex items-center gap-2 text-yellow-500">
+        <WifiOff className="h-4 w-4" />
+        <span className="text-xs">آفلاین</span>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="flex items-center gap-2 text-green-500">
+      <CloudCheck className="h-4 w-4" />
+      <span className="text-xs">متصل</span>
+    </div>
+  );
+}
+```
+
+#### ۳.۲ یکپارچه‌سازی با AdminOfflineSettingsPage
+
+افزودن بخش "Background Sync" به صفحه تنظیمات آفلاین:
+
+```tsx
+{/* Background Sync Section */}
+<GlassCard className="p-6">
+  <div className="flex items-center gap-3 mb-6">
+    <CloudSync className="h-6 w-6 text-primary" />
+    <h2 className="text-xl font-semibold">همگام‌سازی پس‌زمینه</h2>
+  </div>
+  
+  <div className="space-y-4">
+    {/* وضعیت پشتیبانی */}
+    <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30">
+      <span>پشتیبانی مرورگر</span>
+      <span className={isSupported ? 'text-green-500' : 'text-yellow-500'}>
+        {isSupported ? 'پشتیبانی می‌شود' : 'پشتیبانی نمی‌شود'}
+      </span>
+    </div>
+    
+    {/* آخرین همگام‌سازی */}
+    <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30">
+      <span>آخرین همگام‌سازی پس‌زمینه</span>
+      <span>{lastSyncTime?.toLocaleString('fa-IR') || 'هنوز انجام نشده'}</span>
+    </div>
+    
+    {/* دکمه درخواست sync */}
+    <Button onClick={requestSync} disabled={syncStatus !== 'idle'}>
+      <CloudSync className="h-4 w-4 ml-2" />
+      درخواست همگام‌سازی
+    </Button>
+  </div>
+</GlassCard>
+```
+
+---
+
+### بخش چهارم: تست‌های سناریوی مختلف شبکه
+
+#### ۴.۱ افزودن Network Condition Testing
+
+```typescript
+// src/hooks/useNetworkCondition.ts
+
+interface NetworkCondition {
+  type: 'excellent' | 'good' | 'fair' | 'poor' | 'offline';
+  effectiveType: string;
+  downlink: number;
+  rtt: number;
+}
+
+export function useNetworkCondition() {
+  const [condition, setCondition] = useState<NetworkCondition>({
+    type: 'good',
+    effectiveType: '4g',
+    downlink: 10,
+    rtt: 50,
+  });
+
+  useEffect(() => {
+    const updateCondition = () => {
+      if (!navigator.onLine) {
+        setCondition(prev => ({ ...prev, type: 'offline' }));
+        return;
+      }
+      
+      // @ts-ignore - Network Information API
+      const connection = navigator.connection || navigator.mozConnection;
+      
+      if (connection) {
+        const type = connection.effectiveType === '4g' ? 'excellent' :
+                     connection.effectiveType === '3g' ? 'good' :
+                     connection.effectiveType === '2g' ? 'fair' : 'poor';
+        
+        setCondition({
+          type,
+          effectiveType: connection.effectiveType,
+          downlink: connection.downlink || 0,
+          rtt: connection.rtt || 0,
+        });
+      }
+    };
+
+    updateCondition();
+    
+    window.addEventListener('online', updateCondition);
+    window.addEventListener('offline', updateCondition);
     
     return () => {
-      document.head.removeChild(link);
+      window.removeEventListener('online', updateCondition);
+      window.removeEventListener('offline', updateCondition);
     };
-  }
-}, [src, isInView]);
+  }, []);
+
+  return condition;
+}
 ```
 
 ---
 
-## خلاصه تغییرات
+### خلاصه تغییرات
 
 | فایل | تغییر | اولویت |
 |------|-------|--------|
-| `src/components/WrestlerCard.tsx` | تغییر objectPosition از "top" به "center 15%" | بحرانی |
-| `src/contexts/WrestlerContext.tsx` | افزودن timeout و retry logic | بحرانی |
-| `src/locales/fa.json` | افزودن history.noContentDesc | بحرانی |
-| `src/locales/en.json` | افزودن history.noContentDesc | بحرانی |
-| `src/locales/ar.json` | افزودن history.noContentDesc | بحرانی |
-| `src/pages/WrestlersListPage.tsx` | افزودن preload برای تصاویر اول | بهبود |
-| `src/lib/supabase.ts` | بهبود testConnection با timeout | بهبود |
+| `public/sw.js` | پیاده‌سازی کامل Background Sync و Periodic Sync | بحرانی |
+| `src/hooks/useBackgroundSync.ts` | ایجاد hook جدید برای مدیریت background sync | بحرانی |
+| `src/lib/supabase.ts` | افزودن fetchWithRetry و healthCheck | مهم |
+| `src/hooks/useNetworkCondition.ts` | ایجاد hook برای تشخیص وضعیت شبکه | مهم |
+| `src/components/SyncStatusIndicator.tsx` | کامپوننت نمایش وضعیت sync | مهم |
+| `src/pages/admin/AdminOfflineSettingsPage.tsx` | افزودن بخش Background Sync | بهبود |
 
 ---
 
-## نتایج مورد انتظار
+### معماری Background Sync
 
 ```text
-مشکل زوم تصویر:
-┌────────────────────────────────────────────┐
-│  قبل: فقط صورت بزرگ‌نمایی شده دیده می‌شد  │
-│  بعد: سر + سینه + شانه‌ها در تصویر          │
-│       نسبت طبیعی‌تر و حرفه‌ای‌تر            │
-└────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                        کاربر آنلاین                              │
+│  ┌──────────┐    ┌──────────────┐    ┌──────────────────────┐   │
+│  │   App    │───▶│ SW Message  │───▶│ Service Worker      │   │
+│  └──────────┘    └──────────────┘    │ - Cache API calls   │   │
+│                                       │ - Cache Images      │   │
+│                                       └──────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        کاربر آفلاین                              │
+│  ┌──────────┐    ┌──────────────┐    ┌──────────────────────┐   │
+│  │   App    │───▶│ Cache API   │───▶│ Cached Data         │   │
+│  └──────────┘    └──────────────┘    └──────────────────────┘   │
+│       │                                                          │
+│       └──▶ Register sync event ──▶ Queued for later             │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     برگشت آنلاین                                 │
+│  ┌──────────────────────┐    ┌─────────────────────────────┐    │
+│  │ Service Worker       │    │ Background Sync Event       │    │
+│  │ sync event fires     │───▶│ - Fetch fresh data          │    │
+│  └──────────────────────┘    │ - Update cache              │    │
+│                               │ - Notify app                │    │
+│                               └─────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-مشکل خطای سرور:
-┌────────────────────────────────────────────┐
-│  قبل: خطای کلی "اتصال اینترنت را بررسی"    │
-│  بعد: تلاش مجدد خودکار (۲ بار)             │
-│       نمایش داده‌های کش در صورت خطا         │
-│       پیام خطای دقیق‌تر                     │
-└────────────────────────────────────────────┘
+---
 
-مشکل ترجمه:
-┌────────────────────────────────────────────┐
-│  قبل: "history.noContentDesc" نمایش داده   │
-│  بعد: "محتوایی برای نمایش وجود ندارد..."    │
-└────────────────────────────────────────────┘
+### نتایج مورد انتظار
+
+```text
+عملکرد روی سرور Liara:
+┌──────────────────────────────────────────────────────┐
+│  ✅ اتصال اولیه: تلاش مجدد خودکار (3 بار)           │
+│  ✅ قطع اتصال: نمایش داده‌های کش شده                │
+│  ✅ برگشت آنلاین: sync خودکار در پس‌زمینه           │
+│  ✅ شبکه کند: timeout مناسب + fallback             │
+└──────────────────────────────────────────────────────┘
+
+Background Sync:
+┌──────────────────────────────────────────────────────┐
+│  ✅ ثبت Periodic Sync (24 ساعته)                    │
+│  ✅ Sync دستی با یک کلیک                            │
+│  ✅ اعلان موفقیت sync                               │
+│  ✅ ذخیره timestamp آخرین sync                      │
+└──────────────────────────────────────────────────────┘
 ```
