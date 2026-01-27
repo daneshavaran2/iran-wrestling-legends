@@ -1,391 +1,220 @@
 
 
-## برنامه جامع: رفع مشکل بارگذاری تصاویر و افزودن فشرده‌سازی خودکار به پنل ادمین
+## برنامه جامع: نمایش حجم Storage، مقایسه فشرده‌سازی و رفع مشکل زوم تصاویر
 
 ---
 
 ### تشخیص مشکلات
 
-بررسی‌ها نشان می‌دهد که سه مشکل اصلی وجود دارد:
+#### 🔴 مشکل بحرانی: تصاویر زوم/برش شده
 
-#### 🔴 باگ بحرانی #1: در `useMediaUpload.ts` فایل اصلی آپلود می‌شود!
+از تصویر ارسالی مشخص است که عکس کشتی‌گیر بریده شده و فقط بخشی از بدن نمایش داده می‌شود. علت:
 
 ```typescript
-// خط 40 - باگ بحرانی:
-.upload(fileName, file, {   // ❌ file اصلی آپلود می‌شود!
+// src/components/ui/LazyImage.tsx - خط 91 و 105
+className="... object-cover ..."  // ❌ باعث برش تصویر می‌شود
 // باید باشد:
-.upload(fileName, processedFile, {   // ✅ فایل فشرده شده
+className="... object-contain ..."  // ✅ تصویر کامل نمایش داده می‌شود
 ```
 
-این باعث می‌شود که با وجود اجرای فشرده‌سازی، همچنان فایل اصلی (بدون فشرده‌سازی) آپلود شود.
-
-#### 🔴 باگ #2: تصاویر از Image Transform استفاده نمی‌کنند
-
-`WrestlerCard` تصویر را مستقیم از `image_url` می‌گیرد، بدون استفاده از `getOptimizedImageUrl`:
-
-```typescript
-// WrestlerCard.tsx
-<LazyImage
-  src={wrestler.image_url || undefined}  // ❌ URL اصلی
-  // باید باشد:
-  src={getOptimizedImageUrl(wrestler.image_url, { width: 400, quality: 70 })}
-/>
-```
-
-#### 🔴 باگ #3: فشرده‌سازی فقط برای BMP فعال است
-
-تابع `convertToWebP` فقط فایل‌های BMP را تبدیل می‌کند، اما برای JPEG/PNG حجیم هیچ کاری نمی‌کند.
+`object-cover` تصویر را طوری بزرگ می‌کند که کل container را پر کند، و بخش‌های اضافی را برش می‌دهد. برای تصاویر پرتره این باعث می‌شود صورت بریده شود.
 
 ---
 
 ### راه‌حل‌های پیشنهادی
 
-## بخش اول: رفع باگ بحرانی آپلود
+## بخش اول: رفع مشکل زوم/برش تصاویر
 
-### ۱.۱ اصلاح `src/hooks/useMediaUpload.ts`
+### ۱.۱ بروزرسانی `src/components/ui/LazyImage.tsx`
 
-```typescript
-// خط 38-43 - اصلاح
-const { data, error: uploadError } = await supabase.storage
-  .from(bucket)
-  .upload(fileName, processedFile, {  // ✅ تغییر از file به processedFile
-    cacheControl: '3600',
-    upsert: false,
-  });
-```
-
----
-
-## بخش دوم: بهبود فشرده‌سازی خودکار
-
-### ۲.۱ بروزرسانی `src/utils/imageCompressor.ts`
-
-افزودن فشرده‌سازی تمام تصاویر (نه فقط BMP):
+تغییر از `object-cover` به `object-contain` با پس‌زمینه مناسب:
 
 ```typescript
-/**
- * فشرده‌سازی و تبدیل همه تصاویر به WebP
- * کاهش حجم تا ۸۰٪
- */
-export async function optimizeImage(
-  file: File,
-  options: {
-    maxWidth?: number;
-    maxHeight?: number;
-    quality?: number;
-    outputFormat?: 'webp' | 'jpeg';
-  } = {}
-): Promise<File> {
-  const {
-    maxWidth = 1920,
-    maxHeight = 1080,
-    quality = 0.82,
-    outputFormat = 'webp'
-  } = options;
+// تغییر کلاس‌های thumbnail
+<img
+  src={thumbnailSrc}
+  className={cn(
+    'absolute inset-0 w-full h-full object-contain bg-muted/30 ...'
+    //                              ^^^^^^^^^^^^^^ تصویر کامل
+  )}
+/>
 
-  // فقط تصاویر را پردازش کن
-  if (!file.type.startsWith('image/')) {
-    return file;
-  }
-
-  // برای فایل‌های کوچک (زیر 200KB) نیازی نیست
-  if (file.size < 200 * 1024) {
-    return file;
-  }
-
-  return new Promise((resolve) => {
-    const img = new Image();
-    const canvas = document.createElement('canvas');
-    
-    img.onload = () => {
-      URL.revokeObjectURL(img.src);
-      
-      let { width, height } = img;
-      
-      // محاسبه ابعاد جدید
-      if (width > maxWidth || height > maxHeight) {
-        const ratio = Math.min(maxWidth / width, maxHeight / height);
-        width = Math.round(width * ratio);
-        height = Math.round(height * ratio);
-      }
-      
-      canvas.width = width;
-      canvas.height = height;
-      
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        resolve(file);
-        return;
-      }
-      
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, 0, 0, width, height);
-      
-      const mimeType = outputFormat === 'webp' ? 'image/webp' : 'image/jpeg';
-      
-      canvas.toBlob(
-        (blob) => {
-          if (!blob || blob.size >= file.size) {
-            resolve(file);
-            return;
-          }
-          
-          const newExt = outputFormat === 'webp' ? '.webp' : '.jpg';
-          const newName = file.name.replace(/\.[^.]+$/, newExt);
-          
-          const optimizedFile = new File([blob], newName, {
-            type: mimeType,
-            lastModified: Date.now(),
-          });
-          
-          console.log(`✅ فشرده‌سازی: ${file.name} (${(file.size / 1024).toFixed(0)}KB) → ${newName} (${(blob.size / 1024).toFixed(0)}KB)`);
-          
-          resolve(optimizedFile);
-        },
-        mimeType,
-        quality
-      );
-    };
-    
-    img.onerror = () => {
-      URL.revokeObjectURL(img.src);
-      resolve(file);
-    };
-    
-    img.src = URL.createObjectURL(file);
-  });
-}
-```
-
----
-
-## بخش سوم: استفاده از Image Transform در کارت‌ها
-
-### ۳.۱ بروزرسانی `src/components/WrestlerCard.tsx`
-
-```typescript
-import { getThumbnailUrl, getTinyThumbnailUrl } from '@/utils/imageOptimizer';
-
-// در بخش رندر:
-<LazyImage
-  src={getThumbnailUrl(wrestler.image_url)}  // 400px, quality 60
-  thumbnailSrc={getTinyThumbnailUrl(wrestler.image_url)}  // 150px برای بارگذاری سریع
-  alt={wrestler.name}
-  className="w-full h-full transition-transform duration-500 group-hover:scale-110"
+// تغییر کلاس‌های تصویر اصلی
+<img
+  src={imageSrc}
+  className={cn(
+    'w-full h-full object-contain bg-muted/20 ...'
+    //             ^^^^^^^^^^^^^^ تصویر کامل
+  )}
 />
 ```
 
-### ۳.۲ بروزرسانی `src/components/ui/LazyImage.tsx`
-
-افزودن Progressive Loading با retry:
+### ۱.۲ افزودن prop برای انتخاب حالت نمایش
 
 ```typescript
-// افزودن retry mechanism
-const [retryCount, setRetryCount] = useState(0);
-const MAX_RETRIES = 3;
+interface LazyImageProps {
+  // ...existing props
+  /** نحوه نمایش: contain (کامل) یا cover (پر کردن) */
+  objectFit?: 'contain' | 'cover';
+}
 
-const handleError = () => {
-  if (retryCount < MAX_RETRIES) {
-    setRetryCount(prev => prev + 1);
-    setIsLoaded(false);
-    // اضافه کردن cache-busting
-    setTimeout(() => {
-      const newSrc = `${imageSrc}${imageSrc.includes('?') ? '&' : '?'}retry=${retryCount + 1}`;
-      // reload با URL جدید
-    }, 500 * (retryCount + 1));
-  } else {
-    setHasError(true);
-    setIsLoaded(true);
-  }
-};
+// استفاده:
+<LazyImage
+  src={...}
+  objectFit="contain"  // نمایش کامل تصویر
+/>
 ```
 
 ---
 
-## بخش چهارم: نمایش وضعیت فشرده‌سازی در پنل ادمین
+## بخش دوم: نمایش حجم Storage در داشبورد ادمین
 
-### ۴.۱ بروزرسانی `src/hooks/useMediaUpload.ts`
+### ۲.۱ وضعیت فعلی Storage
+
+بررسی دیتابیس نشان می‌دهد:
+
+| Bucket | حجم فعلی |
+|--------|----------|
+| wrestler-media | 239.30 MB |
+| album-media | 35.84 MB |
+| building-media | 7.52 MB |
+| **مجموع** | **~283 MB** |
+
+### ۲.۲ ایجاد Hook برای دریافت آمار Storage
 
 ```typescript
-interface UploadProgress {
-  fileName: string;
-  progress: number;
-  status?: 'processing' | 'compressing' | 'uploading' | 'complete';
-  originalSize?: number;
-  compressedSize?: number;
+// src/hooks/useStorageStats.ts
+
+interface StorageStats {
+  buckets: {
+    name: string;
+    sizeBytes: number;
+    sizeMB: number;
+    fileCount: number;
+  }[];
+  totalSizeBytes: number;
+  totalSizeMB: number;
+  totalFiles: number;
+  isLoading: boolean;
+  error: string | null;
 }
 
-const uploadFile = async (file: File, folderId: string, bucket: string = 'wrestler-media'): Promise<string> => {
-  setIsUploading(true);
-  setError(null);
-
-  try {
-    const originalSize = file.size;
-    
-    setUploadProgress(prev => [...prev, { 
-      fileName: file.name, 
-      progress: 0, 
-      status: 'compressing',
-      originalSize 
-    }]);
-
-    // فشرده‌سازی تصویر
-    const processedFile = await optimizeImage(file, {
-      maxWidth: 1920,
-      maxHeight: 1080,
-      quality: 0.82,
-      outputFormat: 'webp'
-    });
-    
-    const compressedSize = processedFile.size;
-    const compressionRatio = Math.round((1 - compressedSize / originalSize) * 100);
-
-    // بروزرسانی پیشرفت
-    setUploadProgress(prev => 
-      prev.map(p => p.fileName === file.name ? { 
-        ...p, 
-        progress: 30, 
-        status: 'uploading',
-        compressedSize 
-      } : p)
-    );
-
-    const fileExt = processedFile.name.split('.').pop();
-    const fileName = `${folderId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-    const { data, error: uploadError } = await supabase.storage
-      .from(bucket)
-      .upload(fileName, processedFile, {  // ✅ فایل فشرده شده
-        cacheControl: '31536000', // 1 year cache
-        upsert: false,
-      });
-
-    if (uploadError) throw uploadError;
-
-    setUploadProgress(prev => 
-      prev.map(p => p.fileName === file.name ? { 
-        ...p, 
-        progress: 100, 
-        status: 'complete' 
-      } : p)
-    );
-
-    // نمایش نتیجه
-    console.log(`✅ آپلود موفق: ${file.name} | کاهش ${compressionRatio}% (${(originalSize / 1024).toFixed(0)}KB → ${(compressedSize / 1024).toFixed(0)}KB)`);
-
-    const { data: urlData } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(data.path);
-
-    return urlData.publicUrl;
-  } catch (err: any) {
-    // ...
-  }
-};
+export function useStorageStats(): StorageStats {
+  // محاسبه حجم هر bucket با استفاده از list API
+  // ...
+}
 ```
 
-### ۴.۲ بروزرسانی `src/components/UploadDropzone.tsx`
-
-نمایش اطلاعات فشرده‌سازی:
+### ۲.۳ بروزرسانی داشبورد ادمین
 
 ```typescript
-// در بخش Upload Progress
-{uploadProgress.map((item, index) => (
-  <div key={index} className="glass-card p-3">
-    <div className="flex items-center justify-between text-sm mb-2">
-      <span className="truncate">{item.fileName}</span>
-      <div className="flex items-center gap-2">
-        {item.status === 'compressing' && (
-          <span className="text-yellow-500 text-xs">فشرده‌سازی...</span>
-        )}
-        {item.compressedSize && item.originalSize && (
-          <span className="text-green-500 text-xs">
-            {Math.round((1 - item.compressedSize / item.originalSize) * 100)}% کاهش
-          </span>
-        )}
-        <span className="text-primary">{item.progress}%</span>
+// src/pages/admin/AdminDashboardPage.tsx
+
+// افزودن کارت Storage
+<GlassCard className="p-6">
+  <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+    <HardDrive className="h-5 w-5 text-primary" />
+    فضای ذخیره‌سازی
+  </h2>
+  
+  {/* نوار پیشرفت برای هر bucket */}
+  <div className="space-y-3">
+    {storageStats.buckets.map(bucket => (
+      <div key={bucket.name}>
+        <div className="flex justify-between text-sm mb-1">
+          <span>{bucket.name}</span>
+          <span>{bucket.sizeMB.toFixed(1)} MB</span>
+        </div>
+        <Progress value={(bucket.sizeMB / storageStats.totalSizeMB) * 100} />
       </div>
+    ))}
+  </div>
+  
+  <div className="mt-4 pt-4 border-t">
+    <div className="text-2xl font-bold text-primary">
+      {storageStats.totalSizeMB.toFixed(1)} MB
     </div>
-    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-      <div 
-        className={cn(
-          "h-full rounded-full transition-all duration-300",
-          item.status === 'compressing' ? 'bg-yellow-500' : 'bg-primary'
-        )}
-        style={{ width: `${item.progress}%` }}
-      />
+    <div className="text-sm text-muted-foreground">
+      مجموع فضای استفاده شده
     </div>
   </div>
-))}
+</GlassCard>
 ```
 
 ---
 
-## بخش پنجم: تنظیمات فشرده‌سازی در پنل ادمین
+## بخش سوم: مقایسه قبل/بعد فشرده‌سازی
 
-### ۵.۱ افزودن کامپوننت تنظیمات فشرده‌سازی
+### ۳.۱ افزودن ذخیره تاریخچه به CompressionSettings
 
 ```typescript
-// src/components/admin/CompressionSettings.tsx
-
-interface CompressionSettingsProps {
-  onSettingsChange: (settings: CompressionOptions) => void;
+// ذخیره نتایج هر فشرده‌سازی در localStorage
+interface CompressionHistory {
+  timestamp: string;
+  bucket: string;
+  originalSize: number;
+  compressedSize: number;
+  savedBytes: number;
+  filesProcessed: number;
 }
 
-export function CompressionSettings({ onSettingsChange }: CompressionSettingsProps) {
-  const [quality, setQuality] = useState(82);
-  const [maxWidth, setMaxWidth] = useState(1920);
-  const [format, setFormat] = useState<'webp' | 'jpeg'>('webp');
+const COMPRESSION_HISTORY_KEY = 'compression_history';
 
-  return (
-    <div className="glass-card p-4 space-y-4">
-      <h4 className="font-medium flex items-center gap-2">
-        <Settings className="h-4 w-4" />
-        تنظیمات فشرده‌سازی خودکار
-      </h4>
-      
-      <div className="space-y-3">
-        <div>
-          <label className="text-sm text-muted-foreground">کیفیت: {quality}%</label>
-          <Slider 
-            value={[quality]} 
-            onValueChange={([v]) => setQuality(v)}
-            min={50} 
-            max={95} 
-            step={5}
-          />
-        </div>
-        
-        <div>
-          <label className="text-sm text-muted-foreground">حداکثر عرض: {maxWidth}px</label>
-          <Slider 
-            value={[maxWidth]} 
-            onValueChange={([v]) => setMaxWidth(v)}
-            min={800} 
-            max={2560} 
-            step={160}
-          />
-        </div>
-        
-        <div className="flex gap-2">
-          <button 
-            onClick={() => setFormat('webp')}
-            className={cn('px-3 py-1 rounded', format === 'webp' ? 'gold-button' : 'liquid-button')}
-          >
-            WebP (کوچکتر)
-          </button>
-          <button 
-            onClick={() => setFormat('jpeg')}
-            className={cn('px-3 py-1 rounded', format === 'jpeg' ? 'gold-button' : 'liquid-button')}
-          >
-            JPEG (سازگار)
-          </button>
-        </div>
+// نمایش کارت مقایسه:
+<GlassCard className="p-4 bg-green-500/10 border-green-500/30">
+  <h4 className="font-medium text-green-500 flex items-center gap-2">
+    <CheckCircle className="h-4 w-4" />
+    صرفه‌جویی کل
+  </h4>
+  <div className="mt-2 grid grid-cols-3 gap-4 text-center">
+    <div>
+      <div className="text-lg font-bold text-muted-foreground">
+        {formatBytes(totalOriginal)}
       </div>
+      <div className="text-xs text-muted-foreground">قبل</div>
     </div>
-  );
-}
+    <div>
+      <div className="text-2xl">→</div>
+    </div>
+    <div>
+      <div className="text-lg font-bold text-green-500">
+        {formatBytes(totalCompressed)}
+      </div>
+      <div className="text-xs text-muted-foreground">بعد</div>
+    </div>
+  </div>
+  <div className="mt-2 text-center text-green-500 font-bold">
+    {Math.round((1 - totalCompressed / totalOriginal) * 100)}% کاهش حجم
+  </div>
+</GlassCard>
+```
+
+---
+
+## بخش چهارم: بهبود فشرده‌سازی دسته‌ای
+
+### ۴.۱ افزودن دکمه "فشرده‌سازی همه"
+
+```typescript
+// یک دکمه برای اجرای فشرده‌سازی روی تمام buckets
+<Button
+  onClick={handleCompressAll}
+  disabled={batchProgress.isRunning}
+  className="w-full gold-button"
+>
+  <Zap className="h-4 w-4 ml-2" />
+  فشرده‌سازی تمام تصاویر
+</Button>
+```
+
+### ۴.۲ نمایش آمار پیشرفت بهتر
+
+```typescript
+// افزودن ETA و سرعت
+<div className="text-sm text-muted-foreground">
+  ⏱️ زمان تخمینی: {formatTime(estimatedTime)}
+  📊 سرعت: {(processedPerSecond).toFixed(1)} فایل/ثانیه
+</div>
 ```
 
 ---
@@ -394,34 +223,34 @@ export function CompressionSettings({ onSettingsChange }: CompressionSettingsPro
 
 | فایل | تغییر | اولویت |
 |------|-------|--------|
-| `src/hooks/useMediaUpload.ts` | رفع باگ: آپلود `processedFile` به جای `file` | 🔴 بحرانی |
-| `src/utils/imageCompressor.ts` | افزودن تابع `optimizeImage` برای همه فرمت‌ها | 🔴 مهم |
-| `src/components/WrestlerCard.tsx` | استفاده از `getThumbnailUrl` | 🟠 مهم |
-| `src/components/ui/LazyImage.tsx` | Progressive loading + retry | 🟡 بهبود |
-| `src/components/UploadDropzone.tsx` | نمایش اطلاعات فشرده‌سازی | 🟡 بهبود |
-| `src/components/admin/CompressionSettings.tsx` | تنظیمات قابل تغییر | 🟢 اختیاری |
+| `src/components/ui/LazyImage.tsx` | تغییر `object-cover` به `object-contain` | 🔴 بحرانی |
+| `src/hooks/useStorageStats.ts` | ایجاد hook برای آمار storage | 🟠 مهم |
+| `src/pages/admin/AdminDashboardPage.tsx` | افزودن کارت فضای ذخیره‌سازی | 🟠 مهم |
+| `src/components/admin/CompressionSettings.tsx` | افزودن تاریخچه و مقایسه قبل/بعد | 🟡 بهبود |
 
 ---
 
 ## نتایج مورد انتظار
 
 ```text
-قبل از اصلاح:
+مشکل زوم تصویر:
 ┌────────────────────────────────────────┐
-│  تصویر 5MB JPEG → آپلود 5MB           │
-│  زمان بارگذاری: 5-10 ثانیه (LTE)      │
-│  صفحه خالی در موبایل                   │
+│  قبل: فقط سینه و مدال نمایش داده شد   │
+│  بعد: تصویر کامل از سر تا کمر          │
 └────────────────────────────────────────┘
 
-بعد از اصلاح:
+داشبورد ادمین:
 ┌────────────────────────────────────────┐
-│  تصویر 5MB JPEG → آپلود 400KB WebP    │
-│  نمایش: 150px thumbnail (20KB)         │
-│  زمان بارگذاری: <1 ثانیه               │
-│  Progressive: blur → sharp             │
+│  📊 فضای ذخیره‌سازی                     │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
+│  wrestler-media  ████████████░░ 239 MB │
+│  album-media     ██░░░░░░░░░░░░  36 MB │
+│  building-media  █░░░░░░░░░░░░░   8 MB │
+│  ────────────────────────────────────  │
+│  مجموع: 283 MB                         │
+│                                         │
+│  📉 صرفه‌جویی از فشرده‌سازی:            │
+│  500 MB → 283 MB (43% کاهش)            │
 └────────────────────────────────────────┘
-
-کاهش حجم: ~90%
-افزایش سرعت: ~10x
 ```
 
