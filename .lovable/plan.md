@@ -1,395 +1,427 @@
 
-## برنامه جامع: بهینه‌سازی عملکرد ۱۰ برابری، تست Streaming و انتقال کامل به سرور مستقل
+
+## برنامه جامع: رفع مشکل بارگذاری تصاویر و افزودن فشرده‌سازی خودکار به پنل ادمین
 
 ---
 
-### خلاصه اجرایی
+### تشخیص مشکلات
 
-این برنامه شامل ۵ بخش اصلی است:
-1. تست و تأیید عملکرد Streaming دستیار هوشمند
-2. بهینه‌سازی ۱۰ برابری سرعت بارگذاری
-3. حذف لگ در Drag & Drop و انتقالات
-4. اطمینان از انتقال کامل دیتابیس و بک‌اند
-5. رفع مشکلات احتمالی Deploy
+بررسی‌ها نشان می‌دهد که سه مشکل اصلی وجود دارد:
 
----
-
-## بخش اول: تست و تأیید عملکرد Streaming
-
-### نتایج تست Edge Function:
-
-```text
-✅ museum-assistant Edge Function
-├── Status: 200 OK
-├── Content-Type: text/event-stream (Streaming فعال)
-├── Model: google/gemini-2.5-flash-lite (سریع‌ترین)
-├── Response Time: <1 ثانیه (اولین توکن)
-└── Full Response: ~2 ثانیه
-```
-
-### معماری فعلی Streaming:
-
-```
-┌─────────────────┐     POST /museum-assistant      ┌──────────────────────┐
-│   Frontend      │ ─────────────────────────────▶  │  Edge Function       │
-│  ChatAssistant  │                                 │  (Deno Runtime)      │
-└────────┬────────┘                                 └──────────┬───────────┘
-         │                                                     │
-         │  ◀──── text/event-stream ────                       │
-         │        data: {"choices":[...]}                      │
-         ▼                                                     ▼
-┌─────────────────┐                                 ┌──────────────────────┐
-│  ReadableStream │                                 │  Lovable AI Gateway  │
-│  + TextDecoder  │                                 │  gemini-2.5-flash    │
-└─────────────────┘                                 └──────────────────────┘
-```
-
----
-
-## بخش دوم: بهینه‌سازی ۱۰ برابری سرعت
-
-### ۲.۱ فهرست بهینه‌سازی‌های موجود
-
-| لایه | بهینه‌سازی | وضعیت |
-|------|-----------|-------|
-| Frontend | Lazy Loading صفحات | ✅ فعال |
-| Frontend | Progressive Image Loading | ✅ فعال |
-| Frontend | Supabase Image Transform | ✅ فعال |
-| Frontend | React Query Cache (5 دقیقه) | ✅ فعال |
-| Backend | Streaming AI Responses | ✅ فعال |
-| Offline | Service Worker Caching | ✅ فعال |
-| Offline | localStorage Fallback | ✅ فعال |
-| Build | Code Splitting (vendor, ui, supabase) | ✅ فعال |
-
-### ۲.۲ بهینه‌سازی‌های جدید لازم
-
-#### A. بهینه‌سازی Context Providers (کاهش Re-render)
+#### 🔴 باگ بحرانی #1: در `useMediaUpload.ts` فایل اصلی آپلود می‌شود!
 
 ```typescript
-// src/contexts/WrestlerContext.tsx - افزودن useMemo
-
-const value = useMemo(() => ({
-  wrestlers,
-  achievements,
-  media,
-  isLoading,
-  error,
-  isOffline,
-  refreshWrestlers,
-  getWrestlerById,
-  getVisibleWrestlers,
-  getAchievementsByWrestlerId,
-  getMediaByWrestlerId,
-  // ... rest
-}), [wrestlers, achievements, media, isLoading, error, isOffline]);
+// خط 40 - باگ بحرانی:
+.upload(fileName, file, {   // ❌ file اصلی آپلود می‌شود!
+// باید باشد:
+.upload(fileName, processedFile, {   // ✅ فایل فشرده شده
 ```
 
-#### B. بهینه‌سازی Parallel Data Fetching
+این باعث می‌شود که با وجود اجرای فشرده‌سازی، همچنان فایل اصلی (بدون فشرده‌سازی) آپلود شود.
+
+#### 🔴 باگ #2: تصاویر از Image Transform استفاده نمی‌کنند
+
+`WrestlerCard` تصویر را مستقیم از `image_url` می‌گیرد، بدون استفاده از `getOptimizedImageUrl`:
 
 ```typescript
-// src/contexts/OfflineDataContext.tsx - Concurrent Fetching با AbortController
+// WrestlerCard.tsx
+<LazyImage
+  src={wrestler.image_url || undefined}  // ❌ URL اصلی
+  // باید باشد:
+  src={getOptimizedImageUrl(wrestler.image_url, { width: 400, quality: 70 })}
+/>
+```
 
-const refreshAllData = useCallback(async () => {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10000);
-  
-  try {
-    await Promise.allSettled([
-      refreshHistory(),
-      refreshBuildings(),
-      refreshBooks(),
-      refreshAlbums(),
-    ]);
-  } finally {
-    clearTimeout(timeout);
+#### 🔴 باگ #3: فشرده‌سازی فقط برای BMP فعال است
+
+تابع `convertToWebP` فقط فایل‌های BMP را تبدیل می‌کند، اما برای JPEG/PNG حجیم هیچ کاری نمی‌کند.
+
+---
+
+### راه‌حل‌های پیشنهادی
+
+## بخش اول: رفع باگ بحرانی آپلود
+
+### ۱.۱ اصلاح `src/hooks/useMediaUpload.ts`
+
+```typescript
+// خط 38-43 - اصلاح
+const { data, error: uploadError } = await supabase.storage
+  .from(bucket)
+  .upload(fileName, processedFile, {  // ✅ تغییر از file به processedFile
+    cacheControl: '3600',
+    upsert: false,
+  });
+```
+
+---
+
+## بخش دوم: بهبود فشرده‌سازی خودکار
+
+### ۲.۱ بروزرسانی `src/utils/imageCompressor.ts`
+
+افزودن فشرده‌سازی تمام تصاویر (نه فقط BMP):
+
+```typescript
+/**
+ * فشرده‌سازی و تبدیل همه تصاویر به WebP
+ * کاهش حجم تا ۸۰٪
+ */
+export async function optimizeImage(
+  file: File,
+  options: {
+    maxWidth?: number;
+    maxHeight?: number;
+    quality?: number;
+    outputFormat?: 'webp' | 'jpeg';
+  } = {}
+): Promise<File> {
+  const {
+    maxWidth = 1920,
+    maxHeight = 1080,
+    quality = 0.82,
+    outputFormat = 'webp'
+  } = options;
+
+  // فقط تصاویر را پردازش کن
+  if (!file.type.startsWith('image/')) {
+    return file;
   }
-  
-  setLastSyncTime(new Date());
-}, [...]);
-```
 
-#### C. افزودن Prefetch برای صفحات
+  // برای فایل‌های کوچک (زیر 200KB) نیازی نیست
+  if (file.size < 200 * 1024) {
+    return file;
+  }
 
-```typescript
-// src/App.tsx - Prefetch Routes
-
-import { useEffect } from 'react';
-
-// در App component
-useEffect(() => {
-  // Prefetch critical routes after initial load
-  const prefetchTimeout = setTimeout(() => {
-    import('./pages/WrestlersListPage');
-    import('./pages/AlbumsListPage');
-  }, 2000);
-  
-  return () => clearTimeout(prefetchTimeout);
-}, []);
-```
-
-#### D. بهینه‌سازی Service Worker
-
-```javascript
-// public/sw.js - افزودن Navigation Preload
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    (async () => {
-      // Enable navigation preload
-      if (self.registration.navigationPreload) {
-        await self.registration.navigationPreload.enable();
+  return new Promise((resolve) => {
+    const img = new Image();
+    const canvas = document.createElement('canvas');
+    
+    img.onload = () => {
+      URL.revokeObjectURL(img.src);
+      
+      let { width, height } = img;
+      
+      // محاسبه ابعاد جدید
+      if (width > maxWidth || height > maxHeight) {
+        const ratio = Math.min(maxWidth / width, maxHeight / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
       }
-      // ... existing code
-    })()
-  );
-});
-```
-
----
-
-## بخش سوم: حذف لگ در Drag & Drop
-
-### ۳.۱ مشکلات شناسایی شده
-
-از console logs:
-```
-Warning: Function components cannot be given refs
-- ChatAssistant
-- FloatingIconWithSparks
-```
-
-### ۳.۲ رفع مشکل Ref برای کامپوننت‌ها
-
-```typescript
-// src/components/ChatAssistant.tsx
-// اضافه کردن forwardRef
-
-import { forwardRef } from 'react';
-
-export const ChatAssistant = forwardRef<HTMLDivElement, {}>((props, ref) => {
-  // ... existing code
-});
-
-ChatAssistant.displayName = 'ChatAssistant';
-```
-
-```typescript
-// src/components/ui/FloatingIconWithSparks.tsx
-// اضافه کردن forwardRef
-
-export const FloatingIconWithSparks = forwardRef<HTMLButtonElement, Props>(
-  ({ children, onClick, className, title }, ref) => {
-    return (
-      <button ref={ref} onClick={onClick} className={className} title={title}>
-        {children}
-      </button>
-    );
-  }
-);
-
-FloatingIconWithSparks.displayName = 'FloatingIconWithSparks';
-```
-
-### ۳.۳ بهینه‌سازی dnd-kit
-
-```typescript
-// برای SortableItem.tsx - افزودن useDndMonitor برای performance
-
-import { useDndMonitor } from '@dnd-kit/core';
-
-// کاهش update frequency
-const sensors = useSensors(
-  useSensor(PointerSensor, {
-    activationConstraint: {
-      distance: 8, // Minimum drag distance
-    },
-  }),
-  useSensor(TouchSensor, {
-    activationConstraint: {
-      delay: 200,
-      tolerance: 5,
-    },
-  })
-);
-```
-
----
-
-## بخش چهارم: انتقال کامل به سرور مستقل
-
-### ۴.۱ معماری انتقال
-
-```
-┌────────────────────────────────────────────────────────────────┐
-│                     سرور مستقل (Liara, VPS, etc.)              │
-├────────────────────────────────────────────────────────────────┤
-│  ┌──────────────────┐    ┌──────────────────┐                  │
-│  │   Nginx/Apache   │ ◀─ │   dist/ فایل‌ها  │                  │
-│  │   (Static Host)  │    │   (HTML/JS/CSS)  │                  │
-│  └────────┬─────────┘    └──────────────────┘                  │
-│           │                                                     │
-│           │  همه درخواست‌های API                               │
-│           ▼                                                     │
-└───────────┼────────────────────────────────────────────────────┘
-            │
-            │  HTTPS (اینترنت)
-            ▼
-┌────────────────────────────────────────────────────────────────┐
-│                Supabase Cloud (بدون تغییر)                     │
-├────────────────────────────────────────────────────────────────┤
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
-│  │   Database   │  │   Storage    │  │   Edge Functions     │  │
-│  │  PostgreSQL  │  │   Buckets    │  │   museum-assistant   │  │
-│  └──────────────┘  └──────────────┘  │   generate-thumbnail │  │
-│                                       └──────────────────────┘  │
-│  URL: etbekvhdroqiddcteqdq.supabase.co                         │
-└────────────────────────────────────────────────────────────────┘
-```
-
-### ۴.۲ فایل‌های کلیدی برای انتقال
-
-```
-src/lib/supabase.ts ─▶ Fallback Credentials (✅ موجود)
-│
-├── FALLBACK_URL = 'https://etbekvhdroqiddcteqdq.supabase.co'
-└── FALLBACK_KEY = 'eyJhbGciOiJIUzI1NiIs...'
-
-نتیجه: بدون تنظیم .env هم کار می‌کند
-```
-
-### ۴.۳ چک‌لیست انتقال
-
-| مرحله | عملیات | وضعیت |
-|-------|--------|-------|
-| 1 | Clone از GitHub | 📋 انجام شود |
-| 2 | npm install | 📋 انجام شود |
-| 3 | npm run build | 📋 انجام شود |
-| 4 | آپلود dist/ | 📋 انجام شود |
-| 5 | تنظیم CORS در Supabase | ✅ اتوماتیک (origin: *) |
-| 6 | تست اتصال | 📋 انجام شود |
-
-### ۴.۴ تنظیمات Nginx پیشنهادی
-
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-    root /var/www/museum/dist;
-    index index.html;
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(file);
+        return;
+      }
+      
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      const mimeType = outputFormat === 'webp' ? 'image/webp' : 'image/jpeg';
+      
+      canvas.toBlob(
+        (blob) => {
+          if (!blob || blob.size >= file.size) {
+            resolve(file);
+            return;
+          }
+          
+          const newExt = outputFormat === 'webp' ? '.webp' : '.jpg';
+          const newName = file.name.replace(/\.[^.]+$/, newExt);
+          
+          const optimizedFile = new File([blob], newName, {
+            type: mimeType,
+            lastModified: Date.now(),
+          });
+          
+          console.log(`✅ فشرده‌سازی: ${file.name} (${(file.size / 1024).toFixed(0)}KB) → ${newName} (${(blob.size / 1024).toFixed(0)}KB)`);
+          
+          resolve(optimizedFile);
+        },
+        mimeType,
+        quality
+      );
+    };
     
-    # Gzip compression for 10x faster loading
-    gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml image/svg+xml;
-    gzip_min_length 256;
+    img.onerror = () => {
+      URL.revokeObjectURL(img.src);
+      resolve(file);
+    };
     
-    # Cache static assets
-    location ~* \.(js|css|png|jpg|jpeg|gif|webp|ico|svg|woff2)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-    
-    # SPA fallback
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
+    img.src = URL.createObjectURL(file);
+  });
 }
 ```
 
 ---
 
-## بخش پنجم: رفع مشکلات Deploy
+## بخش سوم: استفاده از Image Transform در کارت‌ها
 
-### ۵.۱ مشکلات رایج و راه‌حل‌ها
+### ۳.۱ بروزرسانی `src/components/WrestlerCard.tsx`
 
-| مشکل | علت | راه‌حل |
-|------|-----|--------|
-| داده نمایش داده نمی‌شود | RLS Policy | ✅ همه جداول public read دارند |
-| Session از بین می‌رود | Cookie issue | ✅ persistSession: true فعال |
-| تصاویر لود نمی‌شوند | CORS | ✅ Storage buckets public هستند |
-| Edge Function fail | LOVABLE_API_KEY | ✅ Secret تنظیم شده |
+```typescript
+import { getThumbnailUrl, getTinyThumbnailUrl } from '@/utils/imageOptimizer';
 
-### ۵.۲ بررسی RLS Policies
-
-```sql
--- همه جداول public SELECT دارند:
--- wrestlers: ✅ "Public can view wrestlers" → USING (true)
--- albums: ✅ "Public can view albums" → USING (true)
--- buildings: ✅ "Public can view buildings" → USING (true)
--- books: ✅ "Public can view books" → USING (true)
--- history_sections: ✅ "Public can view history_sections" → USING (true)
+// در بخش رندر:
+<LazyImage
+  src={getThumbnailUrl(wrestler.image_url)}  // 400px, quality 60
+  thumbnailSrc={getTinyThumbnailUrl(wrestler.image_url)}  // 150px برای بارگذاری سریع
+  alt={wrestler.name}
+  className="w-full h-full transition-transform duration-500 group-hover:scale-110"
+/>
 ```
 
-### ۵.۳ بررسی Storage Buckets
+### ۳.۲ بروزرسانی `src/components/ui/LazyImage.tsx`
 
-```
-✅ wrestler-media: Public
-✅ museum-audio: Public
-✅ building-media: Public
-✅ album-media: Public
+افزودن Progressive Loading با retry:
+
+```typescript
+// افزودن retry mechanism
+const [retryCount, setRetryCount] = useState(0);
+const MAX_RETRIES = 3;
+
+const handleError = () => {
+  if (retryCount < MAX_RETRIES) {
+    setRetryCount(prev => prev + 1);
+    setIsLoaded(false);
+    // اضافه کردن cache-busting
+    setTimeout(() => {
+      const newSrc = `${imageSrc}${imageSrc.includes('?') ? '&' : '?'}retry=${retryCount + 1}`;
+      // reload با URL جدید
+    }, 500 * (retryCount + 1));
+  } else {
+    setHasError(true);
+    setIsLoaded(true);
+  }
+};
 ```
 
 ---
 
-## خلاصه تغییرات لازم
+## بخش چهارم: نمایش وضعیت فشرده‌سازی در پنل ادمین
 
-| فایل | نوع | توضیحات |
-|------|-----|---------|
-| `src/contexts/WrestlerContext.tsx` | بروزرسانی | افزودن useMemo برای value |
-| `src/contexts/OfflineDataContext.tsx` | بروزرسانی | بهینه‌سازی parallel fetching |
-| `src/components/ChatAssistant.tsx` | بروزرسانی | اضافه کردن forwardRef |
-| `src/components/ui/FloatingIconWithSparks.tsx` | بروزرسانی | اضافه کردن forwardRef |
-| `public/sw.js` | بروزرسانی | Navigation Preload |
-| `src/App.tsx` | بروزرسانی | Prefetch critical routes |
-| `DEPLOYMENT.md` | بروزرسانی | افزودن Nginx config |
+### ۴.۱ بروزرسانی `src/hooks/useMediaUpload.ts`
+
+```typescript
+interface UploadProgress {
+  fileName: string;
+  progress: number;
+  status?: 'processing' | 'compressing' | 'uploading' | 'complete';
+  originalSize?: number;
+  compressedSize?: number;
+}
+
+const uploadFile = async (file: File, folderId: string, bucket: string = 'wrestler-media'): Promise<string> => {
+  setIsUploading(true);
+  setError(null);
+
+  try {
+    const originalSize = file.size;
+    
+    setUploadProgress(prev => [...prev, { 
+      fileName: file.name, 
+      progress: 0, 
+      status: 'compressing',
+      originalSize 
+    }]);
+
+    // فشرده‌سازی تصویر
+    const processedFile = await optimizeImage(file, {
+      maxWidth: 1920,
+      maxHeight: 1080,
+      quality: 0.82,
+      outputFormat: 'webp'
+    });
+    
+    const compressedSize = processedFile.size;
+    const compressionRatio = Math.round((1 - compressedSize / originalSize) * 100);
+
+    // بروزرسانی پیشرفت
+    setUploadProgress(prev => 
+      prev.map(p => p.fileName === file.name ? { 
+        ...p, 
+        progress: 30, 
+        status: 'uploading',
+        compressedSize 
+      } : p)
+    );
+
+    const fileExt = processedFile.name.split('.').pop();
+    const fileName = `${folderId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+    const { data, error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(fileName, processedFile, {  // ✅ فایل فشرده شده
+        cacheControl: '31536000', // 1 year cache
+        upsert: false,
+      });
+
+    if (uploadError) throw uploadError;
+
+    setUploadProgress(prev => 
+      prev.map(p => p.fileName === file.name ? { 
+        ...p, 
+        progress: 100, 
+        status: 'complete' 
+      } : p)
+    );
+
+    // نمایش نتیجه
+    console.log(`✅ آپلود موفق: ${file.name} | کاهش ${compressionRatio}% (${(originalSize / 1024).toFixed(0)}KB → ${(compressedSize / 1024).toFixed(0)}KB)`);
+
+    const { data: urlData } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(data.path);
+
+    return urlData.publicUrl;
+  } catch (err: any) {
+    // ...
+  }
+};
+```
+
+### ۴.۲ بروزرسانی `src/components/UploadDropzone.tsx`
+
+نمایش اطلاعات فشرده‌سازی:
+
+```typescript
+// در بخش Upload Progress
+{uploadProgress.map((item, index) => (
+  <div key={index} className="glass-card p-3">
+    <div className="flex items-center justify-between text-sm mb-2">
+      <span className="truncate">{item.fileName}</span>
+      <div className="flex items-center gap-2">
+        {item.status === 'compressing' && (
+          <span className="text-yellow-500 text-xs">فشرده‌سازی...</span>
+        )}
+        {item.compressedSize && item.originalSize && (
+          <span className="text-green-500 text-xs">
+            {Math.round((1 - item.compressedSize / item.originalSize) * 100)}% کاهش
+          </span>
+        )}
+        <span className="text-primary">{item.progress}%</span>
+      </div>
+    </div>
+    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+      <div 
+        className={cn(
+          "h-full rounded-full transition-all duration-300",
+          item.status === 'compressing' ? 'bg-yellow-500' : 'bg-primary'
+        )}
+        style={{ width: `${item.progress}%` }}
+      />
+    </div>
+  </div>
+))}
+```
 
 ---
 
-## جدول مقایسه عملکرد
+## بخش پنجم: تنظیمات فشرده‌سازی در پنل ادمین
+
+### ۵.۱ افزودن کامپوننت تنظیمات فشرده‌سازی
+
+```typescript
+// src/components/admin/CompressionSettings.tsx
+
+interface CompressionSettingsProps {
+  onSettingsChange: (settings: CompressionOptions) => void;
+}
+
+export function CompressionSettings({ onSettingsChange }: CompressionSettingsProps) {
+  const [quality, setQuality] = useState(82);
+  const [maxWidth, setMaxWidth] = useState(1920);
+  const [format, setFormat] = useState<'webp' | 'jpeg'>('webp');
+
+  return (
+    <div className="glass-card p-4 space-y-4">
+      <h4 className="font-medium flex items-center gap-2">
+        <Settings className="h-4 w-4" />
+        تنظیمات فشرده‌سازی خودکار
+      </h4>
+      
+      <div className="space-y-3">
+        <div>
+          <label className="text-sm text-muted-foreground">کیفیت: {quality}%</label>
+          <Slider 
+            value={[quality]} 
+            onValueChange={([v]) => setQuality(v)}
+            min={50} 
+            max={95} 
+            step={5}
+          />
+        </div>
+        
+        <div>
+          <label className="text-sm text-muted-foreground">حداکثر عرض: {maxWidth}px</label>
+          <Slider 
+            value={[maxWidth]} 
+            onValueChange={([v]) => setMaxWidth(v)}
+            min={800} 
+            max={2560} 
+            step={160}
+          />
+        </div>
+        
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setFormat('webp')}
+            className={cn('px-3 py-1 rounded', format === 'webp' ? 'gold-button' : 'liquid-button')}
+          >
+            WebP (کوچکتر)
+          </button>
+          <button 
+            onClick={() => setFormat('jpeg')}
+            className={cn('px-3 py-1 rounded', format === 'jpeg' ? 'gold-button' : 'liquid-button')}
+          >
+            JPEG (سازگار)
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+## خلاصه تغییرات
+
+| فایل | تغییر | اولویت |
+|------|-------|--------|
+| `src/hooks/useMediaUpload.ts` | رفع باگ: آپلود `processedFile` به جای `file` | 🔴 بحرانی |
+| `src/utils/imageCompressor.ts` | افزودن تابع `optimizeImage` برای همه فرمت‌ها | 🔴 مهم |
+| `src/components/WrestlerCard.tsx` | استفاده از `getThumbnailUrl` | 🟠 مهم |
+| `src/components/ui/LazyImage.tsx` | Progressive loading + retry | 🟡 بهبود |
+| `src/components/UploadDropzone.tsx` | نمایش اطلاعات فشرده‌سازی | 🟡 بهبود |
+| `src/components/admin/CompressionSettings.tsx` | تنظیمات قابل تغییر | 🟢 اختیاری |
+
+---
+
+## نتایج مورد انتظار
 
 ```text
-                        قبل از بهینه‌سازی    بعد از بهینه‌سازی
-                        ─────────────────    ─────────────────
-صفحه اصلی (TTI)         ~2.5 ثانیه          ~0.5 ثانیه
-لیست کشتی‌گیرها         ~1.8 ثانیه          ~0.3 ثانیه
-گالری آلبوم             ~3.0 ثانیه          ~0.5 ثانیه
-دستیار هوشمند (اولین)   ~3-5 ثانیه          <1 ثانیه
-Drag & Drop             با لگ               بدون لگ
-حالت آفلاین             ~500ms              ~50ms
+قبل از اصلاح:
+┌────────────────────────────────────────┐
+│  تصویر 5MB JPEG → آپلود 5MB           │
+│  زمان بارگذاری: 5-10 ثانیه (LTE)      │
+│  صفحه خالی در موبایل                   │
+└────────────────────────────────────────┘
 
-بهبود کلی: ~5-10x سریع‌تر
+بعد از اصلاح:
+┌────────────────────────────────────────┐
+│  تصویر 5MB JPEG → آپلود 400KB WebP    │
+│  نمایش: 150px thumbnail (20KB)         │
+│  زمان بارگذاری: <1 ثانیه               │
+│  Progressive: blur → sharp             │
+└────────────────────────────────────────┘
+
+کاهش حجم: ~90%
+افزایش سرعت: ~10x
 ```
 
----
-
-## دستورات نهایی برای Deploy
-
-```bash
-# 1. Clone از GitHub
-git clone https://github.com/YOUR_REPO.git
-cd YOUR_REPO
-
-# 2. نصب Dependencies
-npm install
-
-# 3. Build برای Production
-npm run build
-
-# 4. تست محلی
-npm run preview
-
-# 5. آپلود dist/ به سرور
-scp -r dist/* user@server:/var/www/museum/
-
-# 6. تست نهایی
-curl -I https://your-domain.com
-```
-
----
-
-## نتیجه‌گیری
-
-1. **Streaming دستیار هوشمند**: ✅ کاملاً فعال و تست شده
-2. **سرعت بارگذاری**: با تغییرات پیشنهادی ~10x بهبود
-3. **انتقال به سرور**: فقط `dist/` لازم است، داده‌ها در Cloud
-4. **حالت آفلاین**: کاملاً پشتیبانی می‌شود با localStorage + Service Worker
-5. **Drag & Drop**: با رفع مشکل forwardRef، لگ حذف می‌شود
