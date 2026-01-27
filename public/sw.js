@@ -53,31 +53,40 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate event - clean old caches and notify clients
+// Activate event - clean old caches, enable navigation preload, and notify clients
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    Promise.all([
+    (async () => {
+      // Enable navigation preload for faster page loads
+      if (self.registration.navigationPreload) {
+        try {
+          await self.registration.navigationPreload.enable();
+          console.log('[SW] Navigation preload enabled');
+        } catch (err) {
+          console.log('[SW] Navigation preload not supported');
+        }
+      }
+      
       // Clean old caches
-      caches.keys().then((cacheNames) => {
-        return Promise.all(
-          cacheNames
-            .filter((name) => {
-              return name.startsWith('iran-wrestling-') && 
-                     !name.endsWith(CACHE_VERSION);
-            })
-            .map((name) => {
-              console.log('[SW] Deleting old cache:', name);
-              return caches.delete(name);
-            })
-        );
-      }),
+      const cacheNames = await caches.keys();
+      await Promise.all(
+        cacheNames
+          .filter((name) => {
+            return name.startsWith('iran-wrestling-') && 
+                   !name.endsWith(CACHE_VERSION);
+          })
+          .map((name) => {
+            console.log('[SW] Deleting old cache:', name);
+            return caches.delete(name);
+          })
+      );
+      
       // Notify all clients about update
-      self.clients.matchAll().then((clients) => {
-        clients.forEach((client) => {
-          client.postMessage({ type: 'SW_UPDATED' });
-        });
-      }),
-    ])
+      const clients = await self.clients.matchAll();
+      clients.forEach((client) => {
+        client.postMessage({ type: 'SW_UPDATED' });
+      });
+    })()
   );
   self.clients.claim();
 });

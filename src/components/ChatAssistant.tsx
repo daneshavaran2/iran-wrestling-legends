@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, forwardRef, memo } from 'react';
 import { MessageCircle, X, Send, Trash2, Bot, User, Loader2, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { useChatAssistant, Message } from '@/hooks/useChatAssistant';
 import { useTextToSpeech } from '@/hooks/useTextToSpeech';
 import { cn } from '@/lib/utils';
 
-export const ChatAssistant: React.FC = () => {
+const ChatAssistantInner = forwardRef<HTMLDivElement, Record<string, never>>((_props, ref) => {
   const { t, dir } = useLanguage();
   const { messages, sendMessage, isLoading, clearHistory } = useChatAssistant();
   const { speak, stop, isPlaying, isSupported } = useTextToSpeech();
@@ -71,7 +71,7 @@ export const ChatAssistant: React.FC = () => {
   ];
 
   return (
-    <>
+    <div ref={ref}>
       {/* Chat Button with Sparks */}
       {!isOpen && (
         <div className={cn("fixed bottom-6 z-50", dir === 'rtl' ? 'right-6' : 'left-6')}>
@@ -203,9 +203,14 @@ export const ChatAssistant: React.FC = () => {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
-};
+});
+
+ChatAssistantInner.displayName = 'ChatAssistantInner';
+
+// Export memoized component to prevent unnecessary re-renders
+export const ChatAssistant = memo(ChatAssistantInner);
 
 interface MessageBubbleProps {
   message: Message;
