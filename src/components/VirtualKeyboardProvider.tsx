@@ -1,5 +1,6 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import VirtualKeyboard, { type KeyboardLayout } from './VirtualKeyboard';
+import VirtualKeyboard from './VirtualKeyboard';
+import type { KeyboardLayout } from '@/types/keyboard';
 import { useVirtualKeyboard } from '@/hooks/useVirtualKeyboard';
 
 interface VirtualKeyboardContextType {

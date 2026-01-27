@@ -2,8 +2,9 @@ import React, { memo } from 'react';
 import { X, Delete, CornerDownLeft, Hash, ArrowBigUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useKeyboardSound } from '@/hooks/useKeyboardSound';
+import type { KeyboardLayout } from '@/types/keyboard';
 
-export type KeyboardLayout = 'persian' | 'english' | 'arabic' | 'numbers';
+export type { KeyboardLayout };
 
 interface VirtualKeyboardProps {
   isOpen: boolean;
