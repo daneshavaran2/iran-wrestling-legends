@@ -120,3 +120,28 @@ jobs:
   #     - name: Deploy to GitHub Pages
   #       id: deployment
   #       uses: actions/deploy-pages@v4
+
+  # Deploy to Liara (uncomment and configure LIARA_API_TOKEN secret to enable)
+  # deploy-liara:
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+  #
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Download build artifacts
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: production-build
+  #         path: build/
+  #
+  #     - name: Install Liara CLI
+  #       run: npm install -g @liara/cli
+  #
+  #     - name: Deploy to Liara
+  #       env:
+  #         LIARA_API_TOKEN: ${{ secrets.LIARA_API_TOKEN }}
+  #       run: |
+  #         liara deploy --api-token $LIARA_API_TOKEN --detach
