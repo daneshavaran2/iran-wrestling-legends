@@ -744,8 +744,15 @@
 }
 
 .kiosk-mode a,
-.kiosk-mode button {
+.kiosk-mode button,
+.kiosk-mode input,
+.kiosk-mode textarea,
+.kiosk-mode select,
+.kiosk-mode [role="textbox"],
+.kiosk-mode [contenteditable="true"] {
   pointer-events: auto;
+  user-select: auto;
+  -webkit-user-select: auto;
 }
 
 /* 55-inch Kiosk Optimization (1920px+) */
