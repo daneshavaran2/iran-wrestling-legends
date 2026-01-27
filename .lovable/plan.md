@@ -1,162 +1,170 @@
 
+# بهینه‌سازی کیبورد مجازی و افزودن قابلیت‌های جدید
 
-# رفع مشکلات ویدیو و کیبورد در حالت وب کیوسک
-
-## خلاصه مشکلات
-سه مشکل اصلی شناسایی شد:
-1. **خطای ویدیو**: نمایش خطای "فرمت ویدیو پشتیبانی نمی‌شود یا فایل در دسترس نیست"
-2. **کیبورد در دستیار**: کیبورد موقع تایپ در بخش چت دستیار فعال نمی‌شود
-3. **کیبورد در لاگین**: کیبورد در صفحه ورود به داشبورد مدیریتی کار نمی‌کند
+## خلاصه تغییرات
+۴ بهبود اصلی پیاده‌سازی خواهد شد:
+1. **بزرگ‌سازی دکمه‌های کیبورد** برای نمایشگرهای ۵۵ اینچی
+2. **صدای کلیک تایپ** برای تجربه کاربری بهتر
+3. **افزودن کیبورد عربی** به layouts موجود
+4. **تشخیص خودکار زبان** در دستیار و پاسخ‌دهی به همان زبان
 
 ---
 
-## ۱. رفع مشکل ویدیو
+## ۱. بزرگ‌سازی کیبورد برای کیوسک ۵۵ اینچی
 
-### مشکل فعلی
-کامپوننت `IntroVideo` در صورت هرگونه خطا (شامل URL خالی، فرمت نادرست یا عدم دسترسی) پیام خطا نشان می‌دهد.
+### تغییرات در `src/components/VirtualKeyboard.tsx`
 
-### راه‌حل
-- اضافه کردن بررسی اولیه برای URL ویدیو قبل از رندر
-- بهبود نمایش پیام خطا با دکمه "تلاش مجدد"
-- پشتیبانی از فرمت‌های مختلف ویدیو با استفاده از `<source>` tags
-- اضافه کردن پیام راهنما برای فرمت‌های پشتیبانی‌شده
+```text
+وضعیت فعلی        →    وضعیت جدید
+─────────────────────────────────────
+h-12 sm:h-14      →    h-14 md:h-16 lg:h-20
+w-10 sm:w-12      →    w-12 md:w-14 lg:w-16
+text-lg           →    text-xl lg:text-2xl
+min-w-[80px]      →    min-w-[100px] lg:min-w-[130px]
+gap-1.5 sm:gap-2  →    gap-2 md:gap-3 lg:gap-4
+p-3 sm:p-4        →    p-4 md:p-6 lg:p-8
+```
 
-### تغییرات در `src/pages/WrestlerProfilePage.tsx`
+### نتیجه
+دکمه‌ها در نمایشگرهای بزرگ ۳۰-۵۰٪ بزرگتر خواهند بود
+
+---
+
+## ۲. افزودن صدای کلیک
+
+### ایجاد هوک جدید `src/hooks/useKeyboardSound.ts`
 
 ```typescript
-// در IntroVideo component
-function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }) {
-  const [hasError, setHasError] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
+export function useKeyboardSound() {
+  const audioContext = useRef<AudioContext | null>(null);
+
+  const playClick = useCallback(() => {
+    // ایجاد صدای کلیک با Web Audio API
+    // فرکانس: 800Hz
+    // مدت: 50ms
+    // نوع: sine wave
+  }, []);
+
+  return { playClick };
+}
+```
+
+### مزایا
+- استفاده از Web Audio API بدون نیاز به فایل خارجی
+- سریع و بدون تاخیر
+- قابل تنظیم (فعال/غیرفعال)
+
+---
+
+## ۳. افزودن کیبورد عربی
+
+### تغییرات در `src/components/VirtualKeyboard.tsx`
+
+```typescript
+const ARABIC_KEYS = [
+  ['ض', 'ص', 'ث', 'ق', 'ف', 'غ', 'ع', 'ه', 'خ', 'ح', 'ج'],
+  ['ش', 'س', 'ي', 'ب', 'ل', 'ا', 'ت', 'ن', 'م', 'ك', 'ط'],
+  ['ئ', 'ء', 'ؤ', 'ر', 'ى', 'ة', 'و', 'ز', 'ظ'],
+];
+
+const ARABIC_KEYS_SHIFT = [
+  ['ً', 'ٌ', 'ٍ', 'ّ', 'َ', 'ُ', 'ِ', 'ْ', 'آ', 'أ', 'إ'],
+  ['ذ', 'ـ', '»', '«', '،', '؟', '!', '؛', ':', 'ذ', 'د'],
+  ['ۀ', '"', "'", '.', '٪', '×', '÷', '-', '+'],
+];
+
+// نوع layout جدید
+type Layout = 'persian' | 'english' | 'arabic' | 'numbers';
+```
+
+### رابط کاربری
+- افزودن دکمه **"عربی"** بین فارسی و انگلیسی
+
+---
+
+## ۴. تشخیص خودکار زبان در دستیار
+
+### روش کار
+شناسایی زبان متن کاربر با regex و ارسال به Edge Function:
+
+```typescript
+function detectLanguage(text: string): 'fa' | 'en' | 'ar' {
+  const arabicRegex = /[\u0600-\u06FF]/;
+  const persianSpecific = /[پچژگک]/;
   
-  // اضافه کردن قابلیت retry
-  const handleRetry = () => {
-    setHasError(false);
-    setRetryCount(prev => prev + 1);
-  };
-
-  // بررسی اولیه URL
-  if (!src || src.trim() === '') {
-    return (
-      <ProfileEmptyState
-        icon={<Play className="h-16 w-16" />}
-        title={t('profile.empty.noIntro')}
-      />
-    );
-  }
-
-  if (hasError) {
-    return (
-      <ProfileEmptyState
-        icon={<AlertCircle className="h-16 w-16 text-destructive" />}
-        title="خطا در بارگذاری ویدیو"
-        description="لطفاً از فرمت MP4 یا WebM استفاده کنید"
-      />
-      // اضافه کردن دکمه تلاش مجدد
-    );
-  }
-
-  // استفاده از key برای force re-render در retry
-  return (
-    <div key={retryCount}>
-      <video ... />
-    </div>
-  );
+  if (persianSpecific.test(text)) return 'fa';
+  if (arabicRegex.test(text)) return 'ar';
+  return 'en';
 }
 ```
 
----
-
-## ۲. رفع مشکل کیبورد در حالت کیوسک
-
-### مشکل فعلی
-در فایل `src/index.css` قوانین `.kiosk-mode` فقط برای `a` و `button` اجازه `pointer-events: auto` می‌دهد. این باعث می‌شود `input` و `textarea` در حالت کیوسک قابل کلیک/فوکوس نباشند.
-
-```css
-/* وضعیت فعلی - مشکل‌ساز */
-.kiosk-mode a,
-.kiosk-mode button {
-  pointer-events: auto;
-}
-```
-
-### راه‌حل
-اضافه کردن `input`، `textarea` و `select` به لیست عناصر با `pointer-events: auto`
-
-### تغییرات در `src/index.css`
-
-```css
-/* وضعیت جدید - رفع شده */
-.kiosk-mode a,
-.kiosk-mode button,
-.kiosk-mode input,
-.kiosk-mode textarea,
-.kiosk-mode select {
-  pointer-events: auto;
-  user-select: auto;
-  -webkit-user-select: auto;
-}
-```
-
----
-
-## ۳. بهبود فوکوس در ChatAssistant
-
-### راه‌حل اضافی
-اضافه کردن `autoFocus` attribute و مدیریت بهتر focus برای کیبورد مجازی
-
-### تغییرات در `src/components/ChatAssistant.tsx`
+### تغییرات در `src/hooks/useChatAssistant.ts`
 
 ```typescript
-<Input
-  ref={inputRef}
-  value={inputValue}
-  onChange={(e) => setInputValue(e.target.value)}
-  onKeyPress={handleKeyPress}
-  placeholder={t('assistant.placeholder')}
-  className="flex-1 bg-muted/30 border-gold/20 focus:border-gold/50"
-  disabled={isLoading}
-  autoComplete="off"
-  autoCorrect="off"
-  inputMode="text"  // اضافه شده - کمک به نمایش کیبورد مجازی
-/>
+const sendMessage = async (content: string) => {
+  // تشخیص زبان از متن کاربر
+  const detectedLanguage = detectLanguage(content);
+  
+  // ارسال با زبان تشخیص داده شده
+  body: JSON.stringify({
+    messages: [...],
+    language: detectedLanguage, // به جای زبان سیستم
+    stream: true,
+  }),
+};
 ```
 
 ---
 
 ## لیست فایل‌های ویرایشی
 
-| فایل | تغییر |
-|------|-------|
-| `src/index.css` | اضافه کردن input/textarea به قوانین kiosk-mode |
-| `src/pages/WrestlerProfilePage.tsx` | بهبود error handling و retry برای ویدیو |
-| `src/components/ChatAssistant.tsx` | اضافه کردن inputMode برای کیبورد مجازی |
+| فایل | تغییرات |
+|------|---------|
+| `src/components/VirtualKeyboard.tsx` | بزرگ‌سازی + کیبورد عربی + صدا |
+| `src/hooks/useKeyboardSound.ts` | **ایجاد جدید** - هوک صدای کلیک |
+| `src/hooks/useVirtualKeyboard.ts` | افزودن نوع `arabic` به layout |
+| `src/components/VirtualKeyboardProvider.tsx` | پشتیبانی از layout جدید |
+| `src/hooks/useChatAssistant.ts` | تشخیص خودکار زبان |
 
 ---
 
 ## بخش فنی
 
-### علت مشکل کیبورد
-CSS rule زیر مانع از تعامل با input ها می‌شود:
+### تشخیص زبان - جزئیات
 
-```css
-.kiosk-mode {
-  user-select: none;  /* این باعث مشکل می‌شود */
-}
+```text
+Persian-specific chars: پ چ ژ گ ک
+Arabic Unicode range:   \u0600-\u06FF  
+Persian uses same range + specific letters
 ```
 
-برای input ها باید `user-select: auto` اعمال شود تا کاربر بتواند متن انتخاب و تایپ کند.
+### Web Audio API - ساختار صدای کلیک
 
-### علت مشکل ویدیو
-خطای نمایش داده شده می‌تواند به دلایل زیر باشد:
-1. URL ویدیو نامعتبر یا خالی
-2. فرمت ویدیو پشتیبانی نشده (مثلاً MOV)
-3. مشکل CORS در دسترسی به فایل
-4. فایل حذف شده یا جابجا شده
+```text
+┌─────────────────────────────────────┐
+│   Oscillator (800Hz, sine)          │
+│           ↓                         │
+│   GainNode (0.15 → 0 در 50ms)       │
+│           ↓                         │
+│   AudioContext.destination          │
+└─────────────────────────────────────┘
+```
 
-### تست پس از اعمال تغییرات
-1. باز کردن برنامه در حالت کیوسک
-2. رفتن به پروفایل یک کشتی‌گیر با ویدیو
-3. کلیک روی input چت دستیار و تایپ
-4. رفتن به صفحه login و تست تایپ در فیلدها
+### CSS Breakpoints برای کیوسک
 
+```text
+sm: 640px   → تبلت
+md: 768px   → لپ‌تاپ
+lg: 1024px  → نمایشگر بزرگ (کیوسک)
+```
+
+---
+
+## تست پس از پیاده‌سازی
+
+1. ✅ باز کردن در حالت کیوسک و تایید اندازه دکمه‌ها
+2. ✅ تست صدای کلیک هنگام تایپ
+3. ✅ تست تغییر بین ۴ زبان کیبورد
+4. ✅ تایپ پیام فارسی و دریافت پاسخ فارسی
+5. ✅ تایپ پیام عربی و دریافت پاسخ عربی
+6. ✅ تایپ پیام انگلیسی و دریافت پاسخ انگلیسی
