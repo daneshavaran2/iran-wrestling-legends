@@ -1,246 +1,295 @@
 
-## برنامه رفع سه مشکل: تعداد صفر، تصویر باریک و کلیپ پخش نشدنی
+## برنامه رفع مشکلات: زوم تصاویر، خطای اتصال سرور و ترجمه‌های گمشده
 
 ---
 
-### تشخیص مشکلات
+### تشخیص مشکلات از تصاویر ارسالی
 
-#### مشکل ۱: تعداد کشتی‌گیران صفر
+#### 🔴 مشکل ۱: تصاویر بیش از حد زوم شده (IMG_7070, IMG_7069)
+
+از تصاویر مشخص است که فقط صورت کشتی‌گیر دیده می‌شود و بدن بریده شده است. با اینکه `objectFit="cover"` و `objectPosition="top"` تنظیم شده، مشکل این است که:
 
 ```text
-┌──────────────────────────────────────────────────────────┐
-│ دیتابیس: 39 کشتی‌گیر | 11 نفر visible                     │
-│ صفحه نشان می‌دهد: 0 یا 11                                │
-│                                                          │
-│ علت: getVisibleWrestlers() قبل از اتمام fetch            │
-│       خوانده می‌شود و آرایه خالی برمی‌گرداند              │
-└──────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  تصویر اصلی کشتی‌گیر: نسبت ابعاد 3:5 (پرتره بلند)           │
+│  Container کارت: نسبت ابعاد 3:4 (کوتاه‌تر)                  │
+│                                                             │
+│  نتیجه با object-cover + top:                               │
+│  تصویر از بالا شروع می‌شود ولی چون container کوتاه‌تر است، │
+│  تصویر زوم می‌شود تا عرض را پر کند → صورت بزرگ می‌شود!      │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**مشکل در کد:**
-```typescript
-// WrestlersListPage.tsx
-const { getVisibleWrestlers, isLoading, error } = useWrestlers();
-const visibleWrestlers = getVisibleWrestlers(); // ❌ خارج از useMemo
-
-// وقتی isLoading=true است، wrestlers هنوز خالی است
-// اما visibleWrestlers قبل از لود محاسبه شده
-```
-
-#### مشکل ۲: تصویر باریک
-
-از تصویر ارسالی مشخص است که تصویر کشتی‌گیر به صورت عمودی باریک شده. علت:
+**راه‌حل**: تغییر `objectPosition` به `center 20%` یا تنظیم نسبت ابعاد container و افزودن قابلیت تنظیم فقط عرض:
 
 ```typescript
 // WrestlerCard.tsx
-<div className="... aspect-[3/4]">  // Container 3:4 (پرتره)
-  <LazyImage
-    objectFit="contain"  // ← مشکل! تصویر را کوچک می‌کند تا کل دیده شود
-  />
-</div>
-```
-
-`object-contain` باعث می‌شود اگر تصویر نسبت متفاوتی داشته باشد، با فضای خالی اطراف نمایش داده شود. برای تصاویر پرتره کشتی‌گیران، `object-cover` بهتر است اما با `object-position: top` تا صورت بریده نشود.
-
-#### مشکل ۳: کلیپ پخش نمی‌شود
-
-```typescript
-// WrestlerProfilePage.tsx - IntroVideo
-<video
-  autoPlay        // ✓ صحیح
-  muted           // ✓ صحیح
-  loop            // ✓ صحیح
-  playsInline     // ✓ صحیح
-  src={src}       // ❌ فرمت .mov در iOS مشکل‌ساز
+<LazyImage
+  objectFit="cover"
+  objectPosition="center 20%"  // 20% از بالا - نه top که سر بریده شود
 />
 ```
 
-مشکلات احتمالی:
-1. فرمت `.mov` در مرورگرهای غیر-Apple پشتیبانی نمی‌شود
-2. autoPlay در iOS نیاز به تعامل اولیه کاربر دارد
-3. عدم مدیریت خطای لود ویدیو
+#### 🔴 مشکل ۲: خطای اتصال روی سرور Liara (IMG_7072)
+
+پیام خطا: "خطا در بارگذاری اطلاعات. لطفاً اتصال اینترنت را بررسی کنید"
+
+این خطا زمانی ظاهر می‌شود که:
+1. Supabase API پاسخ نمی‌دهد یا timeout می‌شود
+2. CORS مشکل دارد
+3. شبکه کند است و درخواست‌ها timeout می‌شوند
+
+**بررسی کد فعلی:**
+```typescript
+// WrestlerContext.tsx - خط 234
+setError('خطا در بارگذاری اطلاعات. لطفاً اتصال اینترنت را بررسی کنید.');
+```
+
+این پیام خطا خیلی کلی است. باید:
+1. Timeout طولانی‌تر تنظیم شود
+2. Retry mechanism اضافه شود
+3. پیام خطای دقیق‌تر نمایش داده شود
+
+#### 🔴 مشکل ۳: ترجمه گمشده (IMG_7071)
+
+پیام "history.noContentDesc" به جای متن ترجمه شده نمایش داده می‌شود:
+
+```typescript
+// HistoryListPage.tsx - خط 60
+<p className="text-muted-foreground">
+  {t('history.noContentDesc')}  // ❌ این کلید در locales وجود ندارد!
+</p>
+```
+
+**فایل fa.json فعلی:**
+```json
+"history": {
+  "title": "تاریخچه کشتی ایران",
+  "subtitle": "سفری در گذر زمان",
+  "noContent": "محتوای تاریخچه موجود نیست"
+  // ❌ noContentDesc وجود ندارد!
+}
+```
 
 ---
 
-### راه‌حل‌ها
+### راه‌حل‌های پیشنهادی
 
-## بخش اول: رفع تعداد صفر کشتی‌گیران
+## بخش اول: رفع زوم بیش از حد تصاویر
 
-### ۱.۱ بروزرسانی `src/pages/WrestlersListPage.tsx`
-
-تبدیل `visibleWrestlers` به `useMemo` با وابستگی صحیح:
+### ۱.۱ تغییر `objectPosition` در WrestlerCard
 
 ```typescript
-// قبل:
-const visibleWrestlers = getVisibleWrestlers();
-
-// بعد:
-const { wrestlers, getVisibleWrestlers, isLoading, error } = useWrestlers();
-
-const visibleWrestlers = useMemo(() => {
-  return getVisibleWrestlers();
-}, [wrestlers]); // ← وابستگی به wrestlers برای re-render بعد از fetch
-```
-
-### ۱.۲ اضافه کردن loading state بهتر
-
-نمایش skeleton تا زمانی که داده‌ها آماده نیستند:
-
-```typescript
-// نمایش تعداد فقط بعد از لود
-{!isLoading && (
-  <p className="text-muted-foreground">
-    {t('wrestler.count').replace('{count}', String(filteredWrestlers.length))}
-  </p>
-)}
-```
-
----
-
-## بخش دوم: رفع تصویر باریک
-
-### ۲.۱ بروزرسانی `src/components/WrestlerCard.tsx`
-
-تغییر به `object-cover` با `object-position: center top`:
-
-```typescript
+// src/components/WrestlerCard.tsx
 <LazyImage
   src={getThumbnailUrl(wrestler.image_url)}
   thumbnailSrc={getTinyThumbnailUrl(wrestler.image_url)}
   alt={wrestler.name}
   className="w-full h-full transition-transform duration-500 group-hover:scale-110"
-  objectFit="cover"         // ← تغییر از contain به cover
-  objectPosition="top"      // ← صورت بالا بماند
+  objectFit="cover"
+  objectPosition="center 15%"  // ← تغییر از "top" به "center 15%"
 />
 ```
 
-### ۲.۲ بروزرسانی `src/components/ui/LazyImage.tsx`
+این تغییر باعث می‌شود:
+- تصویر از 15% بالای مرکز شروع شود
+- صورت کشتی‌گیر در مرکز بماند
+- بخش‌های کمتری از سر و پا بریده شود
 
-افزودن prop برای `objectPosition`:
+### ۱.۲ تغییر نسبت ابعاد container (اختیاری)
+
+اگر تصاویر همچنان زوم بودند، نسبت ابعاد را کمی بلندتر کنیم:
 
 ```typescript
-interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
-  // ...existing props
-  objectFit?: 'contain' | 'cover';
-  objectPosition?: string;  // ← جدید: مثل 'top', 'center', 'top center'
-}
-
-// در className:
-className={cn(
-  'w-full h-full ...',
-  objectFit === 'contain' ? 'object-contain' : 'object-cover',
-)}
-style={{ objectPosition: objectPosition || 'center' }}
+// از aspect-[3/4] به aspect-[3/4.5] یا aspect-[2/3]
+<div className="relative overflow-hidden rounded-2xl mb-4 2xl:mb-6 aspect-[2/3]">
 ```
 
 ---
 
-## بخش سوم: رفع پخش نشدن کلیپ
+## بخش دوم: رفع خطای اتصال روی سرور خارجی
 
-### ۳.۱ بروزرسانی `IntroVideo` در `src/pages/WrestlerProfilePage.tsx`
-
-افزودن مدیریت خطا و fallback:
+### ۲.۱ بهبود Error Handling در WrestlerContext
 
 ```typescript
-function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);  // ← شروع با false
-  const [isMuted, setIsMuted] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  const [isReady, setIsReady] = useState(false);
+// src/contexts/WrestlerContext.tsx
 
-  // تلاش برای autoPlay بعد از لود
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+const fetchWrestlers = async (): Promise<boolean> => {
+  try {
+    // افزودن timeout برای جلوگیری از انتظار بی‌نهایت
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000); // 15 ثانیه
 
-    const handleCanPlay = () => {
-      setIsReady(true);
-      video.play()
-        .then(() => setIsPlaying(true))
-        .catch(() => setIsPlaying(false)); // Autoplay blocked
-    };
+    const { data, error } = await supabase
+      .from('wrestlers')
+      .select('*')
+      .order('name')
+      .abortSignal(controller.signal);
 
-    video.addEventListener('canplay', handleCanPlay);
-    return () => video.removeEventListener('canplay', handleCanPlay);
-  }, []);
+    clearTimeout(timeout);
 
-  const handleError = () => {
-    setHasError(true);
-    console.error('Error loading video:', src);
-  };
-
-  if (hasError) {
-    return (
-      <EmptyState
-        icon={<AlertCircle className="h-16 w-16 text-destructive" />}
-        title="خطا در بارگذاری ویدیو"
-        description="فرمت ویدیو پشتیبانی نمی‌شود یا فایل در دسترس نیست"
-      />
-    );
+    if (error) throw error;
+    
+    // ... rest of code
+    return true;
+  } catch (err: any) {
+    console.error('Error fetching wrestlers:', err);
+    
+    // بررسی نوع خطا و ارائه پیام مناسب
+    if (err.name === 'AbortError') {
+      console.log('Request timed out, using cached data');
+    }
+    
+    return false;
   }
+};
+```
 
-  return (
-    <div className="relative rounded-3xl overflow-hidden group cyber-glass cyber-hud">
-      {!isReady && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      )}
-      
-      <div className="aspect-video w-full">
-        <video
-          ref={videoRef}
-          src={src}
-          muted={isMuted}
-          loop
-          playsInline
-          preload="auto"
-          onError={handleError}
-          className={cn(
-            "w-full h-full object-contain bg-black/50",
-            !isReady && "opacity-0"
-          )}
-          onClick={togglePlay}
-        />
-      </div>
-      
-      {/* دکمه پخش بزرگ در وسط برای موبایل */}
-      {isReady && !isPlaying && (
-        <div 
-          className="absolute inset-0 flex items-center justify-center cursor-pointer"
-          onClick={togglePlay}
-        >
-          <div className="p-6 rounded-full bg-primary/80 hover:bg-primary transition-colors">
-            <Play className="h-12 w-12 text-white" />
-          </div>
-        </div>
-      )}
-      
-      {/* Controls Overlay - existing code */}
-    </div>
-  );
+### ۲.۲ افزودن Retry Logic خودکار
+
+```typescript
+const refreshWrestlers = async (retryCount = 0) => {
+  setIsLoading(true);
+  setError(null);
+  
+  const results = await Promise.all([
+    fetchWrestlers(),
+    fetchAchievements(),
+    fetchMedia()
+  ]);
+  
+  const allSucceeded = results.every(r => r === true);
+  
+  if (!allSucceeded) {
+    // تلاش مجدد خودکار (حداکثر 2 بار)
+    if (retryCount < 2 && !isOffline) {
+      console.log(`Retrying... (attempt ${retryCount + 2})`);
+      setTimeout(() => refreshWrestlers(retryCount + 1), 2000);
+      return;
+    }
+    
+    const hasCachedData = wrestlers.length > 0;
+    
+    if (hasCachedData) {
+      setIsOffline(true);
+      setError('نمایش داده‌های ذخیره شده (آفلاین)');
+    } else {
+      setError('خطا در اتصال به سرور. لطفاً دوباره تلاش کنید.');
+    }
+  } else {
+    setIsOffline(false);
+  }
+  
+  setIsLoading(false);
+};
+```
+
+### ۲.۳ بهبود Connection Test در lib/supabase.ts
+
+```typescript
+// src/lib/supabase.ts - افزودن تست اتصال با timeout
+export const testConnection = async (): Promise<boolean> => {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    
+    const { error } = await supabase
+      .from('wrestlers')
+      .select('id')
+      .limit(1)
+      .abortSignal(controller.signal);
+    
+    clearTimeout(timeout);
+    return !error;
+  } catch {
+    return false;
+  }
+};
+```
+
+---
+
+## بخش سوم: افزودن ترجمه‌های گمشده
+
+### ۳.۱ بروزرسانی fa.json
+
+```json
+{
+  "history": {
+    "title": "تاریخچه کشتی ایران",
+    "subtitle": "سفری در گذر زمان",
+    "noContent": "محتوای تاریخچه موجود نیست",
+    "noContentDesc": "محتوایی برای نمایش وجود ندارد. به زودی اطلاعات بیشتری اضافه خواهد شد."
+  }
 }
 ```
 
-### ۳.۲ پشتیبانی از فرمت‌های مختلف
+### ۳.۲ بروزرسانی en.json
 
-افزودن تشخیص فرمت و هشدار در پنل ادمین:
+```json
+{
+  "history": {
+    "title": "History of Iranian Wrestling",
+    "subtitle": "A Journey Through Time",
+    "noContent": "No history content available",
+    "noContentDesc": "No content to display. More information will be added soon."
+  }
+}
+```
+
+### ۳.۳ بروزرسانی ar.json
+
+```json
+{
+  "history": {
+    "title": "تاريخ المصارعة الإيرانية",
+    "subtitle": "رحلة عبر الزمن",
+    "noContent": "لا يوجد محتوى تاريخي",
+    "noContentDesc": "لا يوجد محتوى للعرض. سيتم إضافة المزيد من المعلومات قريباً."
+  }
+}
+```
+
+---
+
+## بخش چهارم: بهینه‌سازی Preload تصاویر
+
+### ۴.۱ افزودن Preload در لیست کشتی‌گیران
 
 ```typescript
-// در صفحه ویرایش کشتی‌گیر
-const SUPPORTED_VIDEO_FORMATS = ['.mp4', '.webm'];
-const isVideoSupported = (url: string) => {
-  return SUPPORTED_VIDEO_FORMATS.some(ext => url.toLowerCase().endsWith(ext));
-};
+// src/pages/WrestlersListPage.tsx
 
-// هشدار در UI
-{wrestler.intro_video_url && !isVideoSupported(wrestler.intro_video_url) && (
-  <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-sm">
-    ⚠️ فرمت ویدیو (.mov) ممکن است در برخی مرورگرها پشتیبانی نشود. 
-    پیشنهاد: از فرمت MP4 یا WebM استفاده کنید.
-  </div>
-)}
+useEffect(() => {
+  // Preload تصاویر 6 کشتی‌گیر اول برای لود سریع‌تر
+  if (filteredWrestlers.length > 0) {
+    const firstSixImages = filteredWrestlers
+      .slice(0, 6)
+      .map(w => getThumbnailUrl(w.image_url))
+      .filter(Boolean);
+    
+    preloadImages(firstSixImages);
+  }
+}, [filteredWrestlers]);
+```
+
+### ۴.۲ افزودن Link Preload در Head
+
+```typescript
+// در LazyImage - برای تصاویر اولیه
+useEffect(() => {
+  if (src && isInView) {
+    // Hint به مرورگر برای دانلود سریع‌تر
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = src;
+    document.head.appendChild(link);
+    
+    return () => {
+      document.head.removeChild(link);
+    };
+  }
+}, [src, isInView]);
 ```
 
 ---
@@ -249,34 +298,37 @@ const isVideoSupported = (url: string) => {
 
 | فایل | تغییر | اولویت |
 |------|-------|--------|
-| `src/pages/WrestlersListPage.tsx` | استفاده از useMemo برای visibleWrestlers | بحرانی |
-| `src/components/WrestlerCard.tsx` | تغییر objectFit به cover + objectPosition | بحرانی |
-| `src/components/ui/LazyImage.tsx` | افزودن prop objectPosition | مهم |
-| `src/pages/WrestlerProfilePage.tsx` | بهبود IntroVideo با error handling | مهم |
-| `src/pages/admin/AdminWrestlerEditPage.tsx` | هشدار فرمت ویدیو | اختیاری |
+| `src/components/WrestlerCard.tsx` | تغییر objectPosition از "top" به "center 15%" | بحرانی |
+| `src/contexts/WrestlerContext.tsx` | افزودن timeout و retry logic | بحرانی |
+| `src/locales/fa.json` | افزودن history.noContentDesc | بحرانی |
+| `src/locales/en.json` | افزودن history.noContentDesc | بحرانی |
+| `src/locales/ar.json` | افزودن history.noContentDesc | بحرانی |
+| `src/pages/WrestlersListPage.tsx` | افزودن preload برای تصاویر اول | بهبود |
+| `src/lib/supabase.ts` | بهبود testConnection با timeout | بهبود |
 
 ---
 
 ## نتایج مورد انتظار
 
 ```text
-مشکل تعداد صفر:
-┌────────────────────────────────────────┐
-│  قبل: گاهی "۰ کشتی‌گیر" نمایش می‌داد    │
-│  بعد: همیشه تعداد صحیح (۱۱ کشتی‌گیر)   │
-└────────────────────────────────────────┘
+مشکل زوم تصویر:
+┌────────────────────────────────────────────┐
+│  قبل: فقط صورت بزرگ‌نمایی شده دیده می‌شد  │
+│  بعد: سر + سینه + شانه‌ها در تصویر          │
+│       نسبت طبیعی‌تر و حرفه‌ای‌تر            │
+└────────────────────────────────────────────┘
 
-مشکل تصویر باریک:
-┌────────────────────────────────────────┐
-│  قبل: تصویر باریک با فضای خالی اطراف   │
-│  بعد: تصویر کامل container را پر کند   │
-│       با صورت در بالای تصویر           │
-└────────────────────────────────────────┘
+مشکل خطای سرور:
+┌────────────────────────────────────────────┐
+│  قبل: خطای کلی "اتصال اینترنت را بررسی"    │
+│  بعد: تلاش مجدد خودکار (۲ بار)             │
+│       نمایش داده‌های کش در صورت خطا         │
+│       پیام خطای دقیق‌تر                     │
+└────────────────────────────────────────────┘
 
-مشکل کلیپ پخش نشدنی:
-┌────────────────────────────────────────┐
-│  قبل: صفحه خالی یا خطا                 │
-│  بعد: دکمه پخش بزرگ + loading state   │
-│       + پیام خطای مناسب               │
-└────────────────────────────────────────┘
+مشکل ترجمه:
+┌────────────────────────────────────────────┐
+│  قبل: "history.noContentDesc" نمایش داده   │
+│  بعد: "محتوایی برای نمایش وجود ندارد..."    │
+└────────────────────────────────────────────┘
 ```
