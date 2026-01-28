@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { useState, useEffect } from "react";
-import App from "./App.tsx";
+import App from "./App";
 import "./index.css";
 import { SplashScreen } from "./components/SplashScreen";
 import { PWAUpdateNotification } from "./components/PWAUpdateNotification";
