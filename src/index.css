@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Vazirmatn Local Font */
+/* Vazirmatn Local Font - Persian Typography */
 @font-face {
   font-family: 'Vazirmatn';
   src: url('/fonts/Vazirmatn-Light.woff2') format('woff2');
