@@ -166,23 +166,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const { error } = await supabase
+      // First check if role already exists to prevent duplicate key error
+      const { data: existingRole, error: checkError } = await supabase
+        .from('user_roles')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error checking existing role:', checkError);
+        return { error: new Error('خطا در بررسی نقش کاربر') };
+      }
+
+      // If role already exists, just return success
+      if (existingRole) {
+        setIsAdmin(true);
+        setHasAnyAdmin(true);
+        return { error: null };
+      }
+
+      // Insert new role
+      const { error: insertError } = await supabase
         .from('user_roles')
         .insert({
           user_id: user.id,
           role: 'admin',
         });
 
-      if (error) {
-        console.error('Error making admin:', error);
-        return { error: new Error(error.message) };
+      if (insertError) {
+        // Handle duplicate key gracefully (race condition fallback)
+        if (insertError.code === '23505') {
+          setIsAdmin(true);
+          setHasAnyAdmin(true);
+          return { error: null };
+        }
+        console.error('Error making admin:', insertError);
+        return { error: new Error('خطا در ایجاد نقش مدیر') };
       }
 
       setIsAdmin(true);
       setHasAnyAdmin(true);
       return { error: null };
     } catch (err) {
-      return { error: err as Error };
+      console.error('Unexpected error in makeAdmin:', err);
+      return { error: new Error('خطای غیرمنتظره در سیستم') };
     }
   };
 
