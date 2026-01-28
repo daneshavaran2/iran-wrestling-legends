@@ -1,89 +1,221 @@
 
 
-# Fix Persistent Preview Generation Error
+# Comprehensive Fix Plan for Build Error, Admin Setup, and Font Issues
 
-## Root Cause Analysis
+## Current Status Analysis
 
-The persistent "An error occurred when trying to generate preview" error is caused by:
+| Issue | Root Cause | Status |
+|-------|------------|--------|
+| Preview Generation Error | Likely transient build cache issue | Under investigation |
+| Admin Setup Duplicate Key | `makeAdmin()` uses INSERT without checking if role exists | Confirmed |
+| Font Loading | Fonts are correctly configured | Working |
+| Virtual Keyboard Types | Fixed - single type declaration | Fixed |
 
-1. **Duplicate Type Declaration**: According to the user's input, `src/types/keyboard.ts` contains TWO declarations of `KeyboardLayout`:
-   ```typescript
-   export type KeyboardLayout = typeof keyboardLayouts[number];
-   export type KeyboardLayout = (typeof keyboardLayouts)[number];
-   ```
-   TypeScript does not allow redeclaring the same type in the same scope.
+---
 
-2. **Build Cache Corruption**: Despite previous fixes appearing correct, the Vite bundler may be caching a corrupted module state.
+## Part 1: Fix Admin Setup Duplicate Key Error (BUG 1)
 
-## Solution
-
-Perform a complete rewrite of `src/types/keyboard.ts` with:
-- Single, unambiguous type declaration
-- Clear documentation
-- Explicit `as const` pattern preserved
-
-### File: `src/types/keyboard.ts`
-
-Replace entire content with:
+### Problem
+The `makeAdmin()` function in `AuthContext.tsx` performs a direct INSERT without checking if the role already exists:
 
 ```typescript
-/**
- * Virtual keyboard layout types for kiosk mode
- * Supports: Persian, English, Arabic, and Numbers
- */
-
-export const keyboardLayouts = [
-  'persian',
-  'english',
-  'arabic',
-  'numbers',
-] as const;
-
-export type KeyboardLayout = typeof keyboardLayouts[number];
+// Current problematic code (lines 168-174)
+const { error } = await supabase
+  .from('user_roles')
+  .insert({
+    user_id: user.id,
+    role: 'admin',
+  });
 ```
 
-## Why This Fix Works
+This causes `duplicate key value violates unique constraint "user_roles_user_id_role_key"` error on repeated attempts.
 
-| Issue | Resolution |
-|-------|------------|
-| Duplicate type declaration | Single `KeyboardLayout` export only |
-| Build cache stale | Complete file rewrite forces recompilation |
-| Type inference preserved | `typeof keyboardLayouts[number]` creates `'persian' \| 'english' \| 'arabic' \| 'numbers'` |
-| Future scalability | Adding layouts only requires updating the array |
+### Solution
 
-## Verification Checklist
+**File: `src/contexts/AuthContext.tsx`**
 
-| Component | Import Path | Status |
-|-----------|-------------|--------|
-| `VirtualKeyboard.tsx` | `import type { KeyboardLayout } from '@/types/keyboard'` | Will compile |
-| `VirtualKeyboardProvider.tsx` | `import type { KeyboardLayout } from '@/types/keyboard'` | Will compile |
-| `useVirtualKeyboard.ts` | `import type { KeyboardLayout } from '@/types/keyboard'` | Will compile |
-| `useKeyboardSound.ts` | No KeyboardLayout import needed | Unaffected |
+Replace the `makeAdmin` function with a safe upsert pattern:
+
+```typescript
+const makeAdmin = async () => {
+  if (!user) {
+    return { error: new Error('کاربر وارد نشده است') };
+  }
+
+  try {
+    // First check if role already exists
+    const { data: existingRole, error: checkError } = await supabase
+      .from('user_roles')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('Error checking existing role:', checkError);
+      return { error: new Error('خطا در بررسی نقش کاربر') };
+    }
+
+    // If role already exists, just return success
+    if (existingRole) {
+      setIsAdmin(true);
+      setHasAnyAdmin(true);
+      return { error: null };
+    }
+
+    // Insert new role
+    const { error: insertError } = await supabase
+      .from('user_roles')
+      .insert({
+        user_id: user.id,
+        role: 'admin',
+      });
+
+    if (insertError) {
+      // Handle duplicate key gracefully
+      if (insertError.code === '23505') {
+        setIsAdmin(true);
+        setHasAnyAdmin(true);
+        return { error: null };
+      }
+      console.error('Error making admin:', insertError);
+      return { error: new Error('خطا در ایجاد نقش مدیر') };
+    }
+
+    setIsAdmin(true);
+    setHasAnyAdmin(true);
+    return { error: null };
+  } catch (err) {
+    return { error: new Error('خطای غیرمنتظره در سیستم') };
+  }
+};
+```
+
+### Additional UI Improvements for `AdminSetupPage.tsx`
+
+1. Add double-click prevention with button disabled state
+2. Show user-friendly messages instead of raw Postgres errors
+3. Handle the "already admin" case gracefully
+
+---
+
+## Part 2: Fix Preview Build Error (CRITICAL)
+
+### Problem
+The error "An error occurred when trying to generate preview" is a generic build failure. Based on my analysis:
+
+- `src/types/keyboard.ts` is now correct (single type declaration)
+- `src/index.css` structure is valid
+- Font files exist in `public/fonts/`
+
+### Solution
+
+The `/* Build trigger */` comment added to `index.css` may be causing the issue if there's trailing content or invisible characters. Let me propose a clean rebuild:
+
+**File: `src/index.css`** - Remove the trigger comment and ensure clean file start:
+
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Vazirmatn Local Font */
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/fonts/Vazirmatn-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+/* ... rest of file unchanged ... */
+```
+
+---
+
+## Part 3: Verify Font Configuration (No Changes Needed)
+
+### Current Status: WORKING
+
+The fonts are correctly configured:
+
+| File | Location | Status |
+|------|----------|--------|
+| `Vazirmatn-Light.woff2` | `public/fonts/` | Present |
+| `Vazirmatn-Regular.woff2` | `public/fonts/` | Present |
+| `Vazirmatn-Medium.woff2` | `public/fonts/` | Present |
+| `Vazirmatn-Bold.woff2` | `public/fonts/` | Present |
+
+**Note**: This is a Vite + React project, NOT Next.js. The `next/font/local` approach from your prompt is not applicable here. The current `@font-face` declarations in `src/index.css` are the correct approach for Vite.
+
+### Verification in index.css (lines 7-37)
+```css
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/fonts/Vazirmatn-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+/* ... 3 more weights defined ... */
+```
+
+### Verification in tailwind.config.ts (line 17)
+```typescript
+fontFamily: {
+  vazir: ['Vazirmatn', 'system-ui', 'sans-serif'],
+},
+```
+
+### Verification in index.css (line 148)
+```css
+html {
+  direction: rtl;
+  font-family: 'Vazirmatn', system-ui, sans-serif;
+}
+```
+
+---
+
+## Part 4: Fix React Ref Warnings (Optional)
+
+If there are ref warnings appearing in WrestlerCard and LazyImage, we need to:
+
+1. Use `forwardRef` for components that receive refs
+2. Pass refs correctly through component hierarchies
+
+---
+
+## Implementation Order
+
+| Step | File | Action |
+|------|------|--------|
+| 1 | `src/index.css` | Remove `/* Build trigger */` comment (line 4) |
+| 2 | `src/contexts/AuthContext.tsx` | Replace `makeAdmin()` with safe check-then-insert pattern |
+| 3 | `src/pages/admin/AdminSetupPage.tsx` | Add better error handling and user-friendly messages |
+| 4 | Test | Verify build succeeds and admin setup works |
+
+---
 
 ## Files to Modify
 
-| File | Action |
-|------|--------|
-| `src/types/keyboard.ts` | Complete rewrite (remove duplicate declaration) |
+| File | Changes |
+|------|---------|
+| `src/index.css` | Remove line 4 comment |
+| `src/contexts/AuthContext.tsx` | Replace `makeAdmin` function (lines 163-186) |
+| `src/pages/admin/AdminSetupPage.tsx` | Better error messages and button state |
 
-## Technical Notes
+---
 
-The `as const` assertion creates a readonly tuple:
-```text
-keyboardLayouts → readonly ['persian', 'english', 'arabic', 'numbers']
-```
+## Testing Checklist
 
-The derived type becomes a union:
-```text
-KeyboardLayout → 'persian' | 'english' | 'arabic' | 'numbers'
-```
+After implementation:
 
-This is identical to the original intent but with a single source of truth.
-
-## Impact Assessment
-
-- **Virtual Keyboard Rendering**: No impact - component uses same type signature
-- **Kiosk Mode Behavior**: No impact - keyboard detection unchanged  
-- **Audio Feedback**: No impact - `useKeyboardSound` has no type dependencies
-- **AI Assistant**: No impact - language detection (fa/ar/en) is separate from keyboard layouts
+- [ ] Preview builds successfully
+- [ ] Navigate to `/admin/login` - virtual keyboard appears
+- [ ] Test all 4 keyboard layouts (Persian, Arabic, English, Numbers)
+- [ ] Sign up and navigate to `/admin/setup`
+- [ ] Click "فعال‌سازی مدیریت" - should succeed
+- [ ] Click again - should NOT show duplicate key error
+- [ ] Verify Vazirmatn font renders correctly in RTL
+- [ ] Check console for ref warnings
 
