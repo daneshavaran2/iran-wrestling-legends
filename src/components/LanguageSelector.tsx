@@ -58,3 +58,5 @@ export const LanguageSelector = forwardRef<HTMLButtonElement, React.ComponentPro
     );
   }
 );
+
+LanguageSelector.displayName = 'LanguageSelector';
