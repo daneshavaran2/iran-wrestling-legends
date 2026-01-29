@@ -37,15 +37,15 @@ const ProfileEmptyState = forwardRef<HTMLDivElement, { icon: React.ReactNode; ti
 ProfileEmptyState.displayName = 'ProfileEmptyState';
 
 // Error State Component (inline to avoid ref issues)
-const ProfileErrorState = forwardRef<HTMLDivElement, { message: string; onRetry?: () => void }>(
-  ({ message, onRetry }, ref) => (
+const ProfileErrorState = forwardRef<HTMLDivElement, { message: string; onRetry?: () => void; retryText?: string }>(
+  ({ message, onRetry, retryText = 'Retry' }, ref) => (
     <div ref={ref} className="flex flex-col items-center justify-center py-16 text-center">
       <div className="glass-card p-8 flex flex-col items-center gap-4">
         <AlertCircle className="h-16 w-16 text-destructive animate-scale-in" />
         <p className="text-lg text-muted-foreground">{message}</p>
         {onRetry && (
           <GoldButton onClick={onRetry} variant="outline" className="mt-4">
-            تلاش مجدد
+            {retryText}
           </GoldButton>
         )}
       </div>
