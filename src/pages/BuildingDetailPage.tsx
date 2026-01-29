@@ -5,6 +5,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { SparkParticles } from '@/components/ui/SparkParticles';
 import { useKioskMode } from '@/hooks/useKioskMode';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LazyImage } from '@/components/ui/LazyImage';
@@ -27,6 +28,7 @@ export default function BuildingDetailPage() {
   useKioskMode();
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t, dir } = useLanguage();
   const [building, setBuilding] = useState<Building | null>(null);
   const [images, setImages] = useState<BuildingImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -100,8 +102,8 @@ export default function BuildingDetailPage() {
               onClick={() => navigate('/buildings')}
               className="flex items-center gap-2 cyber-button"
             >
-              <ArrowRight className="h-5 w-5" />
-              بازگشت به بناها
+              <ArrowRight className={`h-5 w-5 ${dir === 'ltr' ? 'rotate-180' : ''}`} />
+              {t('buildings.backToBuildings')}
             </GoldButton>
           </div>
         </div>
@@ -143,7 +145,7 @@ export default function BuildingDetailPage() {
           <div className="animate-fade-in" style={{ animationDelay: '200ms' }}>
             <h2 className="text-xl md:text-2xl font-bold mb-4 flex items-center gap-2">
               <ImageIcon className="h-6 w-6 text-primary" />
-              گالری تصاویر
+              {t('buildings.imageGallery')}
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
               {images.map((image) => (

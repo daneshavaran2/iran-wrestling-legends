@@ -23,7 +23,9 @@
     "filter": "Filter",
     "noResults": "No results found",
     "error": "Error",
-    "retry": "Retry"
+    "retry": "Retry",
+    "videoError": "Error loading video",
+    "supportedFormats": "Supported formats: MP4, WebM"
   },
   "home": {
     "title": "Iran Wrestling Museum",
@@ -101,14 +103,18 @@
     "title": "History of Iranian Wrestling",
     "subtitle": "A Journey Through Time",
     "noContent": "No history content available",
-    "noContentDesc": "No content to display. More information will be added soon."
+    "noContentDesc": "No content to display. More information will be added soon.",
+    "backToHistory": "Back to History",
+    "mediaSection": "Media"
   },
   "buildings": {
     "title": "Buildings & Venues",
     "subtitle": "Historic Sports Locations",
     "noContent": "No buildings found",
     "noContentDesc": "No buildings to display. More content will be added soon.",
-    "viewOnMap": "View on Map"
+    "viewOnMap": "View on Map",
+    "backToBuildings": "Back to Buildings",
+    "imageGallery": "Image Gallery"
   },
   "books": {
     "title": "Publications",
@@ -122,7 +128,11 @@
     "subtitle": "Historic Photo Collection",
     "photos": "photos",
     "noContent": "No albums found",
-    "backToHome": "Back to Home"
+    "backToHome": "Back to Home",
+    "notFound": "Album not found",
+    "backToAlbums": "Back to Albums",
+    "noPhotos": "No photos in this album",
+    "image": "Image"
   },
   "about": {
     "title": "About the Museum",

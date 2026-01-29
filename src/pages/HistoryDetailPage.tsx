@@ -5,6 +5,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { LazyImage } from '@/components/ui/LazyImage';
 import { useKioskMode } from '@/hooks/useKioskMode';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -31,6 +32,7 @@ export default function HistoryDetailPage() {
   useKioskMode();
   const { slug } = useParams();
   const navigate = useNavigate();
+  const { t, dir } = useLanguage();
   const [section, setSection] = useState<HistorySection | null>(null);
   const [childSections, setChildSections] = useState<HistorySection[]>([]);
   const [allSections, setAllSections] = useState<HistorySection[]>([]);
@@ -127,8 +129,8 @@ export default function HistoryDetailPage() {
               onClick={() => navigate('/history')}
               className="flex items-center gap-2"
             >
-              <ArrowRight className="h-5 w-5" />
-              بازگشت به تاریخچه
+              <ArrowRight className={`h-5 w-5 ${dir === 'ltr' ? 'rotate-180' : ''}`} />
+              {t('history.backToHistory')}
             </GoldButton>
           </div>
 
@@ -196,7 +198,7 @@ export default function HistoryDetailPage() {
         {/* Media Gallery */}
         {media.length > 0 && (
           <div className="animate-fade-in mb-8">
-            <h3 className="text-xl font-bold mb-4 text-gold">رسانه‌ها</h3>
+            <h3 className="text-xl font-bold mb-4 text-gold">{t('history.mediaSection')}</h3>
             <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
               {media.map((item) => (
                 <button
