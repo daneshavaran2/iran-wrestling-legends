@@ -15,6 +15,7 @@ interface InstallStep {
 const InstallGuidePage = () => {
   const navigate = useNavigate();
   const { t, language } = useLanguage();
+  
   const [platform, setPlatform] = useState<'android' | 'ios' | 'windows'>('android');
   const [currentStep, setCurrentStep] = useState(0);
 
