@@ -164,10 +164,10 @@ function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <div className="glass-card p-8 flex flex-col items-center gap-4 animate-fade-in">
           <AlertCircle className="h-16 w-16 text-destructive" />
-          <h3 className="text-xl font-bold">خطا در بارگذاری ویدیو</h3>
-          <p className="text-muted-foreground max-w-md">فرمت‌های پشتیبانی‌شده: MP4، WebM</p>
+          <h3 className="text-xl font-bold">{t('common.videoError')}</h3>
+          <p className="text-muted-foreground max-w-md">{t('common.supportedFormats')}</p>
           <GoldButton onClick={handleRetry} variant="outline" className="mt-4">
-            تلاش مجدد
+            {t('common.retry')}
           </GoldButton>
         </div>
       </div>

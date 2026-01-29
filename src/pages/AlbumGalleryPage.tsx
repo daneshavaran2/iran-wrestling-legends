@@ -7,11 +7,13 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { FlipBook } from '@/components/ui/FlipBook';
 import { LazyImage } from '@/components/ui/LazyImage';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { getMediumUrl, getThumbnailUrl, getFullUrl } from '@/utils/imageOptimizer';
 
 export default function AlbumGalleryPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { t, dir } = useLanguage();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   const { data: album, isLoading } = useQuery({
@@ -53,7 +55,7 @@ export default function AlbumGalleryPage() {
   if (!album) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">آلبوم یافت نشد</p>
+        <p className="text-muted-foreground">{t('albums.notFound')}</p>
       </div>
     );
   }
@@ -63,8 +65,8 @@ export default function AlbumGalleryPage() {
       {/* Back Button */}
       <div className="max-w-6xl mx-auto mb-8">
         <GoldButton variant="ghost" onClick={() => navigate('/albums')}>
-          <ArrowRight className="h-5 w-5 ml-2" />
-          بازگشت به آلبوم‌ها
+          <ArrowRight className={`h-5 w-5 ${dir === 'ltr' ? 'rotate-180 mr-2' : 'ml-2'}`} />
+          {t('albums.backToAlbums')}
         </GoldButton>
       </div>
 
@@ -91,7 +93,7 @@ export default function AlbumGalleryPage() {
                 <LazyImage
                   src={getMediumUrl(photo.url)}
                   thumbnailSrc={getThumbnailUrl(photo.url)}
-                  alt={photo.caption || `تصویر ${index + 1}`}
+                  alt={photo.caption || `${t('albums.image')} ${index + 1}`}
                   className="w-full h-full transition-transform duration-500 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors" />
@@ -105,7 +107,7 @@ export default function AlbumGalleryPage() {
           </div>
         ) : (
           <GlassCard className="p-12 text-center">
-            <p className="text-muted-foreground">تصویری در این آلبوم وجود ندارد</p>
+            <p className="text-muted-foreground">{t('albums.noPhotos')}</p>
           </GlassCard>
         )}
       </main>
