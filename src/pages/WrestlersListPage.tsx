@@ -118,7 +118,7 @@ export default function WrestlersListPage() {
                   {/* Style Filter */}
                   <div>
                     <label className="block text-sm font-medium mb-3 text-muted-foreground">
-                      {t('wrestler.style')}
+                      {t('wrestler.filterByStyle')}
                     </label>
                     <div className="flex gap-2 flex-wrap">
                       {[
@@ -145,7 +145,7 @@ export default function WrestlersListPage() {
                   {/* Province Filter */}
                   <div>
                     <label className="block text-sm font-medium mb-3 text-muted-foreground">
-                      {t('wrestler.province')}
+                      {t('wrestler.filterByProvince')}
                     </label>
                     <select
                       value={selectedProvince}

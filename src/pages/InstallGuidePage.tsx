@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface InstallStep {
   icon: React.ReactNode;
@@ -11,64 +12,65 @@ interface InstallStep {
   description: string;
 }
 
-const androidSteps: InstallStep[] = [
-  {
-    icon: <MoreVertical className="h-16 w-16" />,
-    title: 'باز کردن منو',
-    description: 'روی آیکون سه‌نقطه (⋮) در گوشه بالای مرورگر کلیک کنید',
-  },
-  {
-    icon: <PlusSquare className="h-16 w-16" />,
-    title: 'افزودن به صفحه اصلی',
-    description: 'گزینه "افزودن به صفحه اصلی" یا "Add to Home screen" را انتخاب کنید',
-  },
-  {
-    icon: <Download className="h-16 w-16" />,
-    title: 'نصب برنامه',
-    description: 'روی دکمه "نصب" یا "Install" کلیک کنید تا برنامه نصب شود',
-  },
-];
-
-const iosSteps: InstallStep[] = [
-  {
-    icon: <Share className="h-16 w-16" />,
-    title: 'باز کردن منوی اشتراک‌گذاری',
-    description: 'روی آیکون اشتراک‌گذاری (مربع با فلش به بالا) در پایین Safari کلیک کنید',
-  },
-  {
-    icon: <PlusSquare className="h-16 w-16" />,
-    title: 'افزودن به صفحه اصلی',
-    description: 'به پایین اسکرول کنید و "Add to Home Screen" را انتخاب کنید',
-  },
-  {
-    icon: <Download className="h-16 w-16" />,
-    title: 'تأیید نصب',
-    description: 'روی "Add" در گوشه بالای صفحه کلیک کنید',
-  },
-];
-
-const windowsSteps: InstallStep[] = [
-  {
-    icon: <Globe className="h-16 w-16" />,
-    title: 'آیکون نصب در نوار آدرس',
-    description: 'روی آیکون نصب (⊕) در سمت راست نوار آدرس کلیک کنید',
-  },
-  {
-    icon: <MoreVertical className="h-16 w-16" />,
-    title: 'یا از منوی مرورگر',
-    description: 'از منوی سه‌نقطه (⋮) گزینه "Install app" یا "نصب برنامه" را انتخاب کنید',
-  },
-  {
-    icon: <Download className="h-16 w-16" />,
-    title: 'تأیید نصب',
-    description: 'در پنجره باز شده روی "Install" کلیک کنید',
-  },
-];
-
 const InstallGuidePage = () => {
   const navigate = useNavigate();
+  const { t, language } = useLanguage();
   const [platform, setPlatform] = useState<'android' | 'ios' | 'windows'>('android');
   const [currentStep, setCurrentStep] = useState(0);
+
+  const androidSteps: InstallStep[] = [
+    {
+      icon: <MoreVertical className="h-16 w-16" />,
+      title: t('installGuide.androidSteps.step1Title'),
+      description: t('installGuide.androidSteps.step1Desc'),
+    },
+    {
+      icon: <PlusSquare className="h-16 w-16" />,
+      title: t('installGuide.androidSteps.step2Title'),
+      description: t('installGuide.androidSteps.step2Desc'),
+    },
+    {
+      icon: <Download className="h-16 w-16" />,
+      title: t('installGuide.androidSteps.step3Title'),
+      description: t('installGuide.androidSteps.step3Desc'),
+    },
+  ];
+
+  const iosSteps: InstallStep[] = [
+    {
+      icon: <Share className="h-16 w-16" />,
+      title: t('installGuide.iosSteps.step1Title'),
+      description: t('installGuide.iosSteps.step1Desc'),
+    },
+    {
+      icon: <PlusSquare className="h-16 w-16" />,
+      title: t('installGuide.iosSteps.step2Title'),
+      description: t('installGuide.iosSteps.step2Desc'),
+    },
+    {
+      icon: <Download className="h-16 w-16" />,
+      title: t('installGuide.iosSteps.step3Title'),
+      description: t('installGuide.iosSteps.step3Desc'),
+    },
+  ];
+
+  const windowsSteps: InstallStep[] = [
+    {
+      icon: <Globe className="h-16 w-16" />,
+      title: t('installGuide.windowsSteps.step1Title'),
+      description: t('installGuide.windowsSteps.step1Desc'),
+    },
+    {
+      icon: <MoreVertical className="h-16 w-16" />,
+      title: t('installGuide.windowsSteps.step2Title'),
+      description: t('installGuide.windowsSteps.step2Desc'),
+    },
+    {
+      icon: <Download className="h-16 w-16" />,
+      title: t('installGuide.windowsSteps.step3Title'),
+      description: t('installGuide.windowsSteps.step3Desc'),
+    },
+  ];
 
   useEffect(() => {
     // Auto-detect platform
@@ -112,6 +114,16 @@ const InstallGuidePage = () => {
     setCurrentStep(0);
   };
 
+  const formatStepNumber = (num: number) => {
+    if (language === 'fa') {
+      return num.toString().replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[parseInt(d)]);
+    }
+    if (language === 'ar') {
+      return num.toString().replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[parseInt(d)]);
+    }
+    return num.toString();
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
@@ -123,7 +135,7 @@ const InstallGuidePage = () => {
           >
             <ArrowRight className="h-6 w-6" />
           </button>
-          <h1 className="text-xl font-bold">راهنمای نصب برنامه</h1>
+          <h1 className="text-xl font-bold">{t('installGuide.title')}</h1>
         </div>
       </header>
 
@@ -133,15 +145,15 @@ const InstallGuidePage = () => {
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="android" className="gap-2">
               <Smartphone className="h-4 w-4" />
-              اندروید
+              {t('installGuide.android')}
             </TabsTrigger>
             <TabsTrigger value="ios" className="gap-2">
               <Apple className="h-4 w-4" />
-              iOS
+              {t('installGuide.ios')}
             </TabsTrigger>
             <TabsTrigger value="windows" className="gap-2">
               <Monitor className="h-4 w-4" />
-              ویندوز
+              {t('installGuide.windows')}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -167,7 +179,9 @@ const InstallGuidePage = () => {
         <GlassCard className="p-8 mb-6">
           <div className="text-center">
             <div className="text-muted-foreground text-sm mb-2">
-              مرحله {(currentStep + 1).toString().replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[parseInt(d)])} از {steps.length.toString().replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[parseInt(d)])}
+              {t('installGuide.stepOf')
+                .replace('{current}', formatStepNumber(currentStep + 1))
+                .replace('{total}', formatStepNumber(steps.length))}
             </div>
             
             <div className="flex justify-center mb-6">
@@ -190,17 +204,17 @@ const InstallGuidePage = () => {
             className="gap-2"
           >
             <ChevronRight className="h-4 w-4" />
-            قبلی
+            {t('installGuide.prev')}
           </Button>
 
           {currentStep === steps.length - 1 ? (
             <Button onClick={() => navigate('/install')} className="gap-2">
               <CheckCircle2 className="h-4 w-4" />
-              رفتن به صفحه نصب
+              {t('installGuide.goToInstall')}
             </Button>
           ) : (
             <Button onClick={nextStep} className="gap-2">
-              بعدی
+              {t('installGuide.next')}
               <ChevronLeft className="h-4 w-4" />
             </Button>
           )}
@@ -212,9 +226,9 @@ const InstallGuidePage = () => {
             <div className="flex items-start gap-3">
               <Apple className="h-5 w-5 text-amber-500 mt-0.5" />
               <div>
-                <p className="text-amber-500 font-medium">توجه مهم</p>
+                <p className="text-amber-500 font-medium">{t('installGuide.iosWarning')}</p>
                 <p className="text-sm text-muted-foreground">
-                  برای نصب در iOS باید حتماً از Safari استفاده کنید. مرورگرهای دیگر مثل Chrome یا Firefox از این قابلیت پشتیبانی نمی‌کنند.
+                  {t('installGuide.iosWarningDesc')}
                 </p>
               </div>
             </div>
@@ -225,28 +239,28 @@ const InstallGuidePage = () => {
         <GlassCard className="p-6">
           <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-primary" />
-            مزایای نصب برنامه
+            {t('installGuide.benefits')}
           </h3>
           <ul className="space-y-3">
             <li className="flex items-start gap-3">
               <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-              <span>دسترسی سریع از صفحه اصلی گوشی یا دسکتاپ</span>
+              <span>{t('installGuide.benefitsList.item1')}</span>
             </li>
             <li className="flex items-start gap-3">
               <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-              <span>کار در حالت آفلاین بدون نیاز به اینترنت</span>
+              <span>{t('installGuide.benefitsList.item2')}</span>
             </li>
             <li className="flex items-start gap-3">
               <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-              <span>تجربه کاربری تمام‌صفحه بدون نوار آدرس</span>
+              <span>{t('installGuide.benefitsList.item3')}</span>
             </li>
             <li className="flex items-start gap-3">
               <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-              <span>بارگذاری سریع‌تر و به‌روزرسانی خودکار</span>
+              <span>{t('installGuide.benefitsList.item4')}</span>
             </li>
             <li className="flex items-start gap-3">
               <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-              <span>حجم کم و بدون نیاز به فروشگاه اپلیکیشن</span>
+              <span>{t('installGuide.benefitsList.item5')}</span>
             </li>
           </ul>
         </GlassCard>

@@ -4,10 +4,12 @@ import { Shield, Check } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AdminSetupPage() {
   const navigate = useNavigate();
   const { user, makeAdmin, hasAnyAdmin, isAdmin } = useAuth();
+  const { t } = useLanguage();
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,9 +30,9 @@ export default function AdminSetupPage() {
     
     // If already has admin(s) and user is not admin, show error
     if (hasAnyAdmin && !isAdmin) {
-      setError('یک مدیر قبلاً ایجاد شده است. برای دسترسی با مدیر سیستم تماس بگیرید.');
+      setError(t('admin.adminAlreadyExists'));
     }
-  }, [user, hasAnyAdmin, isAdmin, navigate]);
+  }, [user, hasAnyAdmin, isAdmin, navigate, t]);
 
   const handleMakeAdmin = async () => {
     setIsProcessing(true);
@@ -63,10 +65,10 @@ export default function AdminSetupPage() {
             <Shield className="h-10 w-10 text-primary" />
           </div>
           <h1 className="text-3xl font-bold mb-2">
-            <span className="text-gold">راه‌اندازی اولیه</span>
+            <span className="text-gold">{t('admin.initialSetup')}</span>
           </h1>
           <p className="text-muted-foreground">
-            ایجاد اولین حساب مدیر سیستم
+            {t('admin.createFirstAdmin')}
           </p>
         </div>
 
@@ -77,9 +79,9 @@ export default function AdminSetupPage() {
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 mb-4">
                 <Check className="h-8 w-8 text-green-400" />
               </div>
-              <h2 className="text-xl font-bold mb-2">تبریک!</h2>
+              <h2 className="text-xl font-bold mb-2">{t('admin.congratulations')}</h2>
               <p className="text-muted-foreground">
-                حساب مدیر با موفقیت ایجاد شد. در حال انتقال به پنل مدیریت...
+                {t('admin.adminCreatedSuccess')}
               </p>
             </div>
           ) : hasAnyAdmin && !isAdmin ? (
@@ -89,17 +91,17 @@ export default function AdminSetupPage() {
                 variant="outline"
                 onClick={() => navigate('/')}
               >
-                بازگشت به صفحه اصلی
+                {t('admin.backToHome')}
               </GoldButton>
             </div>
           ) : (
             <div className="space-y-6">
               <div className="text-center">
                 <p className="text-muted-foreground mb-4">
-                  شما اولین کاربر سیستم هستید. با کلیک روی دکمه زیر، حساب شما به عنوان مدیر اصلی سیستم تعیین می‌شود.
+                  {t('admin.firstUserNote')}
                 </p>
                 <p className="text-sm text-muted-foreground/70">
-                  ایمیل: {user.email}
+                  {t('admin.email')}: {user.email}
                 </p>
               </div>
 
@@ -119,7 +121,7 @@ export default function AdminSetupPage() {
                 ) : (
                   <>
                     <Shield className="h-5 w-5" />
-                    فعال‌سازی مدیریت
+                    {t('admin.activateAdmin')}
                   </>
                 )}
               </GoldButton>
