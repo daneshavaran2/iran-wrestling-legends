@@ -5,12 +5,14 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { GlassInput } from '@/components/ui/GlassInput';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
   const { signIn, isLoading, user, hasAnyAdmin } = useAuth();
+  const { t } = useLanguage();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -34,7 +36,7 @@ export default function AdminLoginPage() {
     setError(null);
 
     if (!email || !password) {
-      setError('لطفاً ایمیل و رمز عبور را وارد کنید');
+      setError(t('admin.pleaseEnterCredentials'));
       return;
     }
 
@@ -49,7 +51,7 @@ export default function AdminLoginPage() {
     e.preventDefault();
     
     if (!resetEmail) {
-      toast.error('لطفاً ایمیل خود را وارد کنید');
+      toast.error(t('admin.pleaseEnterEmail'));
       return;
     }
 
@@ -63,12 +65,12 @@ export default function AdminLoginPage() {
       if (error) {
         toast.error(error.message);
       } else {
-        toast.success('لینک بازیابی رمز عبور به ایمیل شما ارسال شد');
+        toast.success(t('admin.recoveryLinkSent'));
         setShowForgotPassword(false);
         setResetEmail('');
       }
     } catch (err) {
-      toast.error('خطا در ارسال ایمیل بازیابی');
+      toast.error(t('admin.errorSendingRecovery'));
     } finally {
       setIsResetting(false);
     }
@@ -81,10 +83,10 @@ export default function AdminLoginPage() {
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold mb-2">
-              <span className="text-gold">بازیابی رمز عبور</span>
+              <span className="text-gold">{t('admin.passwordRecovery')}</span>
             </h1>
             <p className="text-muted-foreground">
-              ایمیل خود را وارد کنید تا لینک بازیابی برایتان ارسال شود
+              {t('admin.passwordRecoveryDesc')}
             </p>
           </div>
 
@@ -92,7 +94,7 @@ export default function AdminLoginPage() {
             <form onSubmit={handleForgotPassword} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium mb-2 text-muted-foreground">
-                  ایمیل
+                  {t('admin.email')}
                 </label>
                 <GlassInput
                   type="email"
@@ -115,7 +117,7 @@ export default function AdminLoginPage() {
                 ) : (
                   <>
                     <KeyRound className="h-5 w-5" />
-                    ارسال لینک بازیابی
+                    {t('admin.sendRecoveryLink')}
                   </>
                 )}
               </GoldButton>
@@ -126,7 +128,7 @@ export default function AdminLoginPage() {
                 onClick={() => setShowForgotPassword(false)}
                 className="text-primary hover:underline text-sm"
               >
-                بازگشت به صفحه ورود
+                {t('admin.backToLogin')}
               </button>
             </div>
           </GlassCard>
@@ -141,10 +143,10 @@ export default function AdminLoginPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">
-            <span className="text-gold">پنل مدیریت</span>
+            <span className="text-gold">{t('admin.panel')}</span>
           </h1>
           <p className="text-muted-foreground">
-            موزه کشتی ایران
+            {t('admin.museum')}
           </p>
         </div>
 
@@ -154,7 +156,7 @@ export default function AdminLoginPage() {
             {/* Email */}
             <div>
               <label className="block text-sm font-medium mb-2 text-muted-foreground">
-                ایمیل
+                {t('admin.email')}
               </label>
               <GlassInput
                 type="email"
@@ -170,7 +172,7 @@ export default function AdminLoginPage() {
             {/* Password */}
             <div>
               <label className="block text-sm font-medium mb-2 text-muted-foreground">
-                رمز عبور
+                {t('admin.password')}
               </label>
               <div className="relative">
                 <GlassInput
@@ -199,7 +201,7 @@ export default function AdminLoginPage() {
                 onClick={() => setShowForgotPassword(true)}
                 className="text-sm text-primary hover:underline"
               >
-                رمز عبور را فراموش کردید؟
+                {t('admin.forgotPassword')}
               </button>
             </div>
 
@@ -221,7 +223,7 @@ export default function AdminLoginPage() {
               ) : (
                 <>
                   <LogIn className="h-5 w-5" />
-                  ورود به پنل
+                  {t('admin.login')}
                 </>
               )}
             </GoldButton>
@@ -229,12 +231,12 @@ export default function AdminLoginPage() {
 
           {/* Sign Up Link */}
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            حساب کاربری ندارید؟{' '}
+            {t('admin.noAccount')}{' '}
             <button
               onClick={() => navigate('/admin/signup')}
               className="text-primary hover:underline"
             >
-              ثبت‌نام کنید
+              {t('admin.signup')}
             </button>
           </div>
         </GlassCard>
@@ -245,7 +247,7 @@ export default function AdminLoginPage() {
             onClick={() => navigate('/')}
             className="text-muted-foreground hover:text-foreground transition-colors text-sm"
           >
-            بازگشت به صفحه اصلی
+            {t('admin.backToHome')}
           </button>
         </div>
       </div>

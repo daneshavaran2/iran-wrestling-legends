@@ -3,44 +3,46 @@ import { Users, Trophy, Image, TrendingUp, HardDrive, RefreshCw } from 'lucide-r
 import { GlassCard } from '@/components/ui/GlassCard';
 import { useWrestlers } from '@/contexts/WrestlerContext';
 import { useStorageStats } from '@/hooks/useStorageStats';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 
 export default function AdminDashboardPage() {
   const { wrestlers, achievements, media } = useWrestlers();
   const storageStats = useStorageStats();
+  const { t } = useLanguage();
 
   const stats = [
     {
-      title: 'تعداد کشتی‌گیرها',
+      title: t('admin.totalWrestlers'),
       value: wrestlers.length,
       icon: Users,
       color: 'text-primary',
       bgColor: 'bg-primary/10',
     },
     {
-      title: 'کشتی آزاد',
+      title: t('admin.freestyleWrestlers'),
       value: wrestlers.filter(w => w.style === 'freestyle').length,
       icon: TrendingUp,
       color: 'text-accent',
       bgColor: 'bg-accent/10',
     },
     {
-      title: 'کشتی فرنگی',
+      title: t('admin.grecoRomanWrestlers'),
       value: wrestlers.filter(w => w.style === 'greco-roman').length,
       icon: TrendingUp,
       color: 'text-green-400',
       bgColor: 'bg-green-400/10',
     },
     {
-      title: 'تعداد افتخارات',
+      title: t('admin.totalAchievements'),
       value: achievements.length,
       icon: Trophy,
       color: 'text-yellow-400',
       bgColor: 'bg-yellow-400/10',
     },
     {
-      title: 'تعداد رسانه‌ها',
+      title: t('admin.totalMedia'),
       value: media.length,
       icon: Image,
       color: 'text-purple-400',
@@ -76,9 +78,9 @@ export default function AdminDashboardPage() {
     <div className="space-y-8 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gold mb-2">داشبورد</h1>
+        <h1 className="text-3xl font-bold text-gold mb-2">{t('admin.dashboard')}</h1>
         <p className="text-muted-foreground">
-          خوش آمدید به پنل مدیریت موزه کشتی ایران
+          {t('admin.welcomeMessage')}
         </p>
       </div>
 
@@ -113,7 +115,7 @@ export default function AdminDashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <HardDrive className="h-5 w-5 text-primary" />
-              فضای ذخیره‌سازی
+              {t('admin.storage')}
             </h2>
             <Button 
               variant="ghost" 
@@ -152,20 +154,20 @@ export default function AdminDashboardPage() {
                     className="h-2"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    {bucket.fileCount} فایل
+                    {bucket.fileCount} {t('admin.filesTotal').split(' ')[0]}
                   </p>
                 </div>
               ))}
 
               <div className="mt-4 pt-4 border-t border-border">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">مجموع:</span>
+                  <span className="text-muted-foreground">{t('admin.total')}:</span>
                   <span className="text-2xl font-bold text-primary">
                     {storageStats.totalSizeMB.toFixed(1)} MB
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {storageStats.totalFiles} فایل در کل
+                  {storageStats.totalFiles} {t('admin.filesTotal')}
                 </p>
               </div>
 
@@ -173,26 +175,26 @@ export default function AdminDashboardPage() {
               {hasSavings && (
                 <div className="mt-4 p-3 rounded-xl bg-green-500/10 border border-green-500/30">
                   <h4 className="text-sm font-medium text-green-500 mb-2">
-                    صرفه‌جویی از فشرده‌سازی
+                    {t('admin.compressionSavings')}
                   </h4>
                   <div className="grid grid-cols-3 gap-2 text-center text-xs">
                     <div>
                       <div className="font-bold text-muted-foreground">
                         {formatBytes(compressionHistory.totalOriginal)}
                       </div>
-                      <div className="text-muted-foreground">قبل</div>
+                      <div className="text-muted-foreground">{t('admin.before')}</div>
                     </div>
                     <div className="text-lg">→</div>
                     <div>
                       <div className="font-bold text-green-500">
                         {formatBytes(compressionHistory.totalCompressed)}
                       </div>
-                      <div className="text-muted-foreground">بعد</div>
+                      <div className="text-muted-foreground">{t('admin.after')}</div>
                     </div>
                   </div>
                   <div className="text-center mt-2">
                     <span className="text-green-500 font-bold">
-                      {Math.round((compressionHistory.savedBytes / compressionHistory.totalOriginal) * 100)}% کاهش
+                      {Math.round((compressionHistory.savedBytes / compressionHistory.totalOriginal) * 100)}% {t('admin.reduction')}
                     </span>
                   </div>
                 </div>
@@ -203,7 +205,7 @@ export default function AdminDashboardPage() {
 
         {/* Recent Wrestlers */}
         <GlassCard className="p-6">
-          <h2 className="text-xl font-bold mb-4">آخرین کشتی‌گیرهای اضافه شده</h2>
+          <h2 className="text-xl font-bold mb-4">{t('admin.recentWrestlers')}</h2>
           {recentWrestlers.length > 0 ? (
             <div className="space-y-3">
               {recentWrestlers.map(wrestler => (
@@ -227,7 +229,7 @@ export default function AdminDashboardPage() {
                   <div className="flex-1">
                     <p className="font-medium">{wrestler.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {wrestler.style === 'freestyle' ? 'آزاد' : 'فرنگی'}
+                      {wrestler.style === 'freestyle' ? t('wrestler.freestyle') : t('wrestler.grecoRoman')}
                     </p>
                   </div>
                 </div>
@@ -235,26 +237,26 @@ export default function AdminDashboardPage() {
             </div>
           ) : (
             <p className="text-muted-foreground text-center py-8">
-              هنوز کشتی‌گیری اضافه نشده است
+              {t('admin.noWrestlersYet')}
             </p>
           )}
         </GlassCard>
 
         {/* Quick Actions */}
         <GlassCard className="p-6">
-          <h2 className="text-xl font-bold mb-4">راهنمای سریع</h2>
+          <h2 className="text-xl font-bold mb-4">{t('admin.quickGuide')}</h2>
           <div className="space-y-4 text-muted-foreground">
             <p>
-              ۱. برای افزودن کشتی‌گیر جدید از منوی «کشتی‌گیرها» استفاده کنید.
+              ۱. {t('admin.guide1')}
             </p>
             <p>
-              ۲. هر کشتی‌گیر می‌تواند بیوگرافی، افتخارات و رسانه‌های مختلف داشته باشد.
+              ۲. {t('admin.guide2')}
             </p>
             <p>
-              ۳. تصاویر و ویدیوها را می‌توانید با Drag & Drop آپلود کنید.
+              ۳. {t('admin.guide3')}
             </p>
             <p>
-              ۴. برای فشرده‌سازی تصاویر موجود، به تنظیمات عمومی مراجعه کنید.
+              ۴. {t('admin.guide4')}
             </p>
           </div>
         </GlassCard>

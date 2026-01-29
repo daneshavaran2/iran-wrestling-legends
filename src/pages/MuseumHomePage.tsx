@@ -155,7 +155,7 @@ export default function MuseumHomePage() {
       <div className="fixed bottom-6 left-6 z-50">
         <FloatingIconWithSparks
           onClick={() => navigate('/admin/login')}
-          title="ورود مدیران"
+          title={t('home.adminAccess')}
           className="text-muted-foreground hover:text-primary"
         >
           <Settings className="h-6 w-6" />

@@ -16,10 +16,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { useOfflineTest, type CacheTestResult } from '@/hooks/useOfflineTest';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
 
 export default function CacheSettingsPage() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const { runTest, isRunning, result, getSwStatusLabel, getSwStatusColor, toPersianNumber } = useOfflineTest();
   const [isClearing, setIsClearing] = useState(false);
 
@@ -53,15 +55,15 @@ export default function CacheSettingsPage() {
         registration.active?.postMessage({ type: 'CLEAR_ALL_CACHES' });
       }
 
-      toast.success('کش با موفقیت پاک شد', {
-        description: 'داده‌های کش شده حذف شدند.',
+      toast.success(t('cache.cacheCleared'), {
+        description: t('cache.cacheClearedDesc'),
       });
 
       // Re-run test
       await runTest();
     } catch (error) {
       console.error('Error clearing cache:', error);
-      toast.error('خطا در پاک کردن کش');
+      toast.error(t('cache.errorClearing'));
     } finally {
       setIsClearing(false);
     }
@@ -75,11 +77,11 @@ export default function CacheSettingsPage() {
         await registration.update();
       }
 
-      toast.success('کش به‌روزرسانی شد');
+      toast.success(t('cache.cacheUpdated'));
       await runTest();
     } catch (error) {
       console.error('Error refreshing cache:', error);
-      toast.error('خطا در به‌روزرسانی کش');
+      toast.error(t('cache.errorRefreshing'));
     }
   };
 
@@ -114,8 +116,8 @@ export default function CacheSettingsPage() {
           <ArrowRight className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-foreground">تنظیمات کش</h1>
-          <p className="text-sm text-muted-foreground">مدیریت حافظه موقت برنامه</p>
+          <h1 className="text-xl md:text-2xl font-bold text-foreground">{t('cache.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('cache.subtitle')}</p>
         </div>
       </header>
 
@@ -125,7 +127,7 @@ export default function CacheSettingsPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold flex items-center gap-2">
               <HardDrive className="h-5 w-5 text-primary" />
-              وضعیت سیستم
+              {t('cache.systemStatus')}
             </h2>
             <Button
               variant="outline"
@@ -139,7 +141,7 @@ export default function CacheSettingsPage() {
               ) : (
                 <RefreshCw className="h-4 w-4" />
               )}
-              بررسی مجدد
+              {t('cache.recheck')}
             </Button>
           </div>
 
@@ -147,7 +149,7 @@ export default function CacheSettingsPage() {
             <div className="space-y-4">
               {/* SW Status */}
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                <span className="text-muted-foreground">Service Worker</span>
+                <span className="text-muted-foreground">{t('cache.serviceWorker')}</span>
                 <span className={`font-medium ${getSwStatusColor(result.serviceWorkerStatus)}`}>
                   {getSwStatusLabel(result.serviceWorkerStatus)}
                 </span>
@@ -155,19 +157,19 @@ export default function CacheSettingsPage() {
 
               {/* Offline Ready Status */}
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                <span className="text-muted-foreground">آمادگی آفلاین</span>
+                <span className="text-muted-foreground">{t('cache.offlineReady')}</span>
                 <span className={`font-medium flex items-center gap-1 ${
                   result.isFullyOfflineReady ? 'text-green-500' : 'text-yellow-500'
                 }`}>
                   {result.isFullyOfflineReady ? (
                     <>
                       <CheckCircle2 className="h-4 w-4" />
-                      آماده
+                      {t('cache.ready')}
                     </>
                   ) : (
                     <>
                       <Clock className="h-4 w-4" />
-                      نیاز به دانلود
+                      {t('cache.needsDownload')}
                     </>
                   )}
                 </span>
@@ -175,14 +177,14 @@ export default function CacheSettingsPage() {
 
               {/* Total Size */}
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                <span className="text-muted-foreground">حجم کل کش</span>
+                <span className="text-muted-foreground">{t('cache.totalCacheSize')}</span>
                 <span className="font-bold text-primary">{result.totalCacheSize}</span>
               </div>
 
               {/* Last Test Time */}
               {result.lastTestTime && (
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                  <span className="text-muted-foreground">آخرین بررسی</span>
+                  <span className="text-muted-foreground">{t('cache.lastCheck')}</span>
                   <span className="text-sm">{result.lastTestTime}</span>
                 </div>
               )}
@@ -194,7 +196,7 @@ export default function CacheSettingsPage() {
         <GlassCard className="p-5">
           <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
             <Database className="h-5 w-5 text-primary" />
-            جزئیات کش
+            {t('cache.cacheDetails')}
           </h2>
 
           {result?.cacheTests && (
@@ -213,7 +215,7 @@ export default function CacheSettingsPage() {
                       <div>
                         <p className="font-medium text-foreground">{cache.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {toPersianNumber(cache.itemCount)} آیتم
+                          {toPersianNumber(cache.itemCount)} {t('cache.items')}
                         </p>
                       </div>
                     </div>
@@ -230,7 +232,7 @@ export default function CacheSettingsPage() {
 
         {/* Actions */}
         <GlassCard className="p-5">
-          <h2 className="text-lg font-bold mb-4">عملیات</h2>
+          <h2 className="text-lg font-bold mb-4">{t('cache.operations')}</h2>
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
               variant="outline"
@@ -238,7 +240,7 @@ export default function CacheSettingsPage() {
               className="flex-1 gap-2"
             >
               <RefreshCw className="h-4 w-4" />
-              به‌روزرسانی کش
+              {t('cache.refreshCache')}
             </Button>
             <Button
               variant="destructive"
@@ -251,21 +253,21 @@ export default function CacheSettingsPage() {
               ) : (
                 <Trash2 className="h-4 w-4" />
               )}
-              پاک کردن کش
+              {t('cache.clearCache')}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-3 text-center">
-            پاک کردن کش باعث می‌شود داده‌ها مجدداً از سرور دانلود شوند
+            {t('cache.clearCacheNote')}
           </p>
         </GlassCard>
 
         {/* Tips */}
         <GlassCard className="p-5 bg-primary/5 border-primary/20">
-          <h3 className="font-bold mb-2 text-primary">💡 نکات</h3>
+          <h3 className="font-bold mb-2 text-primary">💡 {t('cache.tips')}</h3>
           <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-            <li>برای استفاده آفلاین، ابتدا تمام داده‌ها را دانلود کنید</li>
-            <li>کش به صورت خودکار پس از ۲۴ ساعت منقضی می‌شود</li>
-            <li>پاک کردن کش فقط داده‌های موقت را حذف می‌کند</li>
+            <li>{t('cache.tip1')}</li>
+            <li>{t('cache.tip2')}</li>
+            <li>{t('cache.tip3')}</li>
           </ul>
         </GlassCard>
       </div>

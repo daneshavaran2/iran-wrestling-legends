@@ -3,6 +3,7 @@ import { ArrowRight, Download, Smartphone, Monitor, Apple, Chrome, CheckCircle2 
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -11,6 +12,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 const InstallPage = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
@@ -71,7 +73,7 @@ const InstallPage = () => {
           >
             <ArrowRight className="h-6 w-6" />
           </button>
-          <h1 className="text-xl font-bold">نصب برنامه</h1>
+          <h1 className="text-xl font-bold">{t('installPage.title')}</h1>
         </div>
       </header>
 
@@ -80,12 +82,12 @@ const InstallPage = () => {
         {isInstalled ? (
           <GlassCard className="p-8 text-center">
             <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-2">برنامه نصب شده است!</h2>
+            <h2 className="text-2xl font-bold mb-2">{t('installPage.installedTitle')}</h2>
             <p className="text-muted-foreground mb-6">
-              اکنون می‌توانید از طریق آیکون روی صفحه اصلی به برنامه دسترسی داشته باشید.
+              {t('installPage.installedDesc')}
             </p>
             <Button onClick={() => navigate('/')} className="bg-primary hover:bg-primary/90">
-              بازگشت به صفحه اصلی
+              {t('installPage.backToHome')}
             </Button>
           </GlassCard>
         ) : (
@@ -98,9 +100,9 @@ const InstallPage = () => {
                     <Download className="h-8 w-8 text-primary" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold">نصب سریع</h2>
+                    <h2 className="text-xl font-bold">{t('installPage.quickInstall')}</h2>
                     <p className="text-muted-foreground text-sm">
-                      با یک کلیک برنامه را نصب کنید
+                      {t('installPage.quickInstallDesc')}
                     </p>
                   </div>
                 </div>
@@ -110,7 +112,7 @@ const InstallPage = () => {
                   size="lg"
                 >
                   <Download className="h-5 w-5 ml-2" />
-                  نصب برنامه
+                  {t('installPage.installButton')}
                 </Button>
               </GlassCard>
             )}
@@ -120,20 +122,20 @@ const InstallPage = () => {
               <GlassCard className="p-6 mb-6">
                 <div className="flex items-center gap-3 mb-4">
                   <Smartphone className="h-6 w-6 text-green-500" />
-                  <h3 className="text-lg font-bold">نصب در اندروید</h3>
+                  <h3 className="text-lg font-bold">{t('installPage.androidTitle')}</h3>
                 </div>
                 <ol className="space-y-3 text-muted-foreground">
                   <li className="flex gap-3">
                     <span className="bg-primary/20 text-primary rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">۱</span>
-                    <span>روی منوی سه‌نقطه مرورگر کلیک کنید</span>
+                    <span>{t('installGuide.androidSteps.step1Desc')}</span>
                   </li>
                   <li className="flex gap-3">
                     <span className="bg-primary/20 text-primary rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">۲</span>
-                    <span>گزینه "افزودن به صفحه اصلی" یا "Install app" را انتخاب کنید</span>
+                    <span>{t('installGuide.androidSteps.step2Desc')}</span>
                   </li>
                   <li className="flex gap-3">
                     <span className="bg-primary/20 text-primary rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">۳</span>
-                    <span>روی "نصب" یا "Add" کلیک کنید</span>
+                    <span>{t('installGuide.androidSteps.step3Desc')}</span>
                   </li>
                 </ol>
               </GlassCard>
@@ -144,24 +146,24 @@ const InstallPage = () => {
               <GlassCard className="p-6 mb-6">
                 <div className="flex items-center gap-3 mb-4">
                   <Apple className="h-6 w-6 text-gray-400" />
-                  <h3 className="text-lg font-bold">نصب در آیفون/آیپد</h3>
+                  <h3 className="text-lg font-bold">{t('installPage.iosTitle')}</h3>
                 </div>
                 <ol className="space-y-3 text-muted-foreground">
                   <li className="flex gap-3">
                     <span className="bg-primary/20 text-primary rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">۱</span>
-                    <span>در Safari روی آیکون Share (مربع با فلش) کلیک کنید</span>
+                    <span>{t('installGuide.iosSteps.step1Desc')}</span>
                   </li>
                   <li className="flex gap-3">
                     <span className="bg-primary/20 text-primary rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">۲</span>
-                    <span>به پایین اسکرول کنید و "Add to Home Screen" را انتخاب کنید</span>
+                    <span>{t('installGuide.iosSteps.step2Desc')}</span>
                   </li>
                   <li className="flex gap-3">
                     <span className="bg-primary/20 text-primary rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">۳</span>
-                    <span>روی "Add" کلیک کنید</span>
+                    <span>{t('installGuide.iosSteps.step3Desc')}</span>
                   </li>
                 </ol>
                 <p className="mt-4 text-sm text-amber-500 bg-amber-500/10 p-3 rounded-lg">
-                  ⚠️ توجه: برای نصب در iOS باید از Safari استفاده کنید
+                  ⚠️ {t('installPage.iosWarning')}
                 </p>
               </GlassCard>
             )}
@@ -171,7 +173,7 @@ const InstallPage = () => {
               <GlassCard className="p-6 mb-6">
                 <div className="flex items-center gap-3 mb-4">
                   <Monitor className="h-6 w-6 text-blue-500" />
-                  <h3 className="text-lg font-bold">نصب در ویندوز</h3>
+                  <h3 className="text-lg font-bold">{t('installPage.windowsTitle')}</h3>
                 </div>
                 <div className="space-y-4">
                   <div>
@@ -182,15 +184,15 @@ const InstallPage = () => {
                     <ol className="space-y-2 text-muted-foreground pr-7">
                       <li className="flex gap-3">
                         <span className="bg-primary/20 text-primary rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">۱</span>
-                        <span>روی آیکون نصب (⊕) در نوار آدرس کلیک کنید</span>
+                        <span>{t('installGuide.windowsSteps.step1Desc')}</span>
                       </li>
                       <li className="flex gap-3">
                         <span className="bg-primary/20 text-primary rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">۲</span>
-                        <span>یا از منو: ⋮ → "Install app" یا "نصب برنامه"</span>
+                        <span>{t('installGuide.windowsSteps.step2Desc')}</span>
                       </li>
                       <li className="flex gap-3">
                         <span className="bg-primary/20 text-primary rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">۳</span>
-                        <span>روی "Install" کلیک کنید</span>
+                        <span>{t('installGuide.windowsSteps.step3Desc')}</span>
                       </li>
                     </ol>
                   </div>
@@ -203,10 +205,10 @@ const InstallPage = () => {
               <GlassCard className="p-6 mb-6">
                 <div className="flex items-center gap-3 mb-4">
                   <Download className="h-6 w-6 text-primary" />
-                  <h3 className="text-lg font-bold">نصب برنامه</h3>
+                  <h3 className="text-lg font-bold">{t('installPage.generalTitle')}</h3>
                 </div>
                 <p className="text-muted-foreground mb-4">
-                  برای نصب برنامه، از منوی مرورگر گزینه "Install" یا "Add to Home Screen" را انتخاب کنید.
+                  {t('installPage.generalDesc')}
                 </p>
               </GlassCard>
             )}
@@ -214,39 +216,39 @@ const InstallPage = () => {
             {/* Visual Guide Link */}
             <GlassCard className="p-6 mb-6">
               <div className="text-center">
-                <h3 className="text-lg font-bold mb-2">راهنمای تصویری نصب</h3>
+                <h3 className="text-lg font-bold mb-2">{t('installPage.visualGuideTitle')}</h3>
                 <p className="text-muted-foreground text-sm mb-4">
-                  برای مشاهده راهنمای مرحله به مرحله با تصاویر کلیک کنید
+                  {t('installPage.visualGuideDesc')}
                 </p>
                 <Button 
                   onClick={() => navigate('/install-guide')}
                   variant="outline"
                   className="w-full"
                 >
-                  مشاهده راهنمای تصویری
+                  {t('installPage.viewGuide')}
                 </Button>
               </div>
             </GlassCard>
 
             {/* Benefits */}
             <GlassCard className="p-6">
-              <h3 className="text-lg font-bold mb-4">مزایای نصب برنامه</h3>
+              <h3 className="text-lg font-bold mb-4">{t('installPage.benefitsTitle')}</h3>
               <ul className="space-y-3">
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
-                  <span>دسترسی سریع از صفحه اصلی</span>
+                  <span>{t('installPage.benefit1')}</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
-                  <span>کار در حالت آفلاین</span>
+                  <span>{t('installPage.benefit2')}</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
-                  <span>تجربه کاربری بهتر بدون نوار آدرس</span>
+                  <span>{t('installPage.benefit3')}</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
-                  <span>بارگذاری سریع‌تر</span>
+                  <span>{t('installPage.benefit4')}</span>
                 </li>
               </ul>
             </GlassCard>
