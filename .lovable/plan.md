@@ -1,161 +1,295 @@
 
-# Plan: Test and Fix Vazirmatn Font, Admin Setup, and Virtual Keyboard
+# Complete Multi-Language Implementation Plan
 
-## Current Analysis Results
+## Project Analysis
 
-### 1. Vazirmatn Font Configuration
-The font configuration is **correctly set up**:
+The Iran Wrestling Museum application currently has three locale files (fa.json, en.json, ar.json) with most static UI strings covered. However, several pages still contain **hardcoded Persian text** that bypasses the translation system.
 
-| Component | Status | Location |
-|-----------|--------|----------|
-| Font Files | Present | `public/fonts/Vazirmatn-*.woff2` (Light, Regular, Medium, Bold) |
-| @font-face | Correct | `src/index.css` lines 6-36 with `font-display: swap` |
-| RTL Direction | Set | `src/index.css` line 146: `html { direction: rtl; }` |
-| Default Font | Configured | `font-family: 'Vazirmatn', system-ui, sans-serif` |
-| Tailwind Config | Ready | `fontFamily: { vazir: ['Vazirmatn', ...] }` |
+---
 
-### 2. Admin Setup - Duplicate Key Fix
-The `makeAdmin()` function has been **properly fixed** with the select-then-insert pattern:
+## Current Coverage Analysis
 
-```typescript
-// Current implementation (lines 163-215 in AuthContext.tsx)
-const makeAdmin = async () => {
-  // 1. First check if role already exists
-  const { data: existingRole } = await supabase
-    .from('user_roles')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('role', 'admin')
-    .maybeSingle();
+| Page | useLanguage Hook | Hardcoded Text Found |
+|------|-----------------|---------------------|
+| MuseumHomePage | Yes | "ورود مدیران" (Admin button title) |
+| WrestlersListPage | Yes | Missing: `wrestler.style`, `wrestler.allProvinces`, `wrestler.notFoundDesc` |
+| WrestlerProfilePage | Yes | Complete |
+| HistoryListPage | Yes | Complete |
+| BooksListPage | Yes | Missing: `books.noContentDesc` |
+| BuildingsListPage | Yes | Missing: `buildings.noContentDesc` |
+| AlbumsListPage | Yes | Complete |
+| AboutMuseumPage | Yes | Complete |
+| CacheSettingsPage | **No** | All text is hardcoded Persian |
+| InstallPage | **No** | All text is hardcoded Persian |
+| InstallGuidePage | **No** | All text is hardcoded Persian |
+| NotFound | **No** | All text is hardcoded Persian |
+| AdminLoginPage | **No** | All text is hardcoded Persian |
+| AdminSetupPage | **No** | All text is hardcoded Persian |
+| AdminDashboardPage | **No** | All text is hardcoded Persian |
+| ChatAssistant | Yes | Complete |
 
-  // 2. If exists, return success without inserting
-  if (existingRole) {
-    setIsAdmin(true);
-    return { error: null };
+---
+
+## Implementation Tasks
+
+### Part 1: Add Missing Translation Keys to Locale Files
+
+**File: `src/locales/en.json`** - Add these keys:
+
+```json
+{
+  "wrestler": {
+    "style": "Style",
+    "allProvinces": "All Provinces",
+    "notFoundDesc": "Try adjusting your search or filters"
+  },
+  "books": {
+    "noContentDesc": "No books to display. More content will be added soon."
+  },
+  "buildings": {
+    "noContentDesc": "No buildings to display. More content will be added soon."
+  },
+  "cache": {
+    "title": "Cache Settings",
+    "subtitle": "Manage app temporary storage",
+    "systemStatus": "System Status",
+    "recheck": "Recheck",
+    "serviceWorker": "Service Worker",
+    "offlineReady": "Offline Ready",
+    "ready": "Ready",
+    "needsDownload": "Needs Download",
+    "totalCacheSize": "Total Cache Size",
+    "lastCheck": "Last Check",
+    "cacheDetails": "Cache Details",
+    "items": "items",
+    "operations": "Operations",
+    "refreshCache": "Refresh Cache",
+    "clearCache": "Clear Cache",
+    "clearCacheNote": "Clearing cache will require data to be re-downloaded from server",
+    "tips": "Tips",
+    "tip1": "Download all data first for offline use",
+    "tip2": "Cache expires automatically after 24 hours",
+    "tip3": "Clearing cache only removes temporary data",
+    "cacheCleared": "Cache cleared successfully",
+    "cacheClearedDesc": "Cached data has been removed.",
+    "cacheUpdated": "Cache updated",
+    "errorClearing": "Error clearing cache",
+    "errorRefreshing": "Error refreshing cache"
+  },
+  "installPage": {
+    "title": "Install App",
+    "installedTitle": "App Installed!",
+    "installedDesc": "You can now access the app from the home screen icon.",
+    "backToHome": "Back to Home",
+    "quickInstall": "Quick Install",
+    "quickInstallDesc": "Install the app with one click",
+    "installButton": "Install App",
+    "androidTitle": "Install on Android",
+    "iosTitle": "Install on iPhone/iPad",
+    "windowsTitle": "Install on Windows",
+    "generalTitle": "Install App",
+    "generalDesc": "Select 'Install' or 'Add to Home Screen' from browser menu.",
+    "iosWarning": "Note: You must use Safari for installation on iOS",
+    "visualGuideTitle": "Visual Installation Guide",
+    "visualGuideDesc": "Click to view step-by-step guide with images",
+    "viewGuide": "View Visual Guide",
+    "benefitsTitle": "Benefits of Installing",
+    "benefit1": "Quick access from home screen",
+    "benefit2": "Works offline",
+    "benefit3": "Better experience without address bar",
+    "benefit4": "Faster loading"
+  },
+  "installGuide": {
+    "title": "App Installation Guide",
+    "stepOf": "Step {current} of {total}",
+    "prev": "Previous",
+    "next": "Next",
+    "goToInstall": "Go to Install Page",
+    "android": "Android",
+    "ios": "iOS",
+    "windows": "Windows",
+    "androidSteps": {
+      "step1Title": "Open Menu",
+      "step1Desc": "Click the three-dot icon (⋮) at the top corner of your browser",
+      "step2Title": "Add to Home Screen",
+      "step2Desc": "Select 'Add to Home screen' or 'Install app'",
+      "step3Title": "Install App",
+      "step3Desc": "Click 'Install' button to complete installation"
+    },
+    "iosSteps": {
+      "step1Title": "Open Share Menu",
+      "step1Desc": "Click the share icon (square with arrow) at the bottom of Safari",
+      "step2Title": "Add to Home Screen",
+      "step2Desc": "Scroll down and select 'Add to Home Screen'",
+      "step3Title": "Confirm Installation",
+      "step3Desc": "Click 'Add' at the top right corner"
+    },
+    "windowsSteps": {
+      "step1Title": "Install Icon in Address Bar",
+      "step1Desc": "Click the install icon (⊕) on the right side of the address bar",
+      "step2Title": "Or from Browser Menu",
+      "step2Desc": "From three-dot menu (⋮) select 'Install app'",
+      "step3Title": "Confirm Installation",
+      "step3Desc": "Click 'Install' in the popup window"
+    },
+    "iosWarning": "Important Note",
+    "iosWarningDesc": "For installation on iOS, you must use Safari. Other browsers like Chrome or Firefox don't support this feature.",
+    "benefits": "App Installation Benefits",
+    "benefitsList": [
+      "Quick access from home screen or desktop",
+      "Works offline without internet",
+      "Fullscreen experience without address bar",
+      "Faster loading and automatic updates",
+      "Small size and no app store required"
+    ]
+  },
+  "notFound": {
+    "code": "404",
+    "message": "Page not found",
+    "backToHome": "Back to Home"
+  },
+  "admin": {
+    "panel": "Admin Panel",
+    "museum": "Iran Wrestling Museum",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "login": "Login",
+    "noAccount": "Don't have an account?",
+    "signup": "Sign up",
+    "backToHome": "Back to Home",
+    "passwordRecovery": "Password Recovery",
+    "passwordRecoveryDesc": "Enter your email to receive a recovery link",
+    "sendRecoveryLink": "Send Recovery Link",
+    "backToLogin": "Back to Login",
+    "recoveryLinkSent": "Recovery link sent to your email",
+    "errorSendingRecovery": "Error sending recovery email",
+    "pleaseEnterEmail": "Please enter your email",
+    "pleaseEnterCredentials": "Please enter email and password",
+    "initialSetup": "Initial Setup",
+    "createFirstAdmin": "Create first system admin account",
+    "firstUserNote": "You are the first user. Click the button below to become the main system admin.",
+    "adminAlreadyExists": "An admin already exists. Contact system admin for access.",
+    "activateAdmin": "Activate Admin",
+    "congratulations": "Congratulations!",
+    "adminCreatedSuccess": "Admin account created successfully. Redirecting to admin panel...",
+    "dashboard": "Dashboard",
+    "welcomeMessage": "Welcome to Iran Wrestling Museum Admin Panel",
+    "totalWrestlers": "Total Wrestlers",
+    "freestyleWrestlers": "Freestyle",
+    "grecoRomanWrestlers": "Greco-Roman",
+    "totalAchievements": "Total Achievements",
+    "totalMedia": "Total Media",
+    "storage": "Storage",
+    "total": "Total",
+    "filesTotal": "files total",
+    "compressionSavings": "Compression Savings",
+    "before": "Before",
+    "after": "After",
+    "reduction": "reduction",
+    "recentWrestlers": "Recently Added Wrestlers",
+    "noWrestlersYet": "No wrestlers added yet",
+    "quickGuide": "Quick Guide",
+    "guide1": "To add a new wrestler, use the 'Wrestlers' menu.",
+    "guide2": "Each wrestler can have biography, achievements, and various media.",
+    "guide3": "You can upload images and videos with Drag & Drop.",
+    "guide4": "For image compression, visit General Settings."
   }
-
-  // 3. Insert new role with duplicate key fallback
-  const { error: insertError } = await supabase
-    .from('user_roles')
-    .insert({ user_id: user.id, role: 'admin' });
-  
-  // 4. Handle 23505 (duplicate key) gracefully
-  if (insertError?.code === '23505') {
-    setIsAdmin(true);
-    return { error: null };
-  }
-};
+}
 ```
 
-### 3. Virtual Keyboard System
-All 4 layouts are correctly implemented in `VirtualKeyboard.tsx`:
-
-| Layout | Keys | Shift Support |
-|--------|------|---------------|
-| Persian | ض ص ث ق ف... | Yes (diacritics) |
-| Arabic | ض ص ث ق ف... (ي ك variant) | Yes (diacritics) |
-| English | q w e r t y... | Yes (uppercase) |
-| Numbers | 1 2 3 4 5... | No |
-
-### 4. Console Warnings Analysis
-The warning "Function components cannot be given refs" appears for `LanguageSelector`:
-
-**Problem**: The component is passed to `DropdownMenuTrigger` with `asChild` prop, which expects a forwardRef component.
-
-**Root Cause**: `LanguageSelector` wraps a `Button` component correctly, but when Radix tries to clone and pass a ref, the function component itself receives the ref (not the Button).
-
-**Solution**: Convert `LanguageSelector` to use `forwardRef` properly.
+**File: `src/locales/ar.json`** - Add equivalent Arabic translations
 
 ---
 
-## Implementation Steps
+### Part 2: Update Pages to Use Translation System
 
-### Step 1: Resolve Build Error
-The persistent build error is likely a transient cache issue. I'll make a minimal, safe change to trigger a clean rebuild.
+**Files to Update:**
 
-**File**: `src/index.css`
-- Ensure no trailing whitespace or invisible characters
-- Verify CSS is syntactically correct (confirmed)
-
-### Step 2: Fix LanguageSelector forwardRef Warning
-**File**: `src/components/LanguageSelector.tsx`
-
-Convert to forwardRef pattern:
-
-```typescript
-import React, { forwardRef } from 'react';
-
-export const LanguageSelector = forwardRef<HTMLButtonElement, {}>(
-  function LanguageSelector(props, ref) {
-    const { language, setLanguage, t } = useLanguage();
-    // ... rest of component
-    
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button ref={ref} {...props} />
-        </DropdownMenuTrigger>
-        {/* ... */}
-      </DropdownMenu>
-    );
-  }
-);
-```
-
-### Step 3: Fix WrestlerCard/LazyImage ref forwarding (Optional)
-If refs are passed to these components from parent, implement forwardRef. Current analysis shows:
-- `WrestlerCard` - No ref is passed, no change needed
-- `LazyImage` - Uses internal ref for IntersectionObserver, no external ref passed
-
-The console warning is specifically about `LanguageSelector` and `DropdownMenuContent`.
+| File | Changes Required |
+|------|------------------|
+| `src/pages/CacheSettingsPage.tsx` | Import `useLanguage`, replace all Persian text with `t()` calls |
+| `src/pages/InstallPage.tsx` | Import `useLanguage`, replace all Persian text with `t()` calls |
+| `src/pages/InstallGuidePage.tsx` | Import `useLanguage`, replace all Persian text with `t()` calls |
+| `src/pages/NotFound.tsx` | Import `useLanguage`, replace all Persian text with `t()` calls |
+| `src/pages/WrestlersListPage.tsx` | Add missing translation keys |
+| `src/pages/BooksListPage.tsx` | Add missing translation keys |
+| `src/pages/BuildingsListPage.tsx` | Add missing translation keys |
+| `src/pages/admin/AdminLoginPage.tsx` | Import `useLanguage`, replace all Persian text |
+| `src/pages/admin/AdminSetupPage.tsx` | Import `useLanguage`, replace all Persian text |
+| `src/pages/admin/AdminDashboardPage.tsx` | Import `useLanguage`, replace all Persian text |
+| `src/pages/MuseumHomePage.tsx` | Replace hardcoded "ورود مدیران" |
 
 ---
 
-## Verification Testing Checklist
+### Part 3: File-by-File Implementation Details
 
-After fixes are applied:
+#### 3.1 CacheSettingsPage.tsx
+Add import and replace approximately 25 Persian strings including:
+- "تنظیمات کش" → `t('cache.title')`
+- "مدیریت حافظه موقت برنامه" → `t('cache.subtitle')`
+- All button labels, status messages, tips
 
-| Test | Page | Expected Result |
-|------|------|-----------------|
-| Font Rendering | Any page | Vazirmatn renders correctly, RTL text flows properly |
-| Admin Login | `/admin/login` | Login form displays, virtual keyboard available in kiosk mode |
-| Admin Setup | `/admin/setup` | No duplicate key error on repeated clicks |
-| Virtual Keyboard - Persian | `/admin/login` + kiosk mode | Full Persian layout with shift for diacritics |
-| Virtual Keyboard - Arabic | `/admin/login` + kiosk mode | Arabic layout (ي ك variant) with shift |
-| Virtual Keyboard - English | `/admin/login` + kiosk mode | QWERTY layout with shift for uppercase |
-| Virtual Keyboard - Numbers | `/admin/login` + kiosk mode | Numbers and symbols |
-| Keyboard Sound | Any input in kiosk mode | 800Hz click sound plays |
-| Console Warnings | Browser DevTools | No "cannot be given refs" warnings |
+#### 3.2 InstallPage.tsx
+Add import and replace approximately 20 Persian strings including:
+- "نصب برنامه" → `t('installPage.title')`
+- Platform-specific instructions for Android, iOS, Windows
+
+#### 3.3 InstallGuidePage.tsx
+Add import and replace approximately 30 Persian strings including:
+- Step-by-step instructions for each platform
+- Benefits list items
+
+#### 3.4 NotFound.tsx
+Add import and replace 3 strings:
+- "۴۰۴" → `t('notFound.code')`
+- "صفحه مورد نظر یافت نشد" → `t('notFound.message')`
+- "بازگشت به صفحه اصلی" → `t('notFound.backToHome')`
+
+#### 3.5 AdminLoginPage.tsx
+Add import and replace approximately 15 Persian strings including:
+- Form labels, button text, error messages, links
+
+#### 3.6 AdminSetupPage.tsx
+Add import and replace approximately 10 Persian strings including:
+- Setup instructions, success messages, error messages
+
+#### 3.7 AdminDashboardPage.tsx
+Add import and replace approximately 20 Persian strings including:
+- Dashboard stats titles, guide text, storage labels
 
 ---
 
-## Technical Implementation Details
+### Part 4: Implementation Order
 
-### Files to Modify
+| Step | Priority | Files |
+|------|----------|-------|
+| 1 | High | Update fa.json with any missing keys for consistency |
+| 2 | High | Add all new keys to en.json |
+| 3 | High | Add all new keys to ar.json |
+| 4 | High | Update public-facing pages: NotFound, CacheSettings, Install pages |
+| 5 | Medium | Update WrestlersListPage, BooksListPage, BuildingsListPage |
+| 6 | Medium | Update admin pages: Login, Setup, Dashboard |
+| 7 | Low | Update MuseumHomePage admin button |
 
-| File | Change | Purpose |
-|------|--------|---------|
-| `src/components/LanguageSelector.tsx` | Add forwardRef | Fix React ref warning |
-| `src/index.css` | No structural changes needed | CSS is correct |
-| `src/contexts/AuthContext.tsx` | Already fixed | Duplicate key prevention |
-| `src/components/VirtualKeyboard.tsx` | Already implemented | 4 layouts ready |
+---
 
-### No Changes Required For
+### Part 5: Technical Notes
 
-- Font configuration (correct)
-- RTL/direction setup (correct)
-- Virtual keyboard layouts (complete)
-- Admin role assignment logic (fixed)
-- Keyboard sound system (working)
+- **RTL Support**: Already handled via `useLanguage().dir` in LanguageContext
+- **Dynamic Content**: Database content uses `TranslatedContent` component with AI translation
+- **Font Loading**: Vazirmatn for RTL (Persian/Arabic), Inter for LTR (English) - already configured
+- **Toast Messages**: All toast messages in pages need translation too
 
 ---
 
 ## Summary
 
-The codebase is in good shape:
+| Metric | Count |
+|--------|-------|
+| Locale files to update | 3 (fa.json, en.json, ar.json) |
+| Pages to modify | 11 |
+| New translation keys | ~100+ |
+| Estimated Persian strings to replace | ~150 |
 
-1. **Vazirmatn Font**: Correctly configured with 4 weights, RTL enabled
-2. **Admin Setup**: Fixed with select-then-insert pattern for duplicate key prevention
-3. **Virtual Keyboard**: 4 layouts implemented with sound feedback
-4. **Only Change Needed**: Fix `LanguageSelector` forwardRef to eliminate console warning
-5. **Build Error**: Appears to be transient - code is syntactically correct
+This implementation will ensure complete English and Arabic language support across all user-facing and admin pages.
