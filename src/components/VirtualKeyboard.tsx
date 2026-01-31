@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { X, Delete, CornerDownLeft, Hash, ArrowBigUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useKeyboardSound } from '@/hooks/useKeyboardSound';
+import { useLanguage } from '@/contexts/LanguageContext';
 import type { KeyboardLayout } from '@/types/keyboard';
 
 interface VirtualKeyboardProps {
@@ -67,6 +68,7 @@ const VirtualKeyboard = memo(function VirtualKeyboard({
 }: VirtualKeyboardProps) {
   const [isShift, setIsShift] = React.useState(false);
   const { playClick } = useKeyboardSound();
+  const { t } = useLanguage();
 
   if (!isOpen) return null;
 
@@ -146,21 +148,21 @@ const VirtualKeyboard = memo(function VirtualKeyboard({
             wide
             className={layout === 'persian' ? 'bg-gold/30 border-gold' : ''}
           >
-            فارسی
+            {t('keyboard.persian')}
           </KeyButton>
           <KeyButton
             onClick={() => handleAction(() => onLayoutChange('arabic'))}
             wide
             className={layout === 'arabic' ? 'bg-gold/30 border-gold' : ''}
           >
-            عربی
+            {t('keyboard.arabic')}
           </KeyButton>
           <KeyButton
             onClick={() => handleAction(() => onLayoutChange('english'))}
             wide
             className={layout === 'english' ? 'bg-gold/30 border-gold' : ''}
           >
-            EN
+            {t('keyboard.english')}
           </KeyButton>
           <KeyButton
             onClick={() => handleAction(() => onLayoutChange('numbers'))}
@@ -197,7 +199,7 @@ const VirtualKeyboard = memo(function VirtualKeyboard({
             onClick={() => handleKeyPress(' ')} 
             className="!w-32 sm:!w-48 md:!w-56 lg:!w-64"
           >
-            فاصله
+            {t('keyboard.space')}
           </KeyButton>
           <KeyButton 
             onClick={() => handleAction(onDelete)} 
@@ -210,7 +212,7 @@ const VirtualKeyboard = memo(function VirtualKeyboard({
             className="bg-gold/30 border-gold hover:bg-gold/50"
             icon={<CornerDownLeft className="w-5 h-5 lg:w-6 lg:h-6" />}
           >
-            ارسال
+            {t('keyboard.submit')}
           </KeyButton>
         </div>
       </div>
