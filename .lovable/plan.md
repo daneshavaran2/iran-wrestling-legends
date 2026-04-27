@@ -1,235 +1,97 @@
+# Plan: Full Offline Support for the Entire App
 
-# Complete Multi-Language Deep Pages Translation Plan
-
-## Analysis Summary
-
-Based on the screenshot and code review, I found **14 pages** with hardcoded Persian text that need translation. The screenshot shows `/history/[slug]` page with untranslated text like "بازگشت به تاریخچه" and "رسانه‌ها".
+## Goal
+The app should work **completely without internet** after the first online visit (or after one "Download Everything" run from the admin panel). All wrestlers, all detail pages (history, buildings, albums), all images, and all routes must load from cache when offline.
 
 ---
 
-## Pages Requiring Translation
+## Current Gaps Identified
 
-### High Priority: Detail Pages (Currently Visible in Screenshot)
-
-| Page | File | Hardcoded Persian Text |
-|------|------|------------------------|
-| HistoryDetailPage | `src/pages/HistoryDetailPage.tsx` | "بازگشت به تاریخچه", "رسانه‌ها" |
-| BuildingDetailPage | `src/pages/BuildingDetailPage.tsx` | "بازگشت به بناها", "گالری تصاویر" |
-| AlbumGalleryPage | `src/pages/AlbumGalleryPage.tsx` | "آلبوم یافت نشد", "بازگشت به آلبوم‌ها", "تصویری در این آلبوم وجود ندارد" |
-
-### Medium Priority: Profile/Error States
-
-| Page | File | Hardcoded Persian Text |
-|------|------|------------------------|
-| WrestlerProfilePage | `src/pages/WrestlerProfilePage.tsx` | "خطا در بارگذاری ویدیو", "فرمت‌های پشتیبانی‌شده: MP4، WebM", "تلاش مجدد" |
-
-### Already Translated (Confirmed Working)
-
-| Page | Status |
-|------|--------|
-| BooksListPage | Uses `t()` for all strings |
-| BuildingsListPage | Uses `t()` for all strings |
-| AlbumsListPage | Uses `t()` for all strings |
-| AboutMuseumPage | Uses `t()` for all strings |
-| MuseumHomePage | Uses `t()` for all strings |
-| AdminLoginPage | Uses `t()` for all strings |
-| AdminSetupPage | Uses `t()` for all strings |
-| AdminDashboardPage | Uses `t()` for all strings |
-| CacheSettingsPage | Uses `t()` for all strings |
-| InstallPage | Uses `t()` for all strings |
-| InstallGuidePage | Uses `t()` for all strings |
-| NotFound | Uses `t()` for all strings |
+| Area | Status | Problem |
+|------|--------|---------|
+| Wrestlers list + profiles | ✅ Cached (localStorage + SW) | OK |
+| History list (top-level) | ✅ Cached | OK |
+| Buildings list | ✅ Cached | OK |
+| Albums list | ✅ Cached | OK |
+| **History detail pages** (`/history/:slug`) | ❌ Direct Supabase calls, no cache | Breaks offline |
+| **Building detail pages** (`/buildings/:id`) | ❌ Direct Supabase calls, no cache | Breaks offline |
+| **Album gallery pages** (`/albums/:id`) | ❌ Direct Supabase calls, no cache | Breaks offline |
+| **Child history sections + media** | ❌ Not pre-fetched | Breaks offline |
+| **Building images, album photos** | ❌ Not pre-fetched as data | Breaks offline |
+| **SPA routes** (e.g. `/wrestlers/abc`) | ⚠️ SW falls back to `/` but data missing | Blank page offline |
+| Service Worker API caching | ⚠️ "Stale-While-Revalidate" returns 503 if first visit is offline | Need offline-first fallback |
 
 ---
 
-## New Translation Keys Required
+## Implementation
 
-### For Detail Pages
+### 1. Extend `OfflineDataContext` to cache deep data
+Add caches and refresh functions for the entities currently fetched only inside detail pages:
+- `historyMedia` (all rows of `history_media`)
+- `historyChildren` (all rows of `history_sections` including child sections)
+- `buildingImages` (all rows of `building_images`)
+- `albumPhotos` (all rows of `album_photos`)
 
-```json
-{
-  "history": {
-    "backToHistory": "Back to History",
-    "mediaSection": "Media"
-  },
-  "buildings": {
-    "backToBuildings": "Back to Buildings",
-    "imageGallery": "Image Gallery"
-  },
-  "albums": {
-    "notFound": "Album not found",
-    "backToAlbums": "Back to Albums",
-    "noPhotos": "No photos in this album",
-    "image": "Image"
-  },
-  "common": {
-    "videoError": "Error loading video",
-    "supportedFormats": "Supported formats: MP4, WebM"
-  }
-}
-```
+Expose helpers:
+- `getHistorySection(slug)`, `getHistoryChildren(parentId)`, `getHistoryMedia(sectionId)`
+- `getBuildingById(id)`, `getBuildingImages(buildingId)`
+- `getAlbumById(id)`, `getAlbumPhotos(albumId)`
 
----
+All read from in-memory state (hydrated from `localStorage` on mount), with online refresh in background.
 
-## Implementation Steps
+### 2. Refactor detail pages to use the context (no direct Supabase)
+- `src/pages/HistoryDetailPage.tsx` → use `useOfflineData()` instead of `supabase.from('history_sections')`/`history_media`.
+- `src/pages/BuildingDetailPage.tsx` → use `useOfflineData()` instead of `supabase.from('buildings')`/`building_images`.
+- `src/pages/AlbumGalleryPage.tsx` → use `useOfflineData()` instead of `supabase.from('albums')`/`album_photos`.
 
-### Step 1: Update Locale Files
+This guarantees they render from cache when offline and never throw a network error.
 
-**Files to modify:**
-- `src/locales/fa.json` - Add Persian keys
-- `src/locales/en.json` - Add English translations
-- `src/locales/ar.json` - Add Arabic translations
+### 3. Strengthen the Service Worker (`public/sw.js`)
+- **API requests**: switch to **Cache-First with background revalidate** for Supabase GET requests so the very first offline load also works (currently only SWR — returns 503 if cache miss).
+- **Add new endpoints to `SYNC_ENDPOINTS`**: `history_media`, `building_images`, `album_photos` (already partial), so background sync covers them.
+- **Pre-cache all SPA routes** during install so deep links work offline:
+  ```
+  /, /wrestlers, /history, /buildings, /albums, /books, /about, /install
+  ```
+- **Navigation fallback**: when offline and the requested route isn't cached, serve cached `/index.html` so the SPA router can render the page from in-memory data (already partially done, will be made robust).
+- Bump `CACHE_VERSION` to `v5` to force refresh.
 
-### Step 2: Update Detail Pages
+### 4. Improve "Download All for Offline" in the admin panel
+The existing `useOfflineDownload` hook already downloads images. We will:
+- Ensure it **also writes the deep API responses** (history_media, building_images, album_photos) into the SW's `API_CACHE` via `CACHE_URLS` postMessage.
+- Add a new postMessage type `CACHE_API_URLS` in the SW that fetches+stores Supabase REST URLs (with auth headers) in `API_CACHE`.
+- Show a "✅ App is fully available offline" indicator when download completes.
 
-**HistoryDetailPage.tsx:**
-```typescript
-// Add import
-import { useLanguage } from '@/contexts/LanguageContext';
-
-// In component
-const { t, dir } = useLanguage();
-
-// Replace:
-"بازگشت به تاریخچه" → {t('history.backToHistory')}
-"رسانه‌ها" → {t('history.mediaSection')}
-```
-
-**BuildingDetailPage.tsx:**
-```typescript
-const { t, dir } = useLanguage();
-
-// Replace:
-"بازگشت به بناها" → {t('buildings.backToBuildings')}
-"گالری تصاویر" → {t('buildings.imageGallery')}
-```
-
-**AlbumGalleryPage.tsx:**
-```typescript
-const { t, dir } = useLanguage();
-
-// Replace:
-"آلبوم یافت نشد" → {t('albums.notFound')}
-"بازگشت به آلبوم‌ها" → {t('albums.backToAlbums')}
-"تصویری در این آلبوم وجود ندارد" → {t('albums.noPhotos')}
-`تصویر ${index + 1}` → `${t('albums.image')} ${index + 1}`
-```
-
-**WrestlerProfilePage.tsx:**
-```typescript
-// Replace hardcoded error messages:
-"خطا در بارگذاری ویدیو" → {t('common.videoError')}
-"فرمت‌های پشتیبانی‌شده: MP4، WebM" → {t('common.supportedFormats')}
-"تلاش مجدد" → {t('common.retry')}
-```
-
-### Step 3: Add RTL/LTR Support for Arrow Icons
-
-For pages with back buttons, ensure arrow direction changes based on language:
-
-```typescript
-<ArrowRight className={`h-5 w-5 ${dir === 'ltr' ? 'rotate-180' : ''}`} />
-```
+### 5. Add an Offline-Ready badge
+Small UI indicator on the home page footer: green dot + "آماده برای استفاده آفلاین" when all caches are populated, otherwise "برای آفلاین، یک‌بار همه چیز را دانلود کنید" with a link to `/admin/offline`.
 
 ---
 
-## Files to Modify
+## Technical Details
 
-| File | Type of Change |
-|------|----------------|
-| `src/locales/fa.json` | Add new keys |
-| `src/locales/en.json` | Add new keys |
-| `src/locales/ar.json` | Add new keys |
-| `src/pages/HistoryDetailPage.tsx` | Add useLanguage, replace 2 strings |
-| `src/pages/BuildingDetailPage.tsx` | Add useLanguage, replace 2 strings |
-| `src/pages/AlbumGalleryPage.tsx` | Add useLanguage, replace 4 strings |
-| `src/pages/WrestlerProfilePage.tsx` | Replace 3 error message strings |
+### Files to modify
+- `src/contexts/OfflineDataContext.tsx` — add new caches + getters
+- `src/pages/HistoryDetailPage.tsx` — switch to context
+- `src/pages/BuildingDetailPage.tsx` — switch to context
+- `src/pages/AlbumGalleryPage.tsx` — switch to context
+- `public/sw.js` — cache-first for API, pre-cache SPA routes, bump version, add `CACHE_API_URLS` handler
+- `src/hooks/useOfflineDownload.ts` — also pre-cache deep API URLs
+- `src/components/OfflineIndicator.tsx` — add "ready for offline" status
+- `src/locales/{fa,en,ar}.json` — new translation keys for the offline-ready badge
 
----
+### Cache strategy summary after changes
+| Resource | Strategy |
+|---|---|
+| HTML / SPA routes | Pre-cached on install + Network-First with `/index.html` fallback |
+| Supabase REST GET | **Cache-First** + background revalidate |
+| Images | Cache-First (already) |
+| Fonts / static | Cache-First (already) |
 
-## Translation Content
-
-### Persian (fa.json) - Add:
-```json
-{
-  "history": {
-    "backToHistory": "بازگشت به تاریخچه",
-    "mediaSection": "رسانه‌ها"
-  },
-  "buildings": {
-    "backToBuildings": "بازگشت به بناها",
-    "imageGallery": "گالری تصاویر"
-  },
-  "albums": {
-    "notFound": "آلبوم یافت نشد",
-    "backToAlbums": "بازگشت به آلبوم‌ها",
-    "noPhotos": "تصویری در این آلبوم وجود ندارد",
-    "image": "تصویر"
-  },
-  "common": {
-    "videoError": "خطا در بارگذاری ویدیو",
-    "supportedFormats": "فرمت‌های پشتیبانی‌شده: MP4، WebM"
-  }
-}
-```
-
-### English (en.json) - Add:
-```json
-{
-  "history": {
-    "backToHistory": "Back to History",
-    "mediaSection": "Media"
-  },
-  "buildings": {
-    "backToBuildings": "Back to Buildings",
-    "imageGallery": "Image Gallery"
-  },
-  "albums": {
-    "notFound": "Album not found",
-    "backToAlbums": "Back to Albums",
-    "noPhotos": "No photos in this album",
-    "image": "Image"
-  },
-  "common": {
-    "videoError": "Error loading video",
-    "supportedFormats": "Supported formats: MP4, WebM"
-  }
-}
-```
-
-### Arabic (ar.json) - Add:
-```json
-{
-  "history": {
-    "backToHistory": "العودة للتاريخ",
-    "mediaSection": "الوسائط"
-  },
-  "buildings": {
-    "backToBuildings": "العودة للمباني",
-    "imageGallery": "معرض الصور"
-  },
-  "albums": {
-    "notFound": "الألبوم غير موجود",
-    "backToAlbums": "العودة للألبومات",
-    "noPhotos": "لا توجد صور في هذا الألبوم",
-    "image": "صورة"
-  },
-  "common": {
-    "videoError": "خطأ في تحميل الفيديو",
-    "supportedFormats": "الصيغ المدعومة: MP4، WebM"
-  }
-}
-```
+### Result
+- After the user visits the app online once (or runs "Download All"), the **entire app — every wrestler, every history page, every building, every album photo, every image — works offline**, including deep-linked URLs like `/wrestlers/abc-123` or `/albums/xyz`.
 
 ---
 
-## Summary
-
-| Metric | Count |
-|--------|-------|
-| Pages to update | 4 |
-| Locale files to update | 3 |
-| New translation keys | ~12 |
-| Hardcoded strings to replace | ~11 |
-
-This implementation will complete 100% multi-language coverage across all public pages including detail/gallery pages.
+## Out of scope
+- Offline writes (admin edits while offline) — admin must be online to save changes.
+- Video files (large; would explode storage). Videos remain online-only unless explicitly added later.
