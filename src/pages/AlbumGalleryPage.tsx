@@ -3,8 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GoldButton } from '@/components/ui/GoldButton';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { useOfflineData } from '@/contexts/OfflineDataContext';
 import { FlipBook } from '@/components/ui/FlipBook';
 import { LazyImage } from '@/components/ui/LazyImage';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -15,22 +14,11 @@ export default function AlbumGalleryPage() {
   const { id } = useParams<{ id: string }>();
   const { t, dir } = useLanguage();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const { isLoadingAlbums, getAlbumById, getAlbumPhotosFor } = useOfflineData();
 
-  const { data: album, isLoading } = useQuery({
-    queryKey: ['album', id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('albums')
-        .select('*, album_photos(*)')
-        .eq('id', id)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!id,
-  });
-
-  const photos = album?.album_photos?.sort((a: any, b: any) => a.display_order - b.display_order) || [];
+  const album = id ? getAlbumById(id) : undefined;
+  const photos = id ? getAlbumPhotosFor(id) : [];
+  const isLoading = isLoadingAlbums && !album;
 
   const handlePrev = () => {
     if (selectedIndex !== null && selectedIndex > 0) {

@@ -6,7 +6,7 @@ import { GoldButton } from '@/components/ui/GoldButton';
 import { SparkParticles } from '@/components/ui/SparkParticles';
 import { useKioskMode } from '@/hooks/useKioskMode';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { supabase } from '@/lib/supabase';
+import { useOfflineData } from '@/contexts/OfflineDataContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LazyImage } from '@/components/ui/LazyImage';
 
@@ -29,45 +29,18 @@ export default function BuildingDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { t, dir } = useLanguage();
-  const [building, setBuilding] = useState<Building | null>(null);
-  const [images, setImages] = useState<BuildingImage[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { isLoadingBuildings, getBuildingById, getBuildingImagesFor } = useOfflineData();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
+  const building = id ? getBuildingById(id) : undefined;
+  const images = id ? getBuildingImagesFor(id) : [];
+  const isLoading = isLoadingBuildings && !building;
+
   useEffect(() => {
-    fetchData();
-  }, [id]);
-
-  const fetchData = async () => {
-    if (!id) return;
-    
-    setIsLoading(true);
-    try {
-      // Fetch building
-      const { data: buildingData, error: buildingError } = await supabase
-        .from('buildings')
-        .select('id, name, description, hero_image_url')
-        .eq('id', id)
-        .single();
-
-      if (buildingError) throw buildingError;
-      setBuilding(buildingData);
-
-      // Fetch images
-      const { data: imagesData } = await supabase
-        .from('building_images')
-        .select('*')
-        .eq('building_id', id)
-        .order('display_order');
-
-      setImages(imagesData || []);
-    } catch (error) {
-      console.error('Error fetching building:', error);
+    if (!isLoadingBuildings && id && !building) {
       navigate('/buildings');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [isLoadingBuildings, id, building, navigate]);
 
   if (isLoading) {
     return (
