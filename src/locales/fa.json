@@ -18,14 +18,16 @@
     "more": "بیشتر",
     "close": "بستن",
     "send": "ارسال",
-    "offline": "آفلاین",
+    "offline": "حالت آفلاین",
     "all": "همه",
     "filter": "فیلتر",
     "noResults": "نتیجه‌ای یافت نشد",
     "error": "خطا",
     "retry": "تلاش مجدد",
     "videoError": "خطا در بارگذاری ویدیو",
-    "supportedFormats": "فرمت‌های پشتیبانی‌شده: MP4، WebM"
+    "supportedFormats": "فرمت‌های پشتیبانی‌شده: MP4، WebM",
+    "offlineReady": "آماده برای استفاده آفلاین",
+    "offlineNotReady": "برای استفاده آفلاین، همه چیز را دانلود کنید"
   },
   "home": {
     "title": "موزه افتخارات کشتی ایران",

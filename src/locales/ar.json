@@ -18,14 +18,16 @@
     "more": "المزيد",
     "close": "إغلاق",
     "send": "إرسال",
-    "offline": "غير متصل",
+    "offline": "وضع عدم الاتصال",
     "all": "الكل",
     "filter": "تصفية",
     "noResults": "لم يتم العثور على نتائج",
     "error": "خطأ",
     "retry": "إعادة المحاولة",
     "videoError": "خطأ في تحميل الفيديو",
-    "supportedFormats": "الصيغ المدعومة: MP4، WebM"
+    "supportedFormats": "الصيغ المدعومة: MP4، WebM",
+    "offlineReady": "جاهز للاستخدام دون اتصال",
+    "offlineNotReady": "قم بتنزيل كل شيء للاستخدام دون اتصال"
   },
   "home": {
     "title": "متحف المصارعة الإيرانية",
