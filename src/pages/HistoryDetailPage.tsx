@@ -6,7 +6,7 @@ import { GoldButton } from '@/components/ui/GoldButton';
 import { LazyImage } from '@/components/ui/LazyImage';
 import { useKioskMode } from '@/hooks/useKioskMode';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { supabase } from '@/lib/supabase';
+import { useOfflineData } from '@/contexts/OfflineDataContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
@@ -33,63 +33,27 @@ export default function HistoryDetailPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { t, dir } = useLanguage();
-  const [section, setSection] = useState<HistorySection | null>(null);
-  const [childSections, setChildSections] = useState<HistorySection[]>([]);
-  const [allSections, setAllSections] = useState<HistorySection[]>([]);
-  const [media, setMedia] = useState<HistoryMedia[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const {
+    historySections,
+    isLoadingHistory,
+    getHistoryBySlug,
+    getHistoryChildren,
+    getHistoryMediaFor,
+  } = useOfflineData();
   const [lightboxMedia, setLightboxMedia] = useState<HistoryMedia | null>(null);
 
+  const section = slug ? getHistoryBySlug(slug) : undefined;
+  const childSections = section ? getHistoryChildren(section.id) : [];
+  const media = section ? getHistoryMediaFor(section.id) : [];
+  const allSections = historySections;
+  const isLoading = isLoadingHistory && !section;
+
+  // Redirect if not found AND we've finished loading
   useEffect(() => {
-    fetchData();
-  }, [slug]);
-
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      // Fetch current section
-      const { data: sectionData, error: sectionError } = await supabase
-        .from('history_sections')
-        .select('*')
-        .eq('slug', slug)
-        .single();
-
-      if (sectionError) throw sectionError;
-      setSection(sectionData);
-
-      // Fetch child sections if this is a parent
-      const { data: childData } = await supabase
-        .from('history_sections')
-        .select('*')
-        .eq('parent_id', sectionData.id)
-        .order('display_order');
-
-      setChildSections(childData || []);
-
-      // Fetch all root sections for navigation
-      const { data: allData } = await supabase
-        .from('history_sections')
-        .select('*')
-        .is('parent_id', null)
-        .order('display_order');
-
-      setAllSections(allData || []);
-
-      // Fetch media for this section
-      const { data: mediaData } = await supabase
-        .from('history_media')
-        .select('*')
-        .eq('section_id', sectionData.id)
-        .order('display_order');
-
-      setMedia(mediaData || []);
-    } catch (error) {
-      console.error('Error fetching history section:', error);
+    if (!isLoadingHistory && slug && !section) {
       navigate('/history');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [isLoadingHistory, slug, section, navigate]);
 
   const currentIndex = allSections.findIndex(s => s.slug === slug);
   const prevSection = currentIndex > 0 ? allSections[currentIndex - 1] : null;

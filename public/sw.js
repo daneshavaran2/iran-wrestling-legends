@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const STATIC_CACHE = `iran-wrestling-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `iran-wrestling-dynamic-${CACHE_VERSION}`;
 const API_CACHE = `iran-wrestling-api-${CACHE_VERSION}`;
@@ -20,16 +20,30 @@ const STATIC_ASSETS = [
   '/fonts/Vazirmatn-Light.woff2',
 ];
 
+// SPA routes that should be reachable offline (all served via cached index.html)
+const SPA_ROUTES = [
+  '/',
+  '/wrestlers',
+  '/history',
+  '/buildings',
+  '/albums',
+  '/books',
+  '/about',
+  '/install',
+];
+
 // API endpoints to sync
 const SYNC_ENDPOINTS = [
   'wrestlers?select=*&is_visible=eq.true',
   'achievements?select=*',
   'wrestler_media?select=*',
-  'history_sections?select=*',
-  'buildings?select=*',
+  'history_sections?select=*&order=display_order',
+  'history_media?select=*&order=display_order',
+  'buildings?select=*&order=display_order',
+  'building_images?select=*&order=display_order',
   'books?select=*',
-  'albums?select=*',
-  'album_photos?select=*',
+  'albums?select=*&order=display_order',
+  'album_photos?select=*&order=display_order',
   'about_media?select=*',
   'app_settings?select=*',
 ];
@@ -71,10 +85,27 @@ async function notifyClients(message) {
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => {
+    (async () => {
+      const staticCache = await caches.open(STATIC_CACHE);
       console.log('[SW] Precaching static assets');
-      return cache.addAll(STATIC_ASSETS);
-    })
+      await staticCache.addAll(STATIC_ASSETS);
+
+      // Pre-cache SPA route shells (all map to index.html)
+      try {
+        const indexResponse = await fetch('/index.html');
+        if (indexResponse.ok) {
+          const dynamicCache = await caches.open(DYNAMIC_CACHE);
+          await Promise.all(
+            SPA_ROUTES.map(route =>
+              dynamicCache.put(new Request(route, { mode: 'navigate' }), indexResponse.clone())
+            )
+          );
+          console.log('[SW] Pre-cached SPA route shells');
+        }
+      } catch (e) {
+        console.log('[SW] SPA pre-cache skipped:', e);
+      }
+    })()
   );
   self.skipWaiting();
 });
@@ -159,33 +190,36 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(handleDynamicRequest(request));
 });
 
-// Stale While Revalidate for API
+// Cache First for API (offline-first), revalidate in background
 async function handleApiRequest(request) {
   const cache = await caches.open(API_CACHE);
   const cachedResponse = await cache.match(request);
 
-  const fetchPromise = fetch(request)
+  // Background revalidate (don't await unless we have no cache)
+  const revalidate = fetch(request)
     .then(async (networkResponse) => {
       if (isCacheable(networkResponse)) {
-        const responseToCache = networkResponse.clone();
-        await cache.put(request, responseToCache);
+        await cache.put(request, networkResponse.clone());
         await limitCacheSize(API_CACHE, MAX_API_CACHE_SIZE);
       }
       return networkResponse;
     })
-    .catch(() => {
-      // Return cached response if network fails
-      return cachedResponse || new Response(
-        JSON.stringify({ error: 'آفلاین - داده‌ها از کش بارگذاری شد' }),
-        {
-          status: 503,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    });
+    .catch(() => null);
 
-  // Return cached response immediately, update in background
-  return cachedResponse || fetchPromise;
+  if (cachedResponse) {
+    // Cache hit: serve immediately, refresh in background
+    revalidate;
+    return cachedResponse;
+  }
+
+  // Cache miss: wait for network
+  const networkResponse = await revalidate;
+  if (networkResponse) return networkResponse;
+
+  return new Response(
+    JSON.stringify([]),
+    { status: 200, headers: { 'Content-Type': 'application/json' } }
+  );
 }
 
 // Cache First for images
@@ -254,6 +288,10 @@ async function handleStaticRequest(request) {
 // Network First for navigation
 async function handleNavigationRequest(request) {
   try {
+    // Use navigation preload if available
+    const preload = await (self.registration.navigationPreload
+      ? self.registration.navigationPreload.getState().then(s => s.enabled)
+      : Promise.resolve(false));
     const networkResponse = await fetch(request);
     const cache = await caches.open(DYNAMIC_CACHE);
     if (isCacheable(networkResponse)) {
@@ -265,8 +303,17 @@ async function handleNavigationRequest(request) {
     if (cachedResponse) {
       return cachedResponse;
     }
-    // Return cached index for SPA
-    return caches.match('/');
+    // SPA fallback: serve cached index.html so the router can render the route
+    const indexCached =
+      (await caches.match('/index.html')) ||
+      (await caches.match('/'));
+    return (
+      indexCached ||
+      new Response('<h1>Offline</h1>', {
+        status: 503,
+        headers: { 'Content-Type': 'text/html' },
+      })
+    );
   }
 }
 
@@ -340,6 +387,37 @@ self.addEventListener('message', (event) => {
       caches.open(cacheName).then((cache) => {
         return cache.addAll(urls);
       })
+    );
+  }
+
+  // Pre-cache Supabase REST API URLs (with auth) into API_CACHE
+  if (event.data?.type === 'CACHE_API_URLS') {
+    const urls = event.data.urls || [];
+    event.waitUntil(
+      (async () => {
+        const cache = await caches.open(API_CACHE);
+        await Promise.all(
+          urls.map(async (url) => {
+            try {
+              const response = await fetch(url, {
+                headers: {
+                  'apikey': SUPABASE_KEY,
+                  'Authorization': `Bearer ${SUPABASE_KEY}`,
+                  'Content-Type': 'application/json',
+                },
+              });
+              if (response.ok) {
+                await cache.put(url, response.clone());
+              }
+            } catch (e) {
+              // Ignore individual failures
+            }
+          })
+        );
+        if (event.source) {
+          event.source.postMessage({ type: 'API_URLS_CACHED', count: urls.length });
+        }
+      })()
     );
   }
 

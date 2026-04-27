@@ -18,14 +18,16 @@
     "more": "More",
     "close": "Close",
     "send": "Send",
-    "offline": "Offline",
+    "offline": "Offline mode",
     "all": "All",
     "filter": "Filter",
     "noResults": "No results found",
     "error": "Error",
     "retry": "Retry",
     "videoError": "Error loading video",
-    "supportedFormats": "Supported formats: MP4, WebM"
+    "supportedFormats": "Supported formats: MP4, WebM",
+    "offlineReady": "Ready for offline use",
+    "offlineNotReady": "Download everything for offline use"
   },
   "home": {
     "title": "Iran Wrestling Museum",
