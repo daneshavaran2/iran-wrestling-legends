@@ -38,8 +38,8 @@ export const FlipBook = memo(function FlipBook({ photos, initialIndex = 0, onClo
   const lastTouchPosition = useRef<{ x: number; y: number } | null>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
   
-  const flipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
+  const flipTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoPlayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const doubleTapRef = useRef<number | null>(null);
 
   // Reset states when index changes

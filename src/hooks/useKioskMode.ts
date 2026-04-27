@@ -6,7 +6,7 @@ const IDLE_TIMEOUT = 90 * 1000; // 90 seconds
 export function useKioskMode() {
   const navigate = useNavigate();
   const location = useLocation();
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fullscreenTriggeredRef = useRef(false);
 
   // Auto fullscreen on first user interaction

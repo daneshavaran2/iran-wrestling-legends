@@ -18,7 +18,7 @@ export const useAutoScroll = ({
   const [hasOverflow, setHasOverflow] = useState(false);
   const animationRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
-  const resumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const resumeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Check if content overflows
   const checkOverflow = useCallback(() => {
