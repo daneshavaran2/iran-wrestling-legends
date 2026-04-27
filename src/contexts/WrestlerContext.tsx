@@ -360,7 +360,7 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
   };
 
   const updateWrestler = async (id: string, updates: Partial<Wrestler>): Promise<Wrestler> => {
-    const updateData: Record<string, unknown> = {};
+    const updateData: Partial<Wrestler> = {};
     if (updates.name !== undefined) updateData.name = updates.name;
     if (updates.style !== undefined) updateData.style = updates.style;
     if (updates.weight_class !== undefined) updateData.weight_class = updates.weight_class;
