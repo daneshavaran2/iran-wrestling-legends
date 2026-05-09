@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { useLanguage, type Language } from '@/contexts/LanguageContext';
+import { answerOffline } from '@/lib/offlineAssistant';
 
 export interface Message {
   role: 'user' | 'assistant';
@@ -70,6 +71,44 @@ export const useChatAssistant = (): UseChatAssistantReturn => {
 
     // Create abort controller for this request
     abortControllerRef.current = new AbortController();
+
+    // Helper: stream a local string into the chat
+    const streamLocal = async (text: string) => {
+      let acc = '';
+      let added = false;
+      const chunks = text.match(/.{1,12}/gs) || [text];
+      for (const c of chunks) {
+        if (abortControllerRef.current?.signal.aborted) break;
+        acc += c;
+        setMessages(prev => {
+          if (!added) {
+            added = true;
+            return [...prev, { role: 'assistant' as const, content: acc, timestamp: new Date(), isStreaming: true }];
+          }
+          return prev.map((m, i) =>
+            i === prev.length - 1 && m.role === 'assistant' ? { ...m, content: acc } : m
+          );
+        });
+        await new Promise(r => setTimeout(r, 12));
+      }
+      setMessages(prev =>
+        prev.map((m, i) =>
+          i === prev.length - 1 && m.role === 'assistant' ? { ...m, isStreaming: false } : m
+        )
+      );
+    };
+
+    // If browser reports offline, go straight to local assistant
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      try {
+        const local = answerOffline(content.trim(), detectedLanguage);
+        await streamLocal(local);
+      } finally {
+        setIsLoading(false);
+        abortControllerRef.current = null;
+      }
+      return;
+    }
 
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -197,14 +236,18 @@ export const useChatAssistant = (): UseChatAssistantReturn => {
       }
       
       console.error('Chat error:', err);
-      setError(err instanceof Error ? err.message : t('assistant.error'));
-      
-      // Add error message to chat
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: t('assistant.error'),
-        timestamp: new Date(),
-      }]);
+      // Network failure → fall back to offline assistant
+      try {
+        const local = answerOffline(content.trim(), detectedLanguage);
+        await streamLocal(local);
+      } catch {
+        setError(err instanceof Error ? err.message : t('assistant.error'));
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: t('assistant.error'),
+          timestamp: new Date(),
+        }]);
+      }
     } finally {
       setIsLoading(false);
       abortControllerRef.current = null;

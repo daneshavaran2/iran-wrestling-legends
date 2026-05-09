@@ -3,6 +3,7 @@ const STATIC_CACHE = `iran-wrestling-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `iran-wrestling-dynamic-${CACHE_VERSION}`;
 const API_CACHE = `iran-wrestling-api-${CACHE_VERSION}`;
 const IMAGE_CACHE = `iran-wrestling-images-${CACHE_VERSION}`;
+const VIDEO_CACHE = `iran-wrestling-videos-${CACHE_VERSION}`;
 
 // Supabase configuration
 const SUPABASE_URL = 'https://etbekvhdroqiddcteqdq.supabase.co';
@@ -52,6 +53,7 @@ const SYNC_ENDPOINTS = [
 const MAX_API_CACHE_SIZE = 100;
 const MAX_IMAGE_CACHE_SIZE = 300;
 const MAX_DYNAMIC_CACHE_SIZE = 50;
+const MAX_VIDEO_CACHE_SIZE = 60;
 
 // Cache duration in milliseconds
 const API_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
@@ -168,6 +170,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Handle videos - Cache First with Range support
+  if (request.destination === 'video' || /\.(mp4|webm|ogg|mov|m4v)$/i.test(url.pathname)) {
+    event.respondWith(handleVideoRequest(request));
+    return;
+  }
+
   // Handle fonts - Cache First (long-term)
   if (request.destination === 'font' || /\.(woff2?|ttf|otf)$/i.test(url.pathname)) {
     event.respondWith(handleFontRequest(request));
@@ -242,6 +250,54 @@ async function handleImageRequest(request) {
   } catch (error) {
     // Return placeholder for failed images
     return caches.match('/placeholder.svg');
+  }
+}
+
+// Cache First for videos with Range request support
+async function handleVideoRequest(request) {
+  const cache = await caches.open(VIDEO_CACHE);
+  // Strip range when looking up cache
+  const cacheKey = new Request(request.url, { method: 'GET' });
+  const cached = await cache.match(cacheKey);
+
+  const rangeHeader = request.headers.get('range');
+
+  if (cached) {
+    if (!rangeHeader) return cached;
+    // Build a 206 partial response from cached blob
+    try {
+      const buffer = await cached.clone().arrayBuffer();
+      const total = buffer.byteLength;
+      const match = /bytes=(\d+)-(\d*)/.exec(rangeHeader);
+      const start = match ? parseInt(match[1], 10) : 0;
+      const end = match && match[2] ? parseInt(match[2], 10) : total - 1;
+      const chunk = buffer.slice(start, end + 1);
+      return new Response(chunk, {
+        status: 206,
+        statusText: 'Partial Content',
+        headers: {
+          'Content-Type': cached.headers.get('Content-Type') || 'video/mp4',
+          'Content-Range': `bytes ${start}-${end}/${total}`,
+          'Content-Length': String(chunk.byteLength),
+          'Accept-Ranges': 'bytes',
+        },
+      });
+    } catch {
+      return cached;
+    }
+  }
+
+  try {
+    const networkResponse = await fetch(request);
+    // Only cache full 200 responses (not partial)
+    if (networkResponse.status === 200 && isCacheable(networkResponse)) {
+      cache.put(cacheKey, networkResponse.clone()).then(() =>
+        limitCacheSize(VIDEO_CACHE, MAX_VIDEO_CACHE_SIZE)
+      );
+    }
+    return networkResponse;
+  } catch (error) {
+    return new Response('', { status: 503 });
   }
 }
 
@@ -376,6 +432,37 @@ self.addEventListener('message', (event) => {
           )
         );
       })
+    );
+  }
+
+  // Pre-cache videos (intro videos, wrestler media)
+  if (event.data?.type === 'CACHE_VIDEOS') {
+    const urls = event.data.urls || [];
+    event.waitUntil(
+      (async () => {
+        const cache = await caches.open(VIDEO_CACHE);
+        let done = 0;
+        for (const url of urls) {
+          try {
+            const exists = await cache.match(url);
+            if (!exists) {
+              const response = await fetch(url);
+              if (response.ok) {
+                await cache.put(new Request(url, { method: 'GET' }), response.clone());
+              }
+            }
+          } catch {}
+          done++;
+          if (event.source) {
+            event.source.postMessage({
+              type: 'VIDEO_CACHE_PROGRESS',
+              completed: done,
+              total: urls.length,
+            });
+          }
+        }
+        await limitCacheSize(VIDEO_CACHE, MAX_VIDEO_CACHE_SIZE);
+      })()
     );
   }
 

@@ -210,8 +210,11 @@ export function useOfflineDownload() {
 
     switch (sectionId) {
       case 'wrestlers': {
-        const { data: wrestlers } = await supabase.from('wrestlers').select('image_url');
-        wrestlers?.forEach(w => w.image_url && imageUrls.push(w.image_url));
+        const { data: wrestlers } = await supabase.from('wrestlers').select('image_url, intro_video_url');
+        wrestlers?.forEach(w => {
+          if (w.image_url) imageUrls.push(w.image_url);
+          if (w.intro_video_url) imageUrls.push(w.intro_video_url);
+        });
         const { data: wrestlerMedia } = await supabase.from('wrestler_media').select('url, thumbnail');
         wrestlerMedia?.forEach(m => {
           if (m.url) imageUrls.push(m.url);
@@ -268,6 +271,8 @@ export function useOfflineDownload() {
     const total = urls.length;
     let downloadedBytes = 0;
 
+    const isVideoUrl = (u: string) => /\.(mp4|webm|ogg|mov|m4v)(\?|$)/i.test(u);
+
     for (let i = 0; i < urls.length; i += batchSize) {
       if (cancelRef.current) break;
 
@@ -283,8 +288,16 @@ export function useOfflineDownload() {
               
               // Cache the image
               if ('caches' in window) {
-                const cache = await caches.open('iran-wrestling-museum-v2');
-                await cache.put(url, new Response(blob));
+                const cacheName = isVideoUrl(url)
+                  ? 'iran-wrestling-videos-v5'
+                  : 'iran-wrestling-images-v5';
+                const cache = await caches.open(cacheName);
+                await cache.put(
+                  new Request(url, { method: 'GET' }),
+                  new Response(blob, {
+                    headers: { 'Content-Type': blob.type || (isVideoUrl(url) ? 'video/mp4' : 'image/*') },
+                  })
+                );
               }
             }
             completed++;
