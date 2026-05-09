@@ -210,8 +210,11 @@ export function useOfflineDownload() {
 
     switch (sectionId) {
       case 'wrestlers': {
-        const { data: wrestlers } = await supabase.from('wrestlers').select('image_url');
-        wrestlers?.forEach(w => w.image_url && imageUrls.push(w.image_url));
+        const { data: wrestlers } = await supabase.from('wrestlers').select('image_url, intro_video_url');
+        wrestlers?.forEach(w => {
+          if (w.image_url) imageUrls.push(w.image_url);
+          if (w.intro_video_url) imageUrls.push(w.intro_video_url);
+        });
         const { data: wrestlerMedia } = await supabase.from('wrestler_media').select('url, thumbnail');
         wrestlerMedia?.forEach(m => {
           if (m.url) imageUrls.push(m.url);
