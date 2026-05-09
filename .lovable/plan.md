@@ -1,57 +1,95 @@
-# ذخیره کد بک‌اند در GitHub
+## هدف
+سه قابلیت اصلی برای حالت آفلاین موزه:
+1. نمایش کامل کشتی‌گیران و فیلم/ویدیوهایشان بدون اینترنت
+2. کارکرد چت‌بات از روی داده‌های لوکال هنگام قطعی اینترنت
+3. تحویل نسخه کامل ویندوزی (Electron)
 
-## وضعیت فعلی
+---
 
-تمام کد بک‌اند پروژه از قبل داخل ریپازیتوری Lovable موجود است و در پوشه `supabase/` قرار دارد:
+## ۱. کشتی‌گیران و ویدیوها در حالت آفلاین
 
-```text
-supabase/
-├── config.toml                    # تنظیمات پروژه بک‌اند
-├── migrations/                    # تمام migrationهای دیتابیس (SQL)
-└── functions/
-    ├── generate-thumbnail/        # Edge Function تولید تصویر بندانگشتی
-    ├── museum-assistant/          # Edge Function دستیار هوش مصنوعی موزه
-    └── translate-content/         # Edge Function ترجمه محتوا با Gemini
-```
+### وضعیت فعلی
+- متادیتا (لیست کشتی‌گیر، افتخارات، media records) در `localStorage` ذخیره می‌شود ✓
+- تصاویر در Cache API ذخیره می‌شوند ✓
+- **مشکل**: ویدیوها (`intro_video_url` و `wrestler_media` با type=video) دانلود/کش نمی‌شوند → آفلاین پخش نمی‌شوند
 
-علاوه بر این، کد سمت کلاینت که با بک‌اند ارتباط دارد نیز در پروژه موجود است:
-- `src/integrations/supabase/client.ts` (auto-generated)
-- `src/integrations/supabase/types.ts` (auto-generated، اسکیمای دیتابیس)
-- `src/lib/supabase.ts` (wrapper سفارشی با fallback)
+### تغییرات
+- در `useOfflineDownload.ts` بخش `collectSectionImageUrls('wrestlers')` همهٔ URL های ویدیو هم اضافه شوند (`wrestlers.intro_video_url`، `wrestler_media.url` با type=video، `wrestler_media.thumbnail`).
+- در `OfflineDataContext` تابع `cacheImages` به `cacheMedia` تغییر کند تا ویدیوها هم به Service Worker پاس داده شوند.
+- در `public/sw.js`:
+  - افزایش `MAX_IMAGE_CACHE_SIZE` و اضافه‌کردن یک `VIDEO_CACHE` جداگانه با محدودیت بالاتر (مثلاً ۵۰ آیتم).
+  - هندل کردن request های ویدیو (mp4/webm) با استراتژی Cache-First و پشتیبانی از Range requests (لازم برای پخش ویدیو از کش).
+  - هندلر پیام `CACHE_VIDEOS` در SW.
+- در صفحهٔ ادمین آفلاین (`AdminOfflineSettingsPage`) اضافه شدن گزینهٔ تیک‌دار «دانلود ویدیوها» (با هشدار حجم بالا).
 
-## راهکار: اتصال پروژه به GitHub
+---
 
-Lovable یک **همگام‌سازی دوطرفه (bidirectional sync)** با GitHub دارد. به محض اتصال، تمام کد پروژه شامل پوشهٔ `supabase/` به‌صورت خودکار و real-time روی GitHub push می‌شود. نیازی به هیچ کار اضافی برای بک‌اند نیست.
+## ۲. چت‌بات آفلاین
 
-### مراحل اتصال (یک‌بار انجام می‌شود)
+### وضعیت فعلی
+- چت‌بات فقط از طریق Edge Function `museum-assistant` با Gemini کار می‌کند → بدون اینترنت کاملاً غیرفعال است.
 
-1. در ادیتور Lovable روی **Connectors** (در سایدبار) کلیک کنید
-2. **GitHub → Connect project** را انتخاب کنید
-3. اپلیکیشن GitHub Lovable را Authorize کنید
-4. حساب یا سازمان GitHub موردنظر را انتخاب کنید
-5. روی **Create Repository** کلیک کنید تا یک ریپازیتوری جدید با کل کد پروژه (شامل `supabase/`) ساخته شود
+### راهکار: حالت Fallback لوکال
+وقتی `navigator.onLine === false` یا fetch به edge function fail شد:
 
-### بعد از اتصال
+- یک ماژول جدید `src/lib/offlineAssistant.ts` بسازیم که:
+  - دیتای کش‌شدهٔ کشتی‌گیران/افتخارات/تاریخچه/بناها/کتاب‌ها/آلبوم‌ها را از `localStorage` می‌خواند.
+  - روی متن سؤال کاربر **جستجوی کلیدواژه‌ای** (token match با وزن‌دهی، normalize عربی/فارسی) انجام می‌دهد.
+  - مرتبط‌ترین رکوردها (تا ۳ مورد) را پیدا کرده و یک پاسخ ساختاریافته در زبان تشخیص داده‌شده می‌سازد (template-based, با Markdown).
+  - برای سؤال‌های عمومی («تاریخچه چیست؟») خلاصهٔ section مرتبط از `history_sections` را برمی‌گرداند.
+- در `useChatAssistant.ts`:
+  - قبل از fetch چک: اگر offline → مستقیم `offlineAssistant.answer()` و stream شبیه‌سازی (chunk به chunk با setTimeout).
+  - اگر fetch fail شد → fallback به همان لوکال + پیام «پاسخ بر اساس دادهٔ آفلاین».
+- در UI (`ChatAssistant.tsx`) یک badge کوچک «حالت آفلاین» وقتی پاسخ از منبع لوکال بیاید.
 
-- هر تغییری در Lovable → خودکار به GitHub push می‌شود
-- هر push روی GitHub → خودکار به Lovable sync می‌شود
-- می‌توانید لوکال هم clone کنید، تغییر دهید و push کنید
+### محدودیت‌ها (به کاربر گفته می‌شود)
+- پاسخ‌های آفلاین تولیدی نیستند، بلکه بازیابی از دیتای موزه‌اند → برای سؤال‌های خارج از دامنه دیتای کش‌شده پاسخ مفیدی ندارد.
 
-## نکات مهم درباره بک‌اند
+---
 
-### چه چیزهایی در GitHub ذخیره می‌شود
-- ✅ کد Edge Functionها (`supabase/functions/`)
-- ✅ Migrationهای دیتابیس (`supabase/migrations/`)
-- ✅ فایل تنظیمات `supabase/config.toml`
-- ✅ تایپ‌های دیتابیس (`src/integrations/supabase/types.ts`)
+## ۳. نسخهٔ کامل ویندوزی
 
-### چه چیزهایی ذخیره **نمی‌شود** (و نباید بشوند)
-- ❌ **دادهٔ واقعی دیتابیس** (محتوای جداول): این داده روی Lovable Cloud زندگی می‌کند. برای backup گرفتن باید از قسمت Cloud → Database → Tables به‌صورت CSV export کنید.
-- ❌ **Secrets و API Keys**: مقادیر secret در Lovable Cloud نگهداری می‌شوند، نه در `.env` ریپازیتوری.
-- ❌ فایل `.env` (auto-generated و gitignore شده)
+### وضعیت فعلی
+- `electron/main.js`، `electron/preload.js`، `electron/splash.html` و `electron-builder.config.json` قبلاً موجودند.
+- `package.json` فاقد scripts و dev-dependencies برای Electron است.
 
-## آیا کار خاصی در کد لازم است؟
+### تغییرات
+- اضافه‌کردن به `package.json`:
+  - devDeps: `electron`, `electron-builder`, `concurrently`, `wait-on`.
+  - scripts:
+    - `electron:dev` – اجرای Vite + Electron همزمان
+    - `electron:build` – `vite build` + `electron-builder --win` (NSIS installer + Portable)
+    - `electron:build:win` – build مستقیم برای ویندوز x64
+- بررسی `electron/main.js` برای:
+  - `loadFile('dist/index.html')` (نه dev URL در production)
+  - `base: './'` در `vite.config.ts` (برای path نسبی فایل)
+  - فعال‌سازی fullscreen + kiosk mode در حالت بسته‌شده
+- مستندسازی در `DESKTOP_BUILD.md` با دستورات نهایی.
 
-**خیر.** بعد از اینکه شما در پنل Lovable روی Connectors → GitHub → Connect project کلیک کنید، همه چیز خودکار انجام می‌شود. نیازی به تغییر در کد نیست.
+### خروجی نهایی
+- `release/موزه کشتی ایران-Setup-{version}.exe` (نصب‌کننده NSIS با انتخاب مسیر و پشتیبانی فارسی)
+- `release/موزه کشتی ایران-Portable-{version}.exe` (قابل‌حمل، بدون نصب)
 
-اگر می‌خواهید بعد از اتصال، **بکاپ دادهٔ دیتابیس** را هم به‌صورت دوره‌ای در ریپو ذخیره کنید (مثلاً برای Excel/JSON export که از قبل در ادمین موجود است)، می‌توانم یک GitHub Action بنویسم که این export را زمان‌بندی‌شده انجام دهد و در ریپو commit کند. لطفاً اگر این را می‌خواهید بفرمایید.
+### نکته
+- ساخت واقعی فایل `.exe` نیاز به ماشین ویندوز یا Wine دارد. کاربر می‌تواند روی PC ویندوز یا از طریق GitHub Actions (workflow اضافه می‌شود) build بگیرد.
+- یک workflow جدید `.github/workflows/build-windows.yml` که روی push tag، نسخهٔ ویندوزی را build و در GitHub Releases منتشر کند.
+
+---
+
+## فایل‌های جدید/تغییریافته
+- `src/lib/offlineAssistant.ts` (جدید)
+- `src/hooks/useChatAssistant.ts`
+- `src/components/ChatAssistant.tsx`
+- `src/contexts/OfflineDataContext.tsx`
+- `src/hooks/useOfflineDownload.ts`
+- `src/pages/admin/AdminOfflineSettingsPage.tsx`
+- `public/sw.js`
+- `package.json`
+- `electron/main.js` (در صورت نیاز)
+- `.github/workflows/build-windows.yml` (جدید)
+- `DESKTOP_BUILD.md`
+
+## ترتیب اجرا
+۱. کش ویدیوهای کشتی‌گیر (SW + download hook)
+۲. چت‌بات آفلاین (offlineAssistant + integration)
+۳. اسکریپت‌ها و workflow ویندوز
