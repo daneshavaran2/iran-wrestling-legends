@@ -273,6 +273,16 @@ export function useOfflineDownload() {
 
     const isVideoUrl = (u: string) => /\.(mp4|webm|ogg|mov|m4v)(\?|$)/i.test(u);
 
+    // Strip query string for cache key so SW can match requests with different tokens
+    const normalizeUrl = (u: string) => {
+      try {
+        const parsed = new URL(u);
+        return parsed.origin + parsed.pathname;
+      } catch {
+        return u.split('?')[0];
+      }
+    };
+
     for (let i = 0; i < urls.length; i += batchSize) {
       if (cancelRef.current) break;
 
@@ -292,8 +302,9 @@ export function useOfflineDownload() {
                   ? 'iran-wrestling-videos-v5'
                   : 'iran-wrestling-images-v5';
                 const cache = await caches.open(cacheName);
+                const cacheUrl = isVideoUrl(url) ? normalizeUrl(url) : url;
                 await cache.put(
-                  new Request(url, { method: 'GET' }),
+                  new Request(cacheUrl, { method: 'GET' }),
                   new Response(blob, {
                     headers: { 'Content-Type': blob.type || (isVideoUrl(url) ? 'video/mp4' : 'image/*') },
                   })

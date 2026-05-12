@@ -160,12 +160,17 @@ function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }
   };
 
   if (hasError) {
+    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <div className="glass-card p-8 flex flex-col items-center gap-4 animate-fade-in">
           <AlertCircle className="h-16 w-16 text-destructive" />
-          <h3 className="text-xl font-bold">{t('common.videoError')}</h3>
-          <p className="text-muted-foreground max-w-md">{t('common.supportedFormats')}</p>
+          <h3 className="text-xl font-bold">
+            {isOffline ? t('common.videoOfflineUnavailable') : t('common.videoError')}
+          </h3>
+          <p className="text-muted-foreground max-w-md">
+            {isOffline ? t('common.videoOfflineHint') : t('common.supportedFormats')}
+          </p>
           <GoldButton onClick={handleRetry} variant="outline" className="mt-4">
             {t('common.retry')}
           </GoldButton>

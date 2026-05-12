@@ -258,7 +258,11 @@ async function handleVideoRequest(request) {
   const cache = await caches.open(VIDEO_CACHE);
   // Strip range when looking up cache
   const cacheKey = new Request(request.url, { method: 'GET' });
-  const cached = await cache.match(cacheKey);
+  let cached = await cache.match(cacheKey);
+  if (!cached) {
+    // Fallback: ignore query string differences (e.g. cache-busting tokens)
+    cached = await cache.match(cacheKey, { ignoreSearch: true });
+  }
 
   const rangeHeader = request.headers.get('range');
 
@@ -297,7 +301,7 @@ async function handleVideoRequest(request) {
     }
     return networkResponse;
   } catch (error) {
-    return new Response('', { status: 503 });
+    return new Response('', { status: 404, statusText: 'Offline - video not cached' });
   }
 }
 

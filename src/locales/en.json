@@ -26,6 +26,8 @@
     "retry": "Retry",
     "videoError": "Error loading video",
     "supportedFormats": "Supported formats: MP4, WebM",
+    "videoOfflineUnavailable": "Video not available offline",
+    "videoOfflineHint": "To play without internet, download this video from offline settings first.",
     "offlineReady": "Ready for offline use",
     "offlineNotReady": "Download everything for offline use"
   },
