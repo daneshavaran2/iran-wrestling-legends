@@ -276,11 +276,32 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
         const imageUrls = wrestlers
           .filter(w => w.image_url)
           .map(w => w.image_url as string);
-        
+
         navigator.serviceWorker.controller.postMessage({
           type: 'CACHE_IMAGES',
           urls: imageUrls,
         });
+
+        // Auto pre-cache intro videos + wrestler media videos so playback
+        // never depends on backend availability. Run on idle to avoid blocking.
+        const videoUrls = Array.from(new Set([
+          ...wrestlers.filter(w => w.intro_video_url).map(w => w.intro_video_url as string),
+          ...media.filter(m => m.type === 'video' && m.url).map(m => m.url),
+        ]));
+
+        if (videoUrls.length > 0) {
+          const sendCacheRequest = () => {
+            navigator.serviceWorker.controller?.postMessage({
+              type: 'CACHE_VIDEOS',
+              urls: videoUrls,
+            });
+          };
+          if ('requestIdleCallback' in window) {
+            (window as any).requestIdleCallback(sendCacheRequest, { timeout: 5000 });
+          } else {
+            setTimeout(sendCacheRequest, 2000);
+          }
+        }
       }
     }
     
