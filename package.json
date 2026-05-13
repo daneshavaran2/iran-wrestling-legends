@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/bundle-videos.mjs || true",
     "build": "vite build && rm -rf build && cp -R dist build",
     "build:dev": "vite build --mode development",
+    "sync:videos": "node scripts/bundle-videos.mjs",
     "bundle:videos": "node scripts/bundle-videos.mjs",
     "build:bundled": "npm run bundle:videos && npm run build",
     "lint": "eslint .",
