@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, X, History, Users, Building2, BookOpen, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { supabase } from '@/lib/supabase';
+import { getTable } from '@/lib/contentSnapshot';
 
 interface SearchResult {
   id: string;
@@ -46,76 +46,52 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
 
     setIsSearching(true);
     const allResults: SearchResult[] = [];
+    const q = searchQuery.toLowerCase();
+    const m = (s: any) => typeof s === 'string' && s.toLowerCase().includes(q);
 
     try {
-      // Search wrestlers
-      const { data: wrestlers } = await supabase
-        .from('wrestlers')
-        .select('id, name, bio')
-        .or(`name.ilike.%${searchQuery}%,bio.ilike.%${searchQuery}%`)
-        .eq('is_visible', true)
-        .limit(5);
+      const [wrestlers, history, buildings, books] = await Promise.all([
+        getTable<any>('wrestlers'),
+        getTable<any>('history_sections'),
+        getTable<any>('buildings'),
+        getTable<any>('books'),
+      ]);
 
-      wrestlers?.forEach(w => {
-        allResults.push({
-          id: w.id,
-          title: w.name,
+      wrestlers
+        .filter((w: any) => (w.is_visible ?? true) && (m(w.name) || m(w.bio)))
+        .slice(0, 5)
+        .forEach((w: any) => allResults.push({
+          id: w.id, title: w.name,
           subtitle: w.bio?.substring(0, 60),
-          type: 'wrestler',
-          path: `/wrestler/${w.id}`,
-        });
-      });
+          type: 'wrestler', path: `/wrestler/${w.id}`,
+        }));
 
-      // Search history sections
-      const { data: history } = await supabase
-        .from('history_sections')
-        .select('id, title, slug, highlighted_quote')
-        .or(`title.ilike.%${searchQuery}%,content.ilike.%${searchQuery}%`)
-        .limit(5);
-
-      history?.forEach(h => {
-        allResults.push({
-          id: h.id,
-          title: h.title,
+      history
+        .filter((h: any) => m(h.title) || m(h.content))
+        .slice(0, 5)
+        .forEach((h: any) => allResults.push({
+          id: h.id, title: h.title,
           subtitle: h.highlighted_quote || undefined,
-          type: 'history',
-          path: `/history/${h.slug}`,
-        });
-      });
+          type: 'history', path: `/history/${h.slug}`,
+        }));
 
-      // Search buildings
-      const { data: buildings } = await supabase
-        .from('buildings')
-        .select('id, name, description')
-        .or(`name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`)
-        .limit(5);
-
-      buildings?.forEach(b => {
-        allResults.push({
-          id: b.id,
-          title: b.name,
+      buildings
+        .filter((b: any) => m(b.name) || m(b.description))
+        .slice(0, 5)
+        .forEach((b: any) => allResults.push({
+          id: b.id, title: b.name,
           subtitle: b.description?.substring(0, 60),
-          type: 'building',
-          path: `/buildings/${b.id}`,
-        });
-      });
+          type: 'building', path: `/buildings/${b.id}`,
+        }));
 
-      // Search books
-      const { data: books } = await supabase
-        .from('books')
-        .select('id, title, author')
-        .or(`title.ilike.%${searchQuery}%,author.ilike.%${searchQuery}%`)
-        .limit(5);
-
-      books?.forEach(b => {
-        allResults.push({
-          id: b.id,
-          title: b.title,
+      books
+        .filter((b: any) => m(b.title) || m(b.author))
+        .slice(0, 5)
+        .forEach((b: any) => allResults.push({
+          id: b.id, title: b.title,
           subtitle: b.author,
-          type: 'book',
-          path: `/books`,
-        });
-      });
+          type: 'book', path: `/books`,
+        }));
 
       setResults(allResults);
     } catch (error) {
