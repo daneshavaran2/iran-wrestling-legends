@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vite build && rm -rf build && cp -R dist build",
     "build:dev": "vite build --mode development",
+    "bundle:videos": "node scripts/bundle-videos.mjs",
+    "build:bundled": "npm run bundle:videos && npm run build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
