@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v9';
+const CACHE_VERSION = 'v10';
 const STATIC_CACHE = `iran-wrestling-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `iran-wrestling-dynamic-${CACHE_VERSION}`;
 const API_CACHE = `iran-wrestling-api-${CACHE_VERSION}`;
@@ -109,6 +109,55 @@ self.addEventListener('install', (event) => {
         }
       } catch (e) {
         console.log('[SW] SPA pre-cache skipped:', e);
+      }
+
+      // Pre-cache all bundled images listed in /images/manifest.json so that
+      // every public/profile page renders fully on first offline load.
+      try {
+        const imgManifestResp = await fetch('/images/manifest.json');
+        if (imgManifestResp.ok) {
+          const imgManifest = await imgManifestResp.json();
+          const localImagePaths = Object.values(imgManifest.images || {}).filter(
+            (p) => typeof p === 'string' && p.startsWith('/images/')
+          );
+          const imageCache = await caches.open(IMAGE_CACHE);
+          await Promise.all(
+            localImagePaths.map(async (path) => {
+              try {
+                const r = await fetch(path);
+                if (r.ok) await imageCache.put(path, r.clone());
+              } catch {}
+            })
+          );
+          console.log(`[SW] Pre-cached ${localImagePaths.length} bundled images`);
+        }
+      } catch (e) {
+        console.log('[SW] Image pre-cache skipped:', e);
+      }
+
+      // Pre-cache all bundled videos listed in /videos/manifest.json.
+      try {
+        const vidManifestResp = await fetch('/videos/manifest.json');
+        if (vidManifestResp.ok) {
+          const vidManifest = await vidManifestResp.json();
+          const localVideoPaths = Object.values(vidManifest.videos || {}).filter(
+            (p) => typeof p === 'string' && p.startsWith('/videos/')
+          );
+          const videoCache = await caches.open(VIDEO_CACHE);
+          await Promise.all(
+            localVideoPaths.map(async (path) => {
+              try {
+                const r = await fetch(path);
+                if (r.ok) {
+                  await videoCache.put(new Request(path, { method: 'GET' }), r.clone());
+                }
+              } catch {}
+            })
+          );
+          console.log(`[SW] Pre-cached ${localVideoPaths.length} bundled videos`);
+        }
+      } catch (e) {
+        console.log('[SW] Video pre-cache skipped:', e);
       }
     })()
   );
