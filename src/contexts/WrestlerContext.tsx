@@ -330,13 +330,21 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    refreshWrestlers();
-    
-    // Listen for online/offline events
+    // Offline-first: never block UI on Supabase. Defer the background refresh
+    // and only attempt it when the device is actually online.
+    const tryRefresh = () => {
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        refreshWrestlers().catch(() => {});
+      } else {
+        setIsLoading(false);
+      }
+    };
+    const t = setTimeout(tryRefresh, 1500);
+
     const handleOnline = () => {
       console.log('Back online, refreshing data...');
       setIsOffline(false);
-      refreshWrestlers();
+      refreshWrestlers().catch(() => {});
     };
     
     const handleOffline = () => {
@@ -351,6 +359,7 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
     window.addEventListener('offline', handleOffline);
     
     return () => {
+      clearTimeout(t);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };

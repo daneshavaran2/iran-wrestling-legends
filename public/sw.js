@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const STATIC_CACHE = `iran-wrestling-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `iran-wrestling-dynamic-${CACHE_VERSION}`;
 const API_CACHE = `iran-wrestling-api-${CACHE_VERSION}`;
@@ -15,6 +15,8 @@ const STATIC_ASSETS = [
   '/favicon.png',
   '/manifest.json',
   '/placeholder.svg',
+  '/data/snapshot.json',
+  '/videos/manifest.json',
   '/fonts/Vazirmatn-Regular.woff2',
   '/fonts/Vazirmatn-Bold.woff2',
   '/fonts/Vazirmatn-Medium.woff2',

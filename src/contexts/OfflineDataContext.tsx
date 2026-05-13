@@ -418,13 +418,20 @@ export const OfflineDataProvider: React.FC<{ children: ReactNode }> = ({ childre
       setIsLoadingAlbums(false);
     }).catch(() => {});
 
-    refreshAllData();
+    // Offline-first: defer Supabase refresh and only run when online so the
+    // app starts instantly from the snapshot even with no connectivity.
+    const t = setTimeout(() => {
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        refreshAllData().catch(() => {});
+      }
+    }, 1500);
+    return () => clearTimeout(t);
   }, []);
 
-  // Refresh when coming online
+  // Refresh when transitioning back online
   useEffect(() => {
     if (!isOffline) {
-      refreshAllData();
+      refreshAllData().catch(() => {});
     }
   }, [isOffline, refreshAllData]);
 
