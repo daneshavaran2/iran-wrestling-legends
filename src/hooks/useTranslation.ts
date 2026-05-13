@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { canUseNetwork } from '@/lib/runtimeMode';
 
 interface TranslationCache {
   [key: string]: {
@@ -90,7 +91,7 @@ export const useTranslation = () => {
     }
 
     // 2. Check database cache (shared across devices)
-    try {
+    if (canUseNetwork()) try {
       const { data: dbCached } = await supabase
         .from('translations')
         .select('translated_text')
@@ -114,6 +115,9 @@ export const useTranslation = () => {
     }
 
     // 3. Translate with AI
+    if (!canUseNetwork()) {
+      return text;
+    }
     try {
       setIsTranslating(true);
       

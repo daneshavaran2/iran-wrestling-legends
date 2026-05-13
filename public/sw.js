@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v7';
+const CACHE_VERSION = 'v8';
 const STATIC_CACHE = `iran-wrestling-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `iran-wrestling-dynamic-${CACHE_VERSION}`;
 const API_CACHE = `iran-wrestling-api-${CACHE_VERSION}`;
@@ -206,16 +206,21 @@ async function handleApiRequest(request) {
   const cache = await caches.open(API_CACHE);
   const cachedResponse = await cache.match(request);
 
-  // Background revalidate (don't await unless we have no cache)
-  const revalidate = fetch(request)
+  // Background revalidate with hard timeout (don't await unless we have no
+  // cache). When the device has no real internet (kiosk on isolated LAN),
+  // fetch can hang for a long time — abort fast.
+  const controller = new AbortController();
+  const abortTimer = setTimeout(() => controller.abort(), 3000);
+  const revalidate = fetch(request, { signal: controller.signal })
     .then(async (networkResponse) => {
+      clearTimeout(abortTimer);
       if (isCacheable(networkResponse)) {
         await cache.put(request, networkResponse.clone());
         await limitCacheSize(API_CACHE, MAX_API_CACHE_SIZE);
       }
       return networkResponse;
     })
-    .catch(() => null);
+    .catch(() => { clearTimeout(abortTimer); return null; });
 
   if (cachedResponse) {
     // Cache hit: serve immediately, refresh in background

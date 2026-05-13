@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { resolveBundledImage } from '@/lib/bundledImages';
+import { isOfflineOnly } from '@/lib/runtimeMode';
 
 interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   fallback?: string;
@@ -53,12 +54,20 @@ export function LazyImage({
 
   // Reset state when src changes
   useEffect(() => {
-    setCurrentSrc(resolveBundledImage(src as string) || src);
+    const resolved = resolveBundledImage(src as string) || (src as string);
+    // In offline-only mode, never attempt remote http(s) loads — fall back
+    // to the local placeholder if the image isn't bundled locally.
+    const isLocal = typeof resolved === 'string' && (resolved.startsWith('/') || resolved.startsWith('data:') || resolved.startsWith('blob:'));
+    if (isOfflineOnly() && !isLocal) {
+      setCurrentSrc(fallback);
+    } else {
+      setCurrentSrc(resolved);
+    }
     setIsLoaded(false);
     setThumbnailLoaded(false);
     setHasError(false);
     setRetryCount(0);
-  }, [src]);
+  }, [src, fallback]);
 
   const handleError = useCallback(() => {
     if (retryCount < maxRetries && currentSrc && currentSrc !== fallback) {
