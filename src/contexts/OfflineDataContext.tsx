@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAutoSync } from '@/hooks/useAutoSync';
+import { loadSnapshot } from '@/lib/contentSnapshot';
 
 // Interfaces
 interface HistorySection {
@@ -391,7 +392,32 @@ export const OfflineDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     if (savedTimestamp) {
       setLastSyncTime(new Date(savedTimestamp));
     }
-    
+
+    // Seed from build-time snapshot — works fully offline without Supabase.
+    loadSnapshot().then((snap) => {
+      if (!snap) return;
+      const all = (snap.tables.history_sections || []) as HistorySection[];
+      const roots = all.filter((s) => s.parent_id === null);
+      setAllHistorySections((prev) => prev.length ? prev : all);
+      setHistorySections((prev) => prev.length ? prev : roots);
+      setHistoryMedia((prev) => prev.length ? prev : (snap.tables.history_media || []) as HistoryMedia[]);
+      setBuildings((prev) => prev.length ? prev : (snap.tables.buildings || []) as Building[]);
+      setBuildingImages((prev) => prev.length ? prev : (snap.tables.building_images || []) as BuildingImage[]);
+      setBooks((prev) => prev.length ? prev : (snap.tables.books || []) as Book[]);
+      const photos = (snap.tables.album_photos || []) as AlbumPhoto[];
+      const albumsRaw = (snap.tables.albums || []) as Album[];
+      const albumsWithCount = albumsRaw.map((a) => ({
+        ...a,
+        photo_count: photos.filter((p) => p.album_id === a.id).length,
+      }));
+      setAlbums((prev) => prev.length ? prev : albumsWithCount);
+      setAlbumPhotos((prev) => prev.length ? prev : photos);
+      setIsLoadingHistory(false);
+      setIsLoadingBuildings(false);
+      setIsLoadingBooks(false);
+      setIsLoadingAlbums(false);
+    }).catch(() => {});
+
     refreshAllData();
   }, []);
 
