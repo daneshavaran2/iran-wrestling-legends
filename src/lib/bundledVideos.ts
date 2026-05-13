@@ -83,6 +83,8 @@ function probe(localPath: string): Promise<boolean> {
  */
 export function resolveBundledVideo(url: string | null | undefined): string {
   if (!url) return '';
+  // Already a local bundled path — return as-is, browser/SW will serve it.
+  if (url.startsWith('/videos/')) return url;
   if (blacklistedRemote.has(url)) return url;
   const local = lookup(url);
   if (!local) return url;
@@ -94,6 +96,7 @@ export function resolveBundledVideo(url: string | null | undefined): string {
 
 export async function resolveBundledVideoAsync(url: string | null | undefined): Promise<string> {
   if (!url) return '';
+  if (url.startsWith('/videos/')) return url;
   if (blacklistedRemote.has(url)) return url;
   await loadManifest();
   const local = lookup(url);

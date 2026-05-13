@@ -125,11 +125,13 @@ async function syncSnapshot(supabase) {
     console.warn(c.yellow('\n  ! All tables failed — preserving previous snapshot.json'));
     return previous;
   }
+  // If literally nothing succeeded and no previous snapshot exists, do not write
+  // an empty snapshot (would clobber any committed bundle on next read).
+  if (okCount === 0 && !previous) {
+    console.warn(c.yellow('\n  ! All tables failed and no previous snapshot — skipping write.'));
+    return { tables: {} };
+  }
 
-  const tmp = `${SNAPSHOT}.tmp`;
-  await writeFile(tmp, JSON.stringify(snapshot));
-  await rename(tmp, SNAPSHOT);
-  console.log(c.bold(`\n  ✓ snapshot.json written (${okCount} ok, ${failCount} fail)\n`));
   return snapshot;
 }
 
@@ -212,6 +214,48 @@ async function syncVideos(snapshot) {
   await rename(tmp, VIDEO_MANIFEST);
 
   console.log(c.bold(`\n  ✓ videos done `) + c.dim(`(d=${downloaded} u=${updated} s=${skipped} r=${removed} f=${failed} ${(totalBytes/1024/1024).toFixed(2)} MB)\n`));
+  return manifest;
+}
+
+/**
+ * Rewrite remote video URLs inside the snapshot to local /videos/<file> paths
+ * for any URL that successfully downloaded. The original remote URL is kept
+ * in a sibling `__remoteUrl` field for optional background refresh later.
+ */
+function rewriteSnapshotVideoUrls(snapshot, manifest) {
+  if (!snapshot?.tables || !manifest) return 0;
+  let rewrites = 0;
+
+  const swap = (row, field) => {
+    const url = row?.[field];
+    if (!url || typeof url !== 'string') return;
+    const local = manifest[url];
+    if (local && local !== url) {
+      row.__remoteUrl = row.__remoteUrl || {};
+      row.__remoteUrl[field] = url;
+      row[field] = local;
+      rewrites++;
+    }
+  };
+
+  for (const w of snapshot.tables.wrestlers || []) swap(w, 'intro_video_url');
+  for (const m of snapshot.tables.wrestler_media || []) {
+    if (m?.type === 'video') swap(m, 'url');
+  }
+  for (const m of snapshot.tables.history_media || []) {
+    if (m?.type === 'video') swap(m, 'url');
+  }
+  for (const m of snapshot.tables.about_media || []) {
+    if (m?.type === 'video') swap(m, 'url');
+  }
+  return rewrites;
+}
+
+async function writeSnapshot(snapshot) {
+  if (!snapshot?.tables || !Object.keys(snapshot.tables).length) return;
+  const tmp = `${SNAPSHOT}.tmp`;
+  await writeFile(tmp, JSON.stringify(snapshot));
+  await rename(tmp, SNAPSHOT);
 }
 
 async function main() {
@@ -240,10 +284,21 @@ async function main() {
     snapshot = await loadJSON(SNAPSHOT, { tables: {} });
   }
 
+  let manifest = {};
   try {
-    await syncVideos(snapshot);
+    manifest = (await syncVideos(snapshot)) || {};
   } catch (e) {
     console.warn(c.yellow(`  ! Video sync crashed (${e.message}) — continuing.`));
+  }
+
+  // Rewrite remote URLs to local /videos/* in the snapshot, then persist.
+  try {
+    const n = rewriteSnapshotVideoUrls(snapshot, manifest);
+    if (n > 0) console.log(c.cyan(`  ↻ rewrote ${n} video URL(s) to local paths in snapshot`));
+    await writeSnapshot(snapshot);
+    console.log(c.bold(c.green('  ✓ snapshot.json written\n')));
+  } catch (e) {
+    console.warn(c.yellow(`  ! Failed to write snapshot.json (${e.message}) — previous file preserved.`));
   }
 }
 
