@@ -1,9 +1,92 @@
-const CACHE_VERSION = 'v10';
+const CACHE_VERSION = 'v11';
 const STATIC_CACHE = `iran-wrestling-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `iran-wrestling-dynamic-${CACHE_VERSION}`;
 const API_CACHE = `iran-wrestling-api-${CACHE_VERSION}`;
 const IMAGE_CACHE = `iran-wrestling-images-${CACHE_VERSION}`;
 const VIDEO_CACHE = `iran-wrestling-videos-${CACHE_VERSION}`;
+
+// Build-time injected precache lists. The `prebuild` script
+// (scripts/bundle-content.mjs) replaces the contents of these arrays with
+// the local /images/* and /videos/* paths derived from manifest.json so the
+// service worker can pre-cache them all during install without having to
+// fetch the manifest at runtime.
+/* @@PRECACHE_IMAGES_START@@ */
+const PRECACHE_IMAGES = [
+  "/images/085130c953d48917.jpeg",
+  "/images/ba2936e20f186452.jpeg",
+  "/images/28967914dea9c0c9.jpg",
+  "/images/8c58e0dc4adc0fe9.jpeg",
+  "/images/0c3038863bd1554b.jpg",
+  "/images/705807bb63e76bdb.jpg",
+  "/images/1a0657e7cff73eb7.jpg",
+  "/images/77cccc31125de330.jpg",
+  "/images/72c93cb0ef2a3575.jpg",
+  "/images/bd85a3b747a416d7.jpeg",
+  "/images/c8a73b2684dc062b.jpg",
+  "/images/0e42ef3cc43426d9.jpeg",
+  "/images/f8d9343e9e28fb42.jpg",
+  "/images/3017b04a30119194.jpeg",
+  "/images/db550b050e84d532.jpg",
+  "/images/90d8ec5c447a0fbc.jpg",
+  "/images/c5d2c10d977797c1.jpg",
+  "/images/1876835d2a596f40.jpeg",
+  "/images/3df8180f4dddab16.jpg",
+  "/images/8d0b40b28f0a9fbc.jpeg",
+  "/images/b33563fa87da65cc.jpeg",
+  "/images/dc2d88462e297658.jpeg",
+  "/images/493115b15f674cdd.jpg",
+  "/images/6f391f5a5296d9ab.jpg",
+  "/images/5938ec5406693f23.jpg",
+  "/images/55b8669ce900dff9.jpeg",
+  "/images/823465f62e1294c7.jpg",
+  "/images/c0efc23f445e1c60.jpg",
+  "/images/3570132984966061.jpg",
+  "/images/bf5b6b4950fe4666.jpg",
+  "/images/b0121ea4b3790b2b.jpg",
+  "/images/962171cfc5265823.jpeg",
+  "/images/f8f61b25a3065fd5.jpeg",
+  "/images/6a49c5fdb3edff60.jpeg",
+  "/images/725b7dcff1d9d50c.jpeg",
+  "/images/3ca86d6192b11163.jpeg",
+  "/images/5ed67df450851cf1.jpg",
+  "/images/a688ffe451ea22d0.jpg",
+  "/images/b1fb10b4b22183de.bmp",
+  "/images/659cd28605e3ada7.bmp",
+  "/images/ea8be7dafc43c61d.bmp",
+  "/images/d8d56a019ea28d2e.jpg",
+  "/images/2774c1fe78bb30bd.bmp",
+  "/images/452d0d6f9a432326.jpg",
+  "/images/7ca44b7e7be258ed.jpg",
+  "/images/05e811bd6b6f76cf.jpg",
+  "/images/24ce056228a32254.jpg",
+  "/images/b189b54e41bdb030.jpg",
+  "/images/de49373acead306c.jpg",
+  "/images/181b3570b2f5a800.jpg",
+  "/images/db62b0f7f01bdeb2.jpg",
+  "/images/d73c4d1db0340b14.jpg",
+  "/images/11a42347362c3c99.jpg",
+  "/images/3fd29475e0d839b9.jpg",
+  "/images/5c3c820d347a3960.jpg",
+  "/images/44c4b6c4a2125872.jpg",
+  "/images/c1c14565568d6cf1.jpg",
+  "/images/ee94f9cb03a887f0.jpg",
+  "/images/0325d269e24996ed.jpg",
+  "/images/3a5a20a6d33fe613.jpg",
+  "/images/28d3b2fc3a97f42e.jpg"
+];
+/* @@PRECACHE_IMAGES_END@@ */
+/* @@PRECACHE_VIDEOS_START@@ */
+const PRECACHE_VIDEOS = [
+  "/videos/1c2362b0f59bee48.mov",
+  "/videos/30b8e9427806f813.mp4",
+  "/videos/b8bfb99e0f014eb6.mp4",
+  "/videos/360643f1e0e7f330.mp4",
+  "/videos/90eddfd7c0ef4d47.mp4",
+  "/videos/03b2080ec26b0721.mp4",
+  "/videos/048f69aa01ac0336.mp4",
+  "/videos/fa1262198d98de20.mp4"
+];
+/* @@PRECACHE_VIDEOS_END@@ */
 
 // Supabase configuration
 const SUPABASE_URL = 'https://etbekvhdroqiddcteqdq.supabase.co';
@@ -111,53 +194,42 @@ self.addEventListener('install', (event) => {
         console.log('[SW] SPA pre-cache skipped:', e);
       }
 
-      // Pre-cache all bundled images listed in /images/manifest.json so that
-      // every public/profile page renders fully on first offline load.
-      try {
-        const imgManifestResp = await fetch('/images/manifest.json');
-        if (imgManifestResp.ok) {
-          const imgManifest = await imgManifestResp.json();
-          const localImagePaths = Object.values(imgManifest.images || {}).filter(
-            (p) => typeof p === 'string' && p.startsWith('/images/')
-          );
+      // Pre-cache all bundled images using the build-time injected list.
+      if (PRECACHE_IMAGES.length) {
+        try {
           const imageCache = await caches.open(IMAGE_CACHE);
           await Promise.all(
-            localImagePaths.map(async (path) => {
+            PRECACHE_IMAGES.map(async (p) => {
               try {
-                const r = await fetch(path);
-                if (r.ok) await imageCache.put(path, r.clone());
+                const r = await fetch(p);
+                if (r.ok) await imageCache.put(p, r.clone());
               } catch {}
             })
           );
-          console.log(`[SW] Pre-cached ${localImagePaths.length} bundled images`);
+          console.log(`[SW] Pre-cached ${PRECACHE_IMAGES.length} bundled images`);
+        } catch (e) {
+          console.log('[SW] Image pre-cache skipped:', e);
         }
-      } catch (e) {
-        console.log('[SW] Image pre-cache skipped:', e);
       }
 
-      // Pre-cache all bundled videos listed in /videos/manifest.json.
-      try {
-        const vidManifestResp = await fetch('/videos/manifest.json');
-        if (vidManifestResp.ok) {
-          const vidManifest = await vidManifestResp.json();
-          const localVideoPaths = Object.values(vidManifest.videos || {}).filter(
-            (p) => typeof p === 'string' && p.startsWith('/videos/')
-          );
+      // Pre-cache all bundled videos using the build-time injected list.
+      if (PRECACHE_VIDEOS.length) {
+        try {
           const videoCache = await caches.open(VIDEO_CACHE);
           await Promise.all(
-            localVideoPaths.map(async (path) => {
+            PRECACHE_VIDEOS.map(async (p) => {
               try {
-                const r = await fetch(path);
+                const r = await fetch(p);
                 if (r.ok) {
-                  await videoCache.put(new Request(path, { method: 'GET' }), r.clone());
+                  await videoCache.put(new Request(p, { method: 'GET' }), r.clone());
                 }
               } catch {}
             })
           );
-          console.log(`[SW] Pre-cached ${localVideoPaths.length} bundled videos`);
+          console.log(`[SW] Pre-cached ${PRECACHE_VIDEOS.length} bundled videos`);
+        } catch (e) {
+          console.log('[SW] Video pre-cache skipped:', e);
         }
-      } catch (e) {
-        console.log('[SW] Video pre-cache skipped:', e);
       }
     })()
   );
@@ -178,14 +250,15 @@ self.addEventListener('activate', (event) => {
         }
       }
       
-      // Clean old caches
+      // Clean old caches — auto-purge anything from previous SW versions so
+      // storage doesn't grow unbounded across deploys.
       const cacheNames = await caches.keys();
+      const currentCaches = new Set([
+        STATIC_CACHE, DYNAMIC_CACHE, API_CACHE, IMAGE_CACHE, VIDEO_CACHE,
+      ]);
       await Promise.all(
         cacheNames
-          .filter((name) => {
-            return name.startsWith('iran-wrestling-') && 
-                   !name.endsWith(CACHE_VERSION);
-          })
+          .filter((name) => name.startsWith('iran-wrestling-') && !currentCaches.has(name))
           .map((name) => {
             console.log('[SW] Deleting old cache:', name);
             return caches.delete(name);

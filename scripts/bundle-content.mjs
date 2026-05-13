@@ -23,6 +23,7 @@ const VIDEO_MANIFEST = path.join(VIDEO_DIR, 'manifest.json');
 const VIDEO_KEEP = new Set(['manifest.json', '.gitkeep']);
 const IMAGE_DIR = path.join(PUBLIC_DIR, 'images');
 const IMAGE_MANIFEST = path.join(IMAGE_DIR, 'manifest.json');
+const SW_FILE = path.join(PUBLIC_DIR, 'sw.js');
 
 const c = {
   dim: (s) => `\x1b[2m${s}\x1b[0m`,
@@ -411,6 +412,52 @@ async function writeSnapshot(snapshot) {
   await rename(tmp, SNAPSHOT);
 }
 
+/**
+ * Inject the precache lists (local image + video paths) into public/sw.js
+ * so the service worker doesn't have to fetch manifest.json at install time.
+ * Replaces the contents between the @@PRECACHE_*_START@@ / END markers.
+ */
+async function injectPrecacheIntoSW(imageManifest, videoManifest) {
+  if (!existsSync(SW_FILE)) return;
+  let sw;
+  try {
+    sw = await readFile(SW_FILE, 'utf8');
+  } catch (e) {
+    console.warn(c.yellow(`  ! Could not read sw.js (${e.message}) — skipping injection.`));
+    return;
+  }
+
+  const imagePaths = Object.values(imageManifest || {})
+    .filter((p) => typeof p === 'string' && p.startsWith('/images/'));
+  const videoPaths = Object.values(videoManifest || {})
+    .filter((p) => typeof p === 'string' && p.startsWith('/videos/'));
+
+  const replaceBlock = (src, marker, arrName, items) => {
+    const re = new RegExp(
+      `(/\\* @@${marker}_START@@ \\*/)[\\s\\S]*?(/\\* @@${marker}_END@@ \\*/)`,
+      'm',
+    );
+    const block = `$1\nconst ${arrName} = ${JSON.stringify(items, null, 2)};\n$2`;
+    if (!re.test(src)) {
+      console.warn(c.yellow(`  ! sw.js missing ${marker} markers — skipping.`));
+      return src;
+    }
+    return src.replace(re, block);
+  };
+
+  let next = sw;
+  next = replaceBlock(next, 'PRECACHE_IMAGES', 'PRECACHE_IMAGES', imagePaths);
+  next = replaceBlock(next, 'PRECACHE_VIDEOS', 'PRECACHE_VIDEOS', videoPaths);
+
+  if (next === sw) return;
+  const tmp = `${SW_FILE}.tmp`;
+  await writeFile(tmp, next);
+  await rename(tmp, SW_FILE);
+  console.log(c.green(
+    `  ✓ injected sw.js precache (${imagePaths.length} images, ${videoPaths.length} videos)\n`,
+  ));
+}
+
 async function main() {
   await loadEnv();
   const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
@@ -461,6 +508,12 @@ async function main() {
     console.log(c.bold(c.green('  ✓ snapshot.json written\n')));
   } catch (e) {
     console.warn(c.yellow(`  ! Failed to write snapshot.json (${e.message}) — previous file preserved.`));
+  }
+
+  try {
+    await injectPrecacheIntoSW(imageManifest, manifest);
+  } catch (e) {
+    console.warn(c.yellow(`  ! sw.js precache injection failed (${e.message}) — continuing.`));
   }
 }
 
