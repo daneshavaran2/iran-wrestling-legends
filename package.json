@@ -5,12 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/bundle-videos.mjs || true",
+    "prebuild": "node scripts/bundle-content.mjs || true",
     "build": "vite build && rm -rf build && cp -R dist build",
     "build:dev": "vite build --mode development",
-    "sync:videos": "node scripts/bundle-videos.mjs",
-    "bundle:videos": "node scripts/bundle-videos.mjs",
-    "build:bundled": "npm run bundle:videos && npm run build",
+    "sync:videos": "node scripts/bundle-content.mjs",
+    "bundle:videos": "node scripts/bundle-content.mjs",
+    "sync:content": "node scripts/bundle-content.mjs",
+    "bundle:content": "node scripts/bundle-content.mjs",
+    "build:bundled": "npm run bundle:content && npm run build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
