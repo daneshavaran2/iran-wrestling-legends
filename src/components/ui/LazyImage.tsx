@@ -55,14 +55,11 @@ export function LazyImage({
   // Reset state when src changes
   useEffect(() => {
     const resolved = resolveBundledImage(src as string) || (src as string);
-    // In offline-only mode, never attempt remote http(s) loads — fall back
-    // to the local placeholder if the image isn't bundled locally.
-    const isLocal = typeof resolved === 'string' && (resolved.startsWith('/') || resolved.startsWith('data:') || resolved.startsWith('blob:'));
-    if (isOfflineOnly() && !isLocal) {
-      setCurrentSrc(fallback);
-    } else {
-      setCurrentSrc(resolved);
-    }
+    // Always set the resolved (local-first) src. If we're offline-only and
+    // the resolver couldn't find a local match, the browser will still try
+    // the Service Worker cache; only on a real onError do we fall back to
+    // the placeholder.
+    setCurrentSrc(resolved);
     setIsLoaded(false);
     setThumbnailLoaded(false);
     setHasError(false);
