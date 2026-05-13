@@ -12,7 +12,11 @@ type ManifestPayload = ManifestMap | { videos?: ManifestMap };
 
 let manifestCache: ManifestMap | null = null;
 let manifestPromise: Promise<ManifestMap> | null = null;
-const probeCache = new Map<string, boolean>(); // localPath -> exists
+// localPath -> verified existence. Only `true` once HEAD/GET succeeds.
+const probeCache = new Map<string, boolean>();
+const probeInflight = new Map<string, Promise<boolean>>();
+// remote URLs that proved bad locally — never try local again this session
+const blacklistedRemote = new Set<string>();
 
 function normalizeManifest(raw: ManifestPayload | null | undefined): ManifestMap {
   if (!raw) return {};
@@ -50,40 +54,63 @@ function lookup(url: string): string | null {
   return null;
 }
 
+function probe(localPath: string): Promise<boolean> {
+  const cached = probeCache.get(localPath);
+  if (cached !== undefined) return Promise.resolve(cached);
+  const existing = probeInflight.get(localPath);
+  if (existing) return existing;
+  const p = fetch(localPath, { method: 'GET', headers: { Range: 'bytes=0-0' } })
+    .then((r) => {
+      const ok = r.ok || r.status === 206;
+      probeCache.set(localPath, ok);
+      return ok;
+    })
+    .catch(() => {
+      probeCache.set(localPath, false);
+      return false;
+    })
+    .finally(() => probeInflight.delete(localPath));
+  probeInflight.set(localPath, p);
+  return p;
+}
+
 /**
  * Synchronous resolver — safe for direct use in JSX `src` props.
- * If the manifest hasn't loaded yet on first paint, it returns the remote
- * URL; the next render will pick up the local copy.
+ *
+ * Conservative: only returns the local path when the file has been verified
+ * to exist this session. Otherwise returns the remote URL (which always
+ * works) and kicks off a background probe so future renders can upgrade.
  */
 export function resolveBundledVideo(url: string | null | undefined): string {
   if (!url) return '';
+  if (blacklistedRemote.has(url)) return url;
   const local = lookup(url);
   if (!local) return url;
-  // Optimistically return local; probe in background to invalidate if missing
-  if (probeCache.get(local) === false) return url;
-  if (probeCache.get(local) === undefined) {
-    probeCache.set(local, true); // assume present
-    void fetch(local, { method: 'HEAD' })
-      .then((r) => probeCache.set(local, r.ok))
-      .catch(() => probeCache.set(local, false));
-  }
-  return local;
+  if (probeCache.get(local) === true) return local;
+  // Not verified yet — return remote now, probe in background
+  if (probeCache.get(local) === undefined) void probe(local);
+  return url;
 }
 
 export async function resolveBundledVideoAsync(url: string | null | undefined): Promise<string> {
   if (!url) return '';
+  if (blacklistedRemote.has(url)) return url;
   await loadManifest();
   const local = lookup(url);
   if (!local) return url;
-  if (probeCache.has(local)) return probeCache.get(local) ? local : url;
-  try {
-    const r = await fetch(local, { method: 'HEAD' });
-    probeCache.set(local, r.ok);
-    return r.ok ? local : url;
-  } catch {
-    probeCache.set(local, false);
-    return url;
-  }
+  const ok = await probe(local);
+  return ok ? local : url;
+}
+
+/**
+ * Mark a remote URL's local copy as bad (e.g. video element raised an error
+ * while playing the local file). Future resolves will return the remote URL.
+ */
+export function markBundledVideoBroken(remoteUrl: string | null | undefined) {
+  if (!remoteUrl) return;
+  blacklistedRemote.add(remoteUrl);
+  const local = lookup(remoteUrl);
+  if (local) probeCache.set(local, false);
 }
 
 export { loadManifest as preloadVideoManifest };
