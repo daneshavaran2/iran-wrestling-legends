@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { getTable } from '@/lib/contentSnapshot';
+import { canUseNetwork } from '@/lib/runtimeMode';
 
 interface MusicSettings {
   bg_music_url: string | null;
@@ -18,6 +20,16 @@ export function useBackgroundMusic() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
+        // Snapshot first — works fully offline.
+        const rows = await getTable<any>('app_settings');
+        const local = rows.find((r) => r.id === 'main') || rows[0];
+        if (local) {
+          setSettings(local as MusicSettings);
+        }
+        if (!canUseNetwork()) {
+          setIsLoading(false);
+          return;
+        }
         const { data, error } = await supabase
           .from('app_settings')
           .select('bg_music_url, bg_music_enabled, bg_music_volume, bg_music_autoplay')
