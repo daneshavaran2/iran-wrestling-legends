@@ -21,6 +21,8 @@ const SNAPSHOT = path.join(DATA_DIR, 'snapshot.json');
 const VIDEO_DIR = path.join(PUBLIC_DIR, 'videos');
 const VIDEO_MANIFEST = path.join(VIDEO_DIR, 'manifest.json');
 const VIDEO_KEEP = new Set(['manifest.json', '.gitkeep']);
+const IMAGE_DIR = path.join(PUBLIC_DIR, 'images');
+const IMAGE_MANIFEST = path.join(IMAGE_DIR, 'manifest.json');
 
 const c = {
   dim: (s) => `\x1b[2m${s}\x1b[0m`,
@@ -43,6 +45,12 @@ async function loadEnv() {
 
 function safeName(url) {
   const ext = (url.split('?')[0].match(/\.([a-z0-9]{2,5})$/i)?.[1] || 'mp4').toLowerCase();
+  const hash = createHash('sha1').update(url).digest('hex').slice(0, 16);
+  return `${hash}.${ext}`;
+}
+
+function safeImageName(url) {
+  const ext = (url.split('?')[0].match(/\.([a-z0-9]{2,5})$/i)?.[1] || 'jpg').toLowerCase();
   const hash = createHash('sha1').update(url).digest('hex').slice(0, 16);
   return `${hash}.${ext}`;
 }
@@ -251,6 +259,151 @@ function rewriteSnapshotVideoUrls(snapshot, manifest) {
   return rewrites;
 }
 
+/**
+ * Download all referenced images into public/images and return manifest.
+ */
+async function syncImages(snapshot) {
+  console.log(c.bold(c.cyan('▸ images: syncing to public/images\n')));
+  await mkdir(IMAGE_DIR, { recursive: true });
+  const gk = path.join(IMAGE_DIR, '.gitkeep');
+  if (!existsSync(gk)) await writeFile(gk, '');
+
+  const previousManifest = (await loadJSON(IMAGE_MANIFEST, {}))?.images || {};
+
+  const urls = new Set();
+  const add = (u) => {
+    if (typeof u === 'string' && /^https?:\/\//i.test(u)) urls.add(u);
+  };
+
+  for (const w of snapshot.tables.wrestlers || []) add(w.image_url);
+  for (const m of snapshot.tables.wrestler_media || []) {
+    if (m?.type !== 'video') add(m.url);
+    add(m.thumbnail);
+  }
+  for (const m of snapshot.tables.history_media || []) {
+    if (m?.type !== 'video') add(m.url);
+  }
+  for (const b of snapshot.tables.buildings || []) add(b.hero_image_url);
+  for (const bi of snapshot.tables.building_images || []) {
+    if (bi?.type !== 'video') add(bi.url);
+  }
+  for (const a of snapshot.tables.albums || []) add(a.cover_image_url);
+  for (const p of snapshot.tables.album_photos || []) add(p.url);
+  for (const bk of snapshot.tables.books || []) add(bk.cover_image_url);
+  for (const m of snapshot.tables.about_media || []) {
+    if (m?.type !== 'video') add(m.url);
+  }
+  for (const s of snapshot.tables.app_settings || []) {
+    add(s.about_image_url);
+  }
+
+  console.log(c.dim(`  Found ${urls.size} unique image URL(s).`));
+
+  const manifest = {};
+  const wantedFiles = new Set(['manifest.json', '.gitkeep']);
+  let downloaded = 0, updated = 0, skipped = 0, failed = 0, totalBytes = 0;
+
+  for (const url of urls) {
+    const fname = safeImageName(url);
+    const dest = path.join(IMAGE_DIR, fname);
+    wantedFiles.add(fname);
+    const localPath = `/images/${fname}`;
+
+    try {
+      const localExists = existsSync(dest);
+      const localSize = localExists ? statSync(dest).size : 0;
+      const remoteSize = await headSize(url);
+
+      if (localExists && remoteSize && localSize === remoteSize) {
+        manifest[url] = localPath;
+        skipped++;
+        continue;
+      }
+      const bytes = await downloadAtomic(url, dest);
+      if (existsSync(dest) && statSync(dest).size > 0) manifest[url] = localPath;
+      totalBytes += bytes;
+      if (localExists) {
+        updated++;
+      } else {
+        downloaded++;
+        console.log(c.green(`  + ${fname} (${(bytes/1024).toFixed(1)} KB)`));
+      }
+    } catch (e) {
+      failed++;
+      const prev = previousManifest[url];
+      const prevPath = prev ? path.join(PUBLIC_DIR, prev.replace(/^\//, '')) : null;
+      if (prev && prevPath && existsSync(prevPath) && statSync(prevPath).size > 0) {
+        manifest[url] = prev;
+        wantedFiles.add(path.basename(prev));
+        console.warn(c.yellow(`  ! ${fname} failed (${e.message}) — using cached`));
+      } else {
+        console.warn(c.red(`  ✗ ${fname} failed (${e.message}) — remote fallback`));
+      }
+    }
+  }
+
+  let removed = 0;
+  try {
+    for (const f of await readdir(IMAGE_DIR)) {
+      if (wantedFiles.has(f)) continue;
+      try { await unlink(path.join(IMAGE_DIR, f)); removed++; } catch {}
+    }
+  } catch {}
+
+  const payload = {
+    generatedAt: new Date().toISOString(),
+    count: Object.keys(manifest).length,
+    images: manifest,
+  };
+  const tmp = `${IMAGE_MANIFEST}.tmp`;
+  await writeFile(tmp, JSON.stringify(payload, null, 2));
+  await rename(tmp, IMAGE_MANIFEST);
+
+  console.log(c.bold(`\n  ✓ images done `) + c.dim(`(d=${downloaded} u=${updated} s=${skipped} r=${removed} f=${failed} ${(totalBytes/1024/1024).toFixed(2)} MB)\n`));
+  return manifest;
+}
+
+/**
+ * Rewrite all remote image URLs in the snapshot to local /images/<file> paths.
+ */
+function rewriteSnapshotImageUrls(snapshot, manifest) {
+  if (!snapshot?.tables || !manifest) return 0;
+  let rewrites = 0;
+
+  const swap = (row, field) => {
+    const url = row?.[field];
+    if (!url || typeof url !== 'string') return;
+    const local = manifest[url];
+    if (local && local !== url) {
+      row.__remoteUrl = row.__remoteUrl || {};
+      row.__remoteUrl[field] = url;
+      row[field] = local;
+      rewrites++;
+    }
+  };
+
+  for (const w of snapshot.tables.wrestlers || []) swap(w, 'image_url');
+  for (const m of snapshot.tables.wrestler_media || []) {
+    if (m?.type !== 'video') swap(m, 'url');
+    swap(m, 'thumbnail');
+  }
+  for (const m of snapshot.tables.history_media || []) {
+    if (m?.type !== 'video') swap(m, 'url');
+  }
+  for (const b of snapshot.tables.buildings || []) swap(b, 'hero_image_url');
+  for (const bi of snapshot.tables.building_images || []) {
+    if (bi?.type !== 'video') swap(bi, 'url');
+  }
+  for (const a of snapshot.tables.albums || []) swap(a, 'cover_image_url');
+  for (const p of snapshot.tables.album_photos || []) swap(p, 'url');
+  for (const bk of snapshot.tables.books || []) swap(bk, 'cover_image_url');
+  for (const m of snapshot.tables.about_media || []) {
+    if (m?.type !== 'video') swap(m, 'url');
+  }
+  for (const s of snapshot.tables.app_settings || []) swap(s, 'about_image_url');
+  return rewrites;
+}
+
 async function writeSnapshot(snapshot) {
   if (!snapshot?.tables || !Object.keys(snapshot.tables).length) return;
   const tmp = `${SNAPSHOT}.tmp`;
@@ -291,10 +444,19 @@ async function main() {
     console.warn(c.yellow(`  ! Video sync crashed (${e.message}) — continuing.`));
   }
 
+  let imageManifest = {};
+  try {
+    imageManifest = (await syncImages(snapshot)) || {};
+  } catch (e) {
+    console.warn(c.yellow(`  ! Image sync crashed (${e.message}) — continuing.`));
+  }
+
   // Rewrite remote URLs to local /videos/* in the snapshot, then persist.
   try {
-    const n = rewriteSnapshotVideoUrls(snapshot, manifest);
-    if (n > 0) console.log(c.cyan(`  ↻ rewrote ${n} video URL(s) to local paths in snapshot`));
+    const nv = rewriteSnapshotVideoUrls(snapshot, manifest);
+    if (nv > 0) console.log(c.cyan(`  ↻ rewrote ${nv} video URL(s) to local paths in snapshot`));
+    const ni = rewriteSnapshotImageUrls(snapshot, imageManifest);
+    if (ni > 0) console.log(c.cyan(`  ↻ rewrote ${ni} image URL(s) to local paths in snapshot`));
     await writeSnapshot(snapshot);
     console.log(c.bold(c.green('  ✓ snapshot.json written\n')));
   } catch (e) {

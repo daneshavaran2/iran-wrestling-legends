@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
+import { resolveBundledImage } from '@/lib/bundledImages';
 
 interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   fallback?: string;
@@ -52,7 +53,7 @@ export function LazyImage({
 
   // Reset state when src changes
   useEffect(() => {
-    setCurrentSrc(src);
+    setCurrentSrc(resolveBundledImage(src as string) || src);
     setIsLoaded(false);
     setThumbnailLoaded(false);
     setHasError(false);
