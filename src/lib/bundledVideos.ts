@@ -1,54 +1,89 @@
 /**
- * Resolves a remote (Supabase) video URL to a locally bundled /videos/<file>
- * URL when one exists. The manifest is generated at build time by
- * scripts/bundle-videos.mjs and shipped as a static asset, so the lookup
- * works even when the network or Supabase is fully unreachable.
+ * Local-first video resolver.
+ *
+ * Reads /videos/manifest.json (generated at build time by
+ * scripts/bundle-videos.mjs) and swaps remote Supabase URLs for locally
+ * bundled /videos/<file> paths. Falls back to the original remote URL when
+ * the local file is missing for any reason.
  */
 
-let manifestCache: Record<string, string> | null = null;
-let manifestPromise: Promise<Record<string, string>> | null = null;
+type ManifestMap = Record<string, string>;
+type ManifestPayload = ManifestMap | { videos?: ManifestMap };
 
-async function loadManifest(): Promise<Record<string, string>> {
+let manifestCache: ManifestMap | null = null;
+let manifestPromise: Promise<ManifestMap> | null = null;
+const probeCache = new Map<string, boolean>(); // localPath -> exists
+
+function normalizeManifest(raw: ManifestPayload | null | undefined): ManifestMap {
+  if (!raw) return {};
+  if (typeof raw === 'object' && 'videos' in raw && raw.videos && typeof raw.videos === 'object') {
+    return raw.videos as ManifestMap;
+  }
+  return raw as ManifestMap;
+}
+
+async function loadManifest(): Promise<ManifestMap> {
   if (manifestCache) return manifestCache;
   if (manifestPromise) return manifestPromise;
-  manifestPromise = fetch('/videos/manifest.json', { cache: 'force-cache' })
+  manifestPromise = fetch('/videos/manifest.json', { cache: 'no-cache' })
     .then((r) => (r.ok ? r.json() : {}))
     .catch(() => ({}))
-    .then((m) => {
-      manifestCache = m || {};
+    .then((m: ManifestPayload) => {
+      manifestCache = normalizeManifest(m);
       return manifestCache;
     });
   return manifestPromise;
 }
 
-// Kick off load eagerly so the manifest is ready before the first video tag.
 if (typeof window !== 'undefined') {
   void loadManifest();
 }
 
-function lookupSync(url: string): string | null {
+function lookup(url: string): string | null {
   if (!manifestCache || !url) return null;
   if (manifestCache[url]) return manifestCache[url];
-  // Try without query string
   const bare = url.split('?')[0];
   if (manifestCache[bare]) return manifestCache[bare];
-  // Try matching ignoring query strings on either side
   for (const key of Object.keys(manifestCache)) {
     if (key.split('?')[0] === bare) return manifestCache[key];
   }
   return null;
 }
 
+/**
+ * Synchronous resolver — safe for direct use in JSX `src` props.
+ * If the manifest hasn't loaded yet on first paint, it returns the remote
+ * URL; the next render will pick up the local copy.
+ */
 export function resolveBundledVideo(url: string | null | undefined): string {
   if (!url) return '';
-  const local = lookupSync(url);
-  return local || url;
+  const local = lookup(url);
+  if (!local) return url;
+  // Optimistically return local; probe in background to invalidate if missing
+  if (probeCache.get(local) === false) return url;
+  if (probeCache.get(local) === undefined) {
+    probeCache.set(local, true); // assume present
+    void fetch(local, { method: 'HEAD' })
+      .then((r) => probeCache.set(local, r.ok))
+      .catch(() => probeCache.set(local, false));
+  }
+  return local;
 }
 
 export async function resolveBundledVideoAsync(url: string | null | undefined): Promise<string> {
   if (!url) return '';
   await loadManifest();
-  return lookupSync(url) || url;
+  const local = lookup(url);
+  if (!local) return url;
+  if (probeCache.has(local)) return probeCache.get(local) ? local : url;
+  try {
+    const r = await fetch(local, { method: 'HEAD' });
+    probeCache.set(local, r.ok);
+    return r.ok ? local : url;
+  } catch {
+    probeCache.set(local, false);
+    return url;
+  }
 }
 
 export { loadManifest as preloadVideoManifest };
