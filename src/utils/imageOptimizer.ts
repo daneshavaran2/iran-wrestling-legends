@@ -9,6 +9,8 @@ interface OptimizeOptions {
   quality?: number;
 }
 
+import { isOfflineOnly } from '@/lib/runtimeMode';
+
 /**
  * Convert Supabase storage URL to optimized render URL
  */
@@ -17,7 +19,19 @@ export function getOptimizedImageUrl(
   options: OptimizeOptions = {}
 ): string {
   if (!url) return '/placeholder.svg';
-  
+
+  // Already a local bundled asset — never transform
+  if (url.startsWith('/') || url.startsWith('data:') || url.startsWith('blob:')) {
+    return url;
+  }
+
+  // In offline-only mode, never rewrite to the Supabase render endpoint —
+  // the local manifest is keyed by the original storage URL, so transforming
+  // would break the bundled-image lookup.
+  if (isOfflineOnly()) {
+    return url;
+  }
+
   // Only transform Supabase storage URLs
   if (!url.includes('supabase.co/storage/v1/object/public/')) {
     return url;

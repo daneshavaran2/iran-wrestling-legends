@@ -42,6 +42,12 @@ function lookup(url: string): string | null {
   if (manifestCache[url]) return manifestCache[url];
   const bare = url.split('?')[0];
   if (manifestCache[bare]) return manifestCache[bare];
+  // Defensive: if caller passed the Supabase render-image variant, try the
+  // canonical /object/public/ form that the manifest is keyed by.
+  if (bare.includes('/storage/v1/render/image/public/')) {
+    const canonical = bare.replace('/storage/v1/render/image/public/', '/storage/v1/object/public/');
+    if (manifestCache[canonical]) return manifestCache[canonical];
+  }
   return null;
 }
 
