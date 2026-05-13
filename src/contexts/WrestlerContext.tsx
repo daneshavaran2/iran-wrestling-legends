@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import { supabase } from '@/lib/supabase';
 import { iranianProvinces, wrestlingStyles, medalTypes } from '@/data/wrestlers';
 import { loadSnapshot } from '@/lib/contentSnapshot';
+import { canUseNetwork, isOfflineOnly } from '@/lib/runtimeMode';
 
 // Cache keys for localStorage
 const CACHE_KEYS = {
@@ -333,7 +334,7 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
     // Offline-first: never block UI on Supabase. Defer the background refresh
     // and only attempt it when the device is actually online.
     const tryRefresh = () => {
-      if (typeof navigator !== 'undefined' && navigator.onLine) {
+      if (canUseNetwork()) {
         refreshWrestlers().catch(() => {});
       } else {
         setIsLoading(false);
@@ -342,6 +343,7 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
     const t = setTimeout(tryRefresh, 1500);
 
     const handleOnline = () => {
+      if (!canUseNetwork()) return;
       console.log('Back online, refreshing data...');
       setIsOffline(false);
       refreshWrestlers().catch(() => {});
