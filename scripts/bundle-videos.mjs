@@ -136,7 +136,10 @@ async function main() {
       }
 
       const bytes = await downloadAtomic(url, dest);
-      manifest[url] = localPath;
+      // Only register the mapping if the file actually landed on disk.
+      if (existsSync(dest) && statSync(dest).size > 0) {
+        manifest[url] = localPath;
+      }
       totalBytes += bytes;
       if (localExists) {
         updated++;
@@ -147,13 +150,16 @@ async function main() {
       }
     } catch (e) {
       failed++;
-      // keep previous mapping if the file still exists locally
-      if (previous[url] && existsSync(path.join(ROOT, 'public', previous[url].replace(/^\//, '')))) {
-        manifest[url] = previous[url];
-        wantedFiles.add(path.basename(previous[url]));
+      // keep previous mapping ONLY if that local file truly still exists
+      const prev = previous[url];
+      const prevPath = prev ? path.join(ROOT, 'public', prev.replace(/^\//, '')) : null;
+      if (prev && prevPath && existsSync(prevPath) && statSync(prevPath).size > 0) {
+        manifest[url] = prev;
+        wantedFiles.add(path.basename(prev));
         console.warn(c.yellow(`  ! ${fname}  download failed (${e.message}) — using cached copy`));
       } else {
-        console.warn(c.red(`  ✗ ${fname}  download failed (${e.message})`));
+        // Drop the mapping so the app falls back to the remote URL cleanly.
+        console.warn(c.red(`  ✗ ${fname}  download failed (${e.message}) — will use remote URL`));
       }
     }
   }
