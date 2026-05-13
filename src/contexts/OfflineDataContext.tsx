@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { supabase } from '@/lib/supabase';
 import { useAutoSync } from '@/hooks/useAutoSync';
 import { loadSnapshot } from '@/lib/contentSnapshot';
+import { canUseNetwork } from '@/lib/runtimeMode';
 
 // Interfaces
 interface HistorySection {
@@ -421,7 +422,7 @@ export const OfflineDataProvider: React.FC<{ children: ReactNode }> = ({ childre
     // Offline-first: defer Supabase refresh and only run when online so the
     // app starts instantly from the snapshot even with no connectivity.
     const t = setTimeout(() => {
-      if (typeof navigator !== 'undefined' && navigator.onLine) {
+      if (canUseNetwork()) {
         refreshAllData().catch(() => {});
       }
     }, 1500);
@@ -430,7 +431,7 @@ export const OfflineDataProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   // Refresh when transitioning back online
   useEffect(() => {
-    if (!isOffline) {
+    if (!isOffline && canUseNetwork()) {
       refreshAllData().catch(() => {});
     }
   }, [isOffline, refreshAllData]);
