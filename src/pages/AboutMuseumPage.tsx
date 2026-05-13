@@ -6,6 +6,8 @@ import { LazyImage } from '@/components/ui/LazyImage';
 import { TranslatedContent } from '@/components/TranslatedContent';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { getTable } from '@/lib/contentSnapshot';
+import { canUseNetwork } from '@/lib/runtimeMode';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import logo from '@/assets/logo.png';
@@ -26,25 +28,40 @@ export default function AboutMuseumPage() {
   const { data: settings, isLoading } = useQuery({
     queryKey: ['app-settings'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('app_settings')
-        .select('*')
-        .eq('id', 'main')
-        .single();
-      if (error) throw error;
-      return data;
+      const rows = await getTable<any>('app_settings');
+      const local = rows.find((r) => r.id === 'main') || rows[0] || null;
+      if (!canUseNetwork()) return local;
+      try {
+        const { data, error } = await supabase
+          .from('app_settings')
+          .select('*')
+          .eq('id', 'main')
+          .single();
+        if (error) throw error;
+        return data || local;
+      } catch {
+        return local;
+      }
     },
   });
 
   const { data: media } = useQuery({
     queryKey: ['about-media'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('about_media')
-        .select('*')
-        .order('display_order');
-      if (error) throw error;
-      return data as AboutMedia[];
+      const local = (await getTable<AboutMedia>('about_media'))
+        .slice()
+        .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+      if (!canUseNetwork()) return local;
+      try {
+        const { data, error } = await supabase
+          .from('about_media')
+          .select('*')
+          .order('display_order');
+        if (error) throw error;
+        return (data as AboutMedia[]) || local;
+      } catch {
+        return local;
+      }
     },
   });
 
