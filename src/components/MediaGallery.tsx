@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Play, ChevronRight, ChevronLeft, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LazyImage } from './ui/LazyImage';
 import { GoldButton } from './ui/GoldButton';
-import { resolveBundledVideo } from '@/lib/bundledVideos';
+import { resolveBundledVideo, resolveBundledVideoAsync, markBundledVideoBroken } from '@/lib/bundledVideos';
 
 interface MediaItem {
   id: string;
@@ -28,6 +28,8 @@ export function MediaGallery({
 }: MediaGalleryProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [videoSrc, setVideoSrc] = useState<string>('');
+  const triedRemoteRef = useRef(false);
 
   const openLightbox = (index: number) => {
     setCurrentIndex(index);
@@ -57,6 +59,27 @@ export function MediaGallery({
   if (items.length === 0) return null;
 
   const currentItem = items[currentIndex];
+
+  // Resolve current video URL with local-first + remote fallback
+  useEffect(() => {
+    if (!currentItem || currentItem.type !== 'video') return;
+    triedRemoteRef.current = false;
+    setVideoSrc(resolveBundledVideo(currentItem.url));
+    let cancelled = false;
+    resolveBundledVideoAsync(currentItem.url).then((r) => {
+      if (!cancelled) setVideoSrc(r || currentItem.url);
+    });
+    return () => { cancelled = true; };
+  }, [currentItem]);
+
+  const handleVideoError = () => {
+    if (!currentItem) return;
+    if (!triedRemoteRef.current && videoSrc && videoSrc !== currentItem.url) {
+      triedRemoteRef.current = true;
+      markBundledVideoBroken(currentItem.url);
+      setVideoSrc(currentItem.url);
+    }
+  };
 
   return (
     <>
@@ -170,10 +193,11 @@ export function MediaGallery({
               />
             ) : (
               <video
-                src={resolveBundledVideo(currentItem.url)}
+                src={videoSrc || currentItem.url}
                 poster={currentItem.thumbnail || undefined}
                 controls
                 autoPlay
+                onError={handleVideoError}
                 className="max-w-full max-h-[85vh] rounded-lg"
               />
             )}
