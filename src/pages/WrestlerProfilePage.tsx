@@ -13,7 +13,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useKioskMode } from '@/hooks/useKioskMode';
 import { wrestlingStyles, medalTypes } from '@/data/wrestlers';
 import { cn } from '@/lib/utils';
-import { resolveBundledVideo, preloadVideoManifest } from '@/lib/bundledVideos';
+import { resolveBundledVideo, resolveBundledVideoAsync, markBundledVideoBroken } from '@/lib/bundledVideos';
 
 const medalEmojis = {
   gold: '🥇',
@@ -64,15 +64,17 @@ function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }
   const [isReady, setIsReady] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [resolvedSrc, setResolvedSrc] = useState<string>(() => resolveBundledVideo(src));
+  const triedRemoteRef = useRef(false);
 
-  // Re-resolve once the manifest is loaded (first paint may happen before fetch resolves).
+  // Resolve to verified local (or remote) once manifest + probe complete.
   useEffect(() => {
     let cancelled = false;
-    preloadVideoManifest().then(() => {
-      if (!cancelled) setResolvedSrc(resolveBundledVideo(src));
+    triedRemoteRef.current = false;
+    resolveBundledVideoAsync(src).then((r) => {
+      if (!cancelled) setResolvedSrc(r || src);
     });
     return () => { cancelled = true; };
-  }, [src]);
+  }, [src, retryCount]);
 
   const { t } = useLanguage();
 
@@ -166,6 +168,20 @@ function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }
   };
 
   const handleError = () => {
+    // If we were playing the local copy and it failed, fall back to remote
+    // before showing the error UI.
+    if (!triedRemoteRef.current && resolvedSrc && resolvedSrc !== src) {
+      triedRemoteRef.current = true;
+      markBundledVideoBroken(src);
+      console.warn('Local video failed, falling back to remote:', src);
+      setResolvedSrc(src);
+      // Force the <video> element to reload the new src
+      const v = videoRef.current;
+      if (v) {
+        try { v.load(); } catch {}
+      }
+      return;
+    }
     setHasError(true);
     console.error('Error loading video:', src);
   };
