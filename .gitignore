@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+public/videos/*
+!public/videos/.gitkeep
+!public/videos/manifest.json
