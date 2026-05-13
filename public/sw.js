@@ -1,9 +1,21 @@
-const CACHE_VERSION = 'v10';
+const CACHE_VERSION = 'v11';
 const STATIC_CACHE = `iran-wrestling-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `iran-wrestling-dynamic-${CACHE_VERSION}`;
 const API_CACHE = `iran-wrestling-api-${CACHE_VERSION}`;
 const IMAGE_CACHE = `iran-wrestling-images-${CACHE_VERSION}`;
 const VIDEO_CACHE = `iran-wrestling-videos-${CACHE_VERSION}`;
+
+// Build-time injected precache lists. The `prebuild` script
+// (scripts/bundle-content.mjs) replaces the contents of these arrays with
+// the local /images/* and /videos/* paths derived from manifest.json so the
+// service worker can pre-cache them all during install without having to
+// fetch the manifest at runtime.
+/* @@PRECACHE_IMAGES_START@@ */
+const PRECACHE_IMAGES = [];
+/* @@PRECACHE_IMAGES_END@@ */
+/* @@PRECACHE_VIDEOS_START@@ */
+const PRECACHE_VIDEOS = [];
+/* @@PRECACHE_VIDEOS_END@@ */
 
 // Supabase configuration
 const SUPABASE_URL = 'https://etbekvhdroqiddcteqdq.supabase.co';
@@ -111,53 +123,42 @@ self.addEventListener('install', (event) => {
         console.log('[SW] SPA pre-cache skipped:', e);
       }
 
-      // Pre-cache all bundled images listed in /images/manifest.json so that
-      // every public/profile page renders fully on first offline load.
-      try {
-        const imgManifestResp = await fetch('/images/manifest.json');
-        if (imgManifestResp.ok) {
-          const imgManifest = await imgManifestResp.json();
-          const localImagePaths = Object.values(imgManifest.images || {}).filter(
-            (p) => typeof p === 'string' && p.startsWith('/images/')
-          );
+      // Pre-cache all bundled images using the build-time injected list.
+      if (PRECACHE_IMAGES.length) {
+        try {
           const imageCache = await caches.open(IMAGE_CACHE);
           await Promise.all(
-            localImagePaths.map(async (path) => {
+            PRECACHE_IMAGES.map(async (p) => {
               try {
-                const r = await fetch(path);
-                if (r.ok) await imageCache.put(path, r.clone());
+                const r = await fetch(p);
+                if (r.ok) await imageCache.put(p, r.clone());
               } catch {}
             })
           );
-          console.log(`[SW] Pre-cached ${localImagePaths.length} bundled images`);
+          console.log(`[SW] Pre-cached ${PRECACHE_IMAGES.length} bundled images`);
+        } catch (e) {
+          console.log('[SW] Image pre-cache skipped:', e);
         }
-      } catch (e) {
-        console.log('[SW] Image pre-cache skipped:', e);
       }
 
-      // Pre-cache all bundled videos listed in /videos/manifest.json.
-      try {
-        const vidManifestResp = await fetch('/videos/manifest.json');
-        if (vidManifestResp.ok) {
-          const vidManifest = await vidManifestResp.json();
-          const localVideoPaths = Object.values(vidManifest.videos || {}).filter(
-            (p) => typeof p === 'string' && p.startsWith('/videos/')
-          );
+      // Pre-cache all bundled videos using the build-time injected list.
+      if (PRECACHE_VIDEOS.length) {
+        try {
           const videoCache = await caches.open(VIDEO_CACHE);
           await Promise.all(
-            localVideoPaths.map(async (path) => {
+            PRECACHE_VIDEOS.map(async (p) => {
               try {
-                const r = await fetch(path);
+                const r = await fetch(p);
                 if (r.ok) {
-                  await videoCache.put(new Request(path, { method: 'GET' }), r.clone());
+                  await videoCache.put(new Request(p, { method: 'GET' }), r.clone());
                 }
               } catch {}
             })
           );
-          console.log(`[SW] Pre-cached ${localVideoPaths.length} bundled videos`);
+          console.log(`[SW] Pre-cached ${PRECACHE_VIDEOS.length} bundled videos`);
+        } catch (e) {
+          console.log('[SW] Video pre-cache skipped:', e);
         }
-      } catch (e) {
-        console.log('[SW] Video pre-cache skipped:', e);
       }
     })()
   );
@@ -178,14 +179,15 @@ self.addEventListener('activate', (event) => {
         }
       }
       
-      // Clean old caches
+      // Clean old caches — auto-purge anything from previous SW versions so
+      // storage doesn't grow unbounded across deploys.
       const cacheNames = await caches.keys();
+      const currentCaches = new Set([
+        STATIC_CACHE, DYNAMIC_CACHE, API_CACHE, IMAGE_CACHE, VIDEO_CACHE,
+      ]);
       await Promise.all(
         cacheNames
-          .filter((name) => {
-            return name.startsWith('iran-wrestling-') && 
-                   !name.endsWith(CACHE_VERSION);
-          })
+          .filter((name) => name.startsWith('iran-wrestling-') && !currentCaches.has(name))
           .map((name) => {
             console.log('[SW] Deleting old cache:', name);
             return caches.delete(name);
