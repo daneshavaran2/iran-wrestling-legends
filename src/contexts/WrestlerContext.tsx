@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { iranianProvinces, wrestlingStyles, medalTypes } from '@/data/wrestlers';
+import { loadSnapshot } from '@/lib/contentSnapshot';
 
 // Cache keys for localStorage
 const CACHE_KEYS = {
@@ -138,6 +139,26 @@ export function WrestlerProvider({ children }: { children: ReactNode }) {
     if (cachedMedia) {
       setMedia(cachedMedia);
     }
+
+    // Seed from build-time snapshot — works fully offline without Supabase.
+    loadSnapshot().then((snap) => {
+      if (!snap) return;
+      const sw = (snap.tables.wrestlers || []).map((w: any) => ({
+        ...w,
+        style: w.style as 'freestyle' | 'greco-roman',
+        is_visible: w.is_visible ?? true,
+      })) as Wrestler[];
+      const sa = (snap.tables.achievements || []).map((a: any) => ({
+        ...a, medal_type: a.medal_type as 'gold' | 'silver' | 'bronze',
+      })) as Achievement[];
+      const sm = (snap.tables.wrestler_media || []).map((m: any) => ({
+        ...m, type: m.type as 'image' | 'video',
+      })) as WrestlerMedia[];
+      setWrestlers((prev) => prev.length ? prev : sw);
+      setAchievements((prev) => prev.length ? prev : sa);
+      setMedia((prev) => prev.length ? prev : sm);
+      if (sw.length) setIsLoading(false);
+    }).catch(() => {});
   }, []);
 
   const fetchWrestlers = async (): Promise<boolean> => {
