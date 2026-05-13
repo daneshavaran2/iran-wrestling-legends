@@ -13,6 +13,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useKioskMode } from '@/hooks/useKioskMode';
 import { wrestlingStyles, medalTypes } from '@/data/wrestlers';
 import { cn } from '@/lib/utils';
+import { resolveBundledVideo, preloadVideoManifest } from '@/lib/bundledVideos';
 
 const medalEmojis = {
   gold: '🥇',
@@ -62,6 +63,16 @@ function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }
   const [hasError, setHasError] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [resolvedSrc, setResolvedSrc] = useState<string>(() => resolveBundledVideo(src));
+
+  // Re-resolve once the manifest is loaded (first paint may happen before fetch resolves).
+  useEffect(() => {
+    let cancelled = false;
+    preloadVideoManifest().then(() => {
+      if (!cancelled) setResolvedSrc(resolveBundledVideo(src));
+    });
+    return () => { cancelled = true; };
+  }, [src]);
 
   const { t } = useLanguage();
 
@@ -191,7 +202,7 @@ function IntroVideo({ src, wrestlerName }: { src: string; wrestlerName: string }
       <div className="aspect-video w-full">
         <video
           ref={videoRef}
-          src={src}
+          src={resolvedSrc || src}
           muted={isMuted}
           loop
           playsInline

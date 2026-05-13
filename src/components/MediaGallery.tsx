@@ -3,6 +3,7 @@ import { X, Play, ChevronRight, ChevronLeft, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LazyImage } from './ui/LazyImage';
 import { GoldButton } from './ui/GoldButton';
+import { resolveBundledVideo } from '@/lib/bundledVideos';
 
 interface MediaItem {
   id: string;
@@ -169,7 +170,7 @@ export function MediaGallery({
               />
             ) : (
               <video
-                src={currentItem.url}
+                src={resolveBundledVideo(currentItem.url)}
                 poster={currentItem.thumbnail || undefined}
                 controls
                 autoPlay
