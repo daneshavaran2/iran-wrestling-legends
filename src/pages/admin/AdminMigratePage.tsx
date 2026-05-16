@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CheckCircle2, XCircle, Loader2, UploadCloud, AlertTriangle } from 'lucide-react';
-import { API_BASE_URL } from '@/lib/apiClient';
+import { API_BASE } from '@/lib/apiClient';
 
 const TABLES = [
   'wrestlers',
@@ -54,7 +54,8 @@ export default function AdminMigratePage() {
     setRows(Object.fromEntries(TABLES.map((t) => [t, { status: 'pending' as Status }])));
 
     try {
-      const res = await fetch(`${API_BASE_URL || ''}/api/admin/migrate-from-supabase`, {
+      // API_BASE is normally "/api"; call sibling endpoint directly.
+      const res = await fetch(`${API_BASE}/admin/migrate-from-supabase`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ supabaseUrl, anonKey }),
