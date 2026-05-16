@@ -1,11 +1,39 @@
 version: '3.8'
 
 services:
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: museum-api
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DATA_DIR=/data
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - LOVABLE_API_KEY=${LOVABLE_API_KEY:-}
+    volumes:
+      - ./data:/data
+    expose:
+      - "3001"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
   museum:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: wrestling-museum
+    depends_on:
+      - api
+    volumes:
+      - ./data/uploads:/usr/share/nginx/html/uploads:ro
     ports:
       - "80:80"
     restart: unless-stopped
@@ -19,7 +47,3 @@ services:
       - "app.name=wrestling-museum"
       - "app.description=Iran Wrestling Museum"
 
-# Optional: Add reverse proxy with SSL
-# networks:
-#   default:
-#     name: museum-network

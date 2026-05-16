@@ -26,3 +26,4 @@ dist-ssr
 public/videos/*
 !public/videos/.gitkeep
 !public/videos/manifest.json
+data/

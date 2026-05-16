@@ -1,169 +1,179 @@
-
-# پلن گزینه ۱ — حذف کامل بک‌اند، حالت آفلاین خالص
-
-## هدف
-حذف کامل وابستگی به Supabase. تمام محتوای موزه از فایل‌های استاتیک در خود build اپ سرو شود. صفر سرور، صفر دیتابیس، صفر API.
+# پلن: مهاجرت بک‌اند از Supabase به Node.js
 
 ## معماری نهایی
 
 ```text
-build/
-├── index.html
-├── assets/...               (JS/CSS فرانت‌اند)
-├── data/
-│   └── snapshot.json        ← تنها منبع داده (wrestlers, achievements, ...)
-├── images/
-│   └── {hash}.webp          ← همه عکس‌ها
-├── videos/
-│   └── {hash}.mp4           ← همه ویدیوها
-├── audio/
-│   └── {hash}.mp3           ← موسیقی پس‌زمینه
-└── sw.js                    ← service worker (همان فعلی)
-
-content/                     ← منبع محتوا (در گیت، خارج از build)
-├── snapshot.json            ← قابل ویرایش با ادمین لوکال
-├── images/                  ← فایل‌های اصلی
-├── videos/
-└── audio/
+┌─────────────────────────────────────────────────┐
+│           Docker Compose (سرور کیوسک)            │
+│                                                 │
+│  ┌──────────────┐         ┌──────────────────┐  │
+│  │   nginx:80   │ ──────► │   api:3001       │  │
+│  │  (static     │  /api/* │ Fastify + TS     │  │
+│  │   فرانت)     │         │ better-sqlite3   │  │
+│  │              │         │ /data/db.sqlite  │  │
+│  └──────────────┘         │ /data/uploads/   │  │
+│         ▲                 └──────────────────┘  │
+│         │ سرو فایل‌های build/ و آپلودها           │
+└─────────│───────────────────────────────────────┘
+          │
+       مرورگر کیوسک (PWA، آفلاین کامل)
 ```
 
-## بخش ۱ — حذف Supabase از کلاینت
+- یک volume مشترک `/data` بین nginx و api: شامل `db.sqlite` + پوشه `uploads/`.
+- nginx فایل‌های `uploads/*` را مستقیم سرو می‌کند (بدون عبور از Node).
+- درخواست‌های `/api/*` به سرویس `api` پروکسی می‌شوند.
 
-### حذف
-- پکیج `@supabase/supabase-js` از `package.json`
-- فولدر `src/integrations/supabase/`
-- فایل `src/lib/supabase.ts`
-- فولدر `supabase/` (config.toml و functions)
-- متغیرهای `VITE_SUPABASE_*` از `.env`
-
-### بازنویسی به `src/lib/dataStore.ts`
-یک ماژول ساده که فقط از `loadSnapshot()` می‌خواند. همان شکل API را نگه می‌دارد تا تغییرات در صفحات حداقلی باشد:
-
-```ts
-export const dataStore = {
-  wrestlers: { list, get },
-  achievements: { listByWrestler },
-  wrestlerMedia: { listByWrestler },
-  historySections: { list, get, getBySlug },
-  historyMedia: { listBySection },
-  buildings: { list, get },
-  buildingImages: { listByBuilding },
-  books: { list },
-  albums: { list, get },
-  albumPhotos: { listByAlbum },
-  aboutMedia: { list },
-  appSettings: { get },
-};
-```
-
-تمام call site های `supabase.from('...').select(...)` (در `WrestlerContext`, `OfflineDataContext`, تمام `pages/*` و `pages/admin/*`, `hooks/*`) به این جایگزین می‌شوند.
-
-## بخش ۲ — حذف قابلیت‌های وابسته به سرور
-
-### قابلیت‌هایی که حذف می‌شوند
-| ویژگی | علت | جایگزین |
-|---|---|---|
-| پنل ادمین درون‌اپ (signup/login/CRUD) | بدون سرور ممکن نیست | ابزار ادمین جداگانه (بخش ۳) |
-| چت AI درون‌اپ | نیاز به Edge Function + API key | پاسخ‌های آماده آفلاین از `offlineAssistant.ts` (که از قبل وجود دارد) |
-| ترجمه پویا با Gemini | همان دلیل | فقط ترجمه‌های از پیش تولیدشده در `snapshot.json` |
-| TTS با Gemini | همان دلیل | استفاده از Web Speech API مرورگر (داخلی، آفلاین در ویندوز) |
-| Backup/Export از DB | DB وجود ندارد | دانلود `snapshot.json` فعلی |
-| Realtime / sync پس‌زمینه | DB وجود ندارد | حذف |
-
-### مسیرهای حذف‌شده در React Router
-- `/admin/*` (همه صفحات ادمین)
-- `/login`, `/signup`, `/reset-password`
-
-### کامپوننت‌ها/هوک‌های حذف یا ساده‌شده
-- `AuthContext` → حذف
-- `ProtectedRoute` → حذف
-- `useChatAssistant` → فقط حالت آفلاین
-- `useTranslation` → فقط lookup در snapshot
-- `useTextToSpeech` → فقط Web Speech API
-- `useBackgroundSync`, `useAutoSync`, `useOfflineDownload`, `useOfflineTest` → حذف
-- `OfflineIndicator`, `SyncStatusIndicator`, `DownloadProgressCard` → حذف
-- `AdminLayout` و کل `pages/admin/*` → حذف
-- `useDataExport`, `useStorageStats`, `useMediaUpload`, `useBackgroundMusic` (قسمت آپلود) → ساده‌سازی
-
-## بخش ۳ — ابزار ادمین آفلاین (Node.js CLI)
-
-برای اینکه ادمین موزه بتواند محتوا را ویرایش کند، یک ابزار خط فرمان کوچک می‌سازیم:
+## ساختار پوشه‌ها
 
 ```text
-tools/admin-cli/
+server/
 ├── package.json
-├── server.mjs          ← Express لوکال روی http://localhost:5174
-├── web/                ← یک UI ساده React که فقط روی localhost باز می‌شود
-└── README.md
+├── tsconfig.json
+├── Dockerfile
+├── src/
+│   ├── index.ts              # bootstrap Fastify
+│   ├── db.ts                 # better-sqlite3 + migrations
+│   ├── auth.ts               # JWT + bcrypt
+│   ├── env.ts                # بارگذاری متغیرها
+│   ├── middleware/
+│   │   ├── requireAdmin.ts
+│   │   └── errorHandler.ts
+│   ├── routes/
+│   │   ├── auth.ts           # /api/auth/login, /me, /setup
+│   │   ├── wrestlers.ts      # CRUD + wrestler_media + achievements
+│   │   ├── albums.ts         # CRUD + album_photos
+│   │   ├── history.ts        # history_sections + history_media
+│   │   ├── buildings.ts      # buildings + building_images
+│   │   ├── books.ts
+│   │   ├── about.ts          # about_media
+│   │   ├── settings.ts       # app_settings
+│   │   ├── translations.ts
+│   │   ├── uploads.ts        # POST فایل، WebP compress
+│   │   ├── snapshot.ts       # GET /api/snapshot.json
+│   │   └── ai.ts             # پروکسی Lovable AI Gateway (آماده برای آینده)
+│   └── migrations/
+│       └── 001_init.sql      # تمام جداول معادل Supabase
+└── data/                     # mount در Docker (gitignore)
+    ├── db.sqlite
+    └── uploads/{wrestlers,albums,buildings,about,audio}/
 ```
 
-**کاربرد:**
-1. ادمین روی لپ‌تاپ خودش `npm run admin` می‌زند.
-2. مرورگر باز می‌شود روی `http://localhost:5174`.
-3. CRUD کامل روی `content/snapshot.json` + آپلود فایل به `content/images/...`.
-4. دکمه «Build & Deploy»: اسکریپت `scripts/bundle-content.mjs` را اجرا می‌کند که:
-   - فایل‌های `content/*` را به `public/data/`, `public/images/`, `public/videos/` کپی می‌کند
-   - تصاویر را با sharp به WebP فشرده می‌کند
-   - `npm run build` می‌زند
-   - خروجی `build/` را با rsync/scp به کیوسک‌ها push می‌کند
+## نگاشت جداول → SQLite
 
-این ابزار **هرگز در محیط کیوسک اجرا نمی‌شود** — فقط روی دستگاه ادمین.
+تمام ۱۲ جدول Supabase به SQLite منتقل می‌شوند با همان ستون‌ها و معانی:
 
-## بخش ۴ — اسکریپت مهاجرت یک‌باره
+- `wrestlers`, `wrestler_media`, `achievements`
+- `albums`, `album_photos`
+- `history_sections`, `history_media`
+- `buildings`, `building_images`
+- `books`, `about_media`, `app_settings`
+- `translations`, `users` (جایگزین `user_roles` — فقط نقش admin)
 
-`scripts/migrate-from-supabase.mjs` (یک‌بار اجرا می‌شود، سپس حذف):
-1. به Supabase فعلی وصل می‌شود (با همان anon key موجود).
-2. همه جدول‌های public را می‌خواند.
-3. همه فایل‌ها را از باکت‌های Storage دانلود می‌کند.
-4. URL ها را در snapshot به مسیرهای لوکال (`/images/{hash}.webp`) بازنویسی می‌کند.
-5. خروجی نهایی را در `content/snapshot.json` و `content/images/`, `content/videos/`, `content/audio/` ذخیره می‌کند.
+تغییرات معادل‌سازی:
+- `uuid` → `TEXT` با `crypto.randomUUID()` در زمان insert
+- `timestamp with time zone` → `TEXT` ISO-8601
+- enumها (`medal_type`, `wrestling_style`, `media_type`) → `TEXT` با CHECK
+- `boolean` → `INTEGER 0/1`
 
-پس از اجرا، کل اتصال به Supabase قطع و حذف می‌شود.
+## API Endpointها
 
-## بخش ۵ — استقرار
+استاندارد REST، تمام پاسخ‌ها JSON با فرمت `{ data, error }` تا shim فعلی فرانت با کمترین تغییر کار کند.
 
-### کیوسک
-- فقط فولدر `build/` روی Nginx یا حتی `python3 -m http.server` کافی است.
-- Service Worker فعلی (نسخه v11) همه چیز را precache می‌کند → بعد از اولین بارگذاری، هیچ نیازی به شبکه نیست.
-- بدون دیتابیس، بدون پورت باز، بدون فایروال پیچیده.
+```text
+POST   /api/auth/setup           # ایجاد اولین ادمین (اگر هیچ ادمینی نیست)
+POST   /api/auth/login           # → { token, user }
+GET    /api/auth/me              # نیاز به JWT
 
-### Docker (اختیاری، ساده‌تر از قبل)
-```yaml
-services:
-  museum-kiosk:
-    image: nginx:alpine
-    volumes:
-      - ./build:/usr/share/nginx/html:ro
-    ports: ["80:80"]
+GET    /api/snapshot.json        # تمام داده‌های عمومی برای کش آفلاین
+
+GET    /api/wrestlers
+GET    /api/wrestlers/:id
+POST   /api/wrestlers            # admin
+PATCH  /api/wrestlers/:id        # admin
+DELETE /api/wrestlers/:id        # admin
+GET    /api/wrestlers/:id/media
+GET    /api/wrestlers/:id/achievements
+
+# الگوی مشابه برای: albums, history, buildings, books, about, settings, translations
+
+POST   /api/uploads              # admin، multipart → WebP → /data/uploads/...
+                                 # ← { url: "/uploads/wrestlers/abc.webp" }
 ```
 
-## بخش ۶ — مزایای امنیتی
+JWT با `jsonwebtoken`، رمز با `bcryptjs`، اعتبار ۷ روز، ذخیره در `localStorage` فرانت.
 
-- **صفر surface حمله**: نه دیتابیسی هست که SQL injection شود، نه auth ای که bypass شود، نه API ای که rate-limit ندارد.
-- **صفر secret**: نیازی به `JWT_SECRET`, `DB_PASSWORD`, `API_KEY` نیست.
-- **CSP سخت‌گیر**: می‌توان `connect-src 'none'` گذاشت چون هیچ درخواست شبکه‌ای انجام نمی‌شود.
-- **PWA کاملاً self-contained**: حتی اگر کابل شبکه قطع شود، اپ کامل کار می‌کند.
+## تغییرات فرانت
 
-## مراحل اجرا (به ترتیب)
+هدف: **کمترین تغییر ممکن**. shim فعلی `src/lib/supabase.ts` (که الان از snapshot لوکال می‌خواند) به یک کلاینت HTTP کوچک ارتقا می‌یابد:
 
-1. اسکریپت `migrate-from-supabase.mjs` نوشته و یک‌بار اجرا شود → `content/` پر می‌شود.
-2. `src/lib/dataStore.ts` ساخته شود.
-3. تمام import های `@/lib/supabase` و `@/integrations/supabase/client` در سراسر کد جایگزین شوند با `dataStore`.
-4. صفحات/کامپوننت‌های وابسته به سرور حذف شوند (لیست بخش ۲).
-5. روت‌های `/admin/*`, `/login`, ... از `App.tsx` و router حذف شوند.
-6. `package.json`: حذف `@supabase/supabase-js`, `xlsx` (اگر فقط برای export بود).
-7. `.env` و `vite-env.d.ts` پاک‌سازی شوند.
-8. فولدر `supabase/` و `src/integrations/supabase/` حذف شوند.
-9. `scripts/bundle-content.mjs` بازنویسی شود (به‌جای Supabase، از `content/` بخواند).
-10. ابزار `tools/admin-cli/` ساخته شود.
-11. `README.md` و `DEPLOYMENT.md` بازنویسی شوند.
-12. تست E2E: کیوسک با `--offline` flag مرورگر باز شود و همه صفحات کار کنند.
+1. **`src/lib/apiClient.ts` (جدید)** — `fetch` کوچک با base URL، header JWT، خطاهای یکپارچه.
+2. **`src/lib/supabase.ts`** — `QueryBuilder` بازنویسی می‌شود تا به‌جای فیلتر in-memory روی snapshot، به `/api/{table}` با query stringها (`?eq.col=val&order=col.asc&limit=N`) درخواست بزند. شکل پاسخ `{ data, error }` بدون تغییر می‌ماند، پس تمام `.from().select().eq()` های موجود کار می‌کنند.
+3. **`auth`**: استابِ همیشه-خروج جای خود را به فراخوانی `/api/auth/*` می‌دهد. `AuthContext`, `ProtectedRoute`, و صفحات `/admin/*` که در گام قبل حذف شده بودند، بازگردانده می‌شوند.
+4. **`storage.from().upload()`**: به `POST /api/uploads` رد می‌شود و `getPublicUrl` همان مسیر `/uploads/...` را برمی‌گرداند.
+5. **آفلاین‌بودن**: `GET /api/snapshot.json` در سرویس‌ورکر کش می‌شود (مثل گذشته). در حالت آفلاین، `QueryBuilder` به fallback لوکال (snapshot کش‌شده) برمی‌گردد — همان منطق امروز.
+6. **متغیر محیطی**: `VITE_API_BASE_URL` (پیش‌فرض `/api` در پروداکشن، `http://localhost:3001/api` در dev). فایل‌های `VITE_SUPABASE_*` و `src/integrations/supabase/*` حذف می‌شوند.
 
-## ریسک‌ها / نکات
+## آپلود و رسانه‌ها
 
-- **تعداد فایل‌های فرانت‌اند که باید تغییر کنند زیاد است** (~30-40 فایل). من گام به گام پیش می‌روم.
-- **محتوای ادمین فقط روی دستگاه ادمین قابل ویرایش است** و باید هر بار اپ re-deploy شود به کیوسک‌ها. (این تعادل مناسبی برای موزه است که محتوا کم تغییر می‌کند.)
-- **چت AI واقعی از دست می‌رود** — فقط پاسخ‌های ثابت/الگو-محور باقی می‌ماند. اگر این مهم است، بگویید تا گزینه ترکیبی (آفلاین + یک Edge Function اختیاری برای چت) را پلن کنم.
-- **Lovable preview**: ابزار ادمین CLI در پیش‌نمایش Lovable اجرا نمی‌شود (نیاز به Node لوکال دارد). در Lovable فقط اپ کیوسک قابل مشاهده است.
+- `multipart` با `@fastify/multipart`.
+- تصاویر → تبدیل به WebP با `sharp` (کیفیت ۸۲، حداکثر عرض ۲۰۰۰px) → ذخیره در `/data/uploads/{category}/{uuid}.webp`.
+- ویدیو/صوت → ذخیره بدون تبدیل، فقط whitelist پسوند.
+- nginx مستقیماً `/uploads/*` را با cache header طولانی سرو می‌کند.
 
-اگر تأیید می‌کنید، اجرا را شروع می‌کنم.
+## Docker
+
+- **`server/Dockerfile`**: multi-stage (`node:20-alpine` → `node:20-alpine` فقط با `dist/` و `node_modules` پروداکشن). دستور: `node dist/index.js`. پورت `3001`.
+- **`docker-compose.yml`** (بروزرسانی):
+  ```yaml
+  services:
+    api:
+      build: ./server
+      volumes: ['./data:/data']
+      environment:
+        - JWT_SECRET=${JWT_SECRET}
+        - LOVABLE_API_KEY=${LOVABLE_API_KEY}
+      ports: ['3001:3001']
+    web:
+      build: .                 # Dockerfile فعلی Vite + nginx
+      volumes: ['./data/uploads:/usr/share/nginx/html/uploads:ro']
+      ports: ['80:80']
+      depends_on: [api]
+  ```
+- **`nginx.conf`**: اضافه شدن `location /api/ { proxy_pass http://api:3001/; }` و `location /uploads/ { ... }`.
+
+## مهاجرت داده
+
+اسکریپت یکباره `server/scripts/migrate-from-supabase.mjs`:
+1. با `@supabase/supabase-js` و service role تمام جداول را می‌خواند.
+2. تمام فایل‌های ۴ بانکت Storage را دانلود و در `/data/uploads/...` ذخیره می‌کند.
+3. URLهای Supabase داخل ستون‌ها را با مسیر لوکال جایگزین می‌کند.
+4. در SQLite insert می‌کند.
+اجرا فقط یک‌بار روی ماشین ادمین، خروجی commit نمی‌شود.
+
+## امنیت
+
+- `helmet` + `@fastify/cors` (فقط origin کیوسک)
+- rate limit با `@fastify/rate-limit` روی `/api/auth/login`
+- bcrypt با salt rounds=۱۲
+- JWT secret اجباری از env، شکست در صورت نبود
+- تمام نوشتن‌ها نیازمند `requireAdmin` middleware
+- زیر `/data/` خارج از مسیر static فرانت، فقط `/uploads/` افشا می‌شود
+
+## گام‌های پیاده‌سازی (ترتیب اجرا)
+
+1. ساختار `server/` با Fastify + TS + better-sqlite3 + migration اولیه
+2. روت‌های auth + middleware admin
+3. روت‌های CRUD برای ۱۲ جدول + endpoint snapshot
+4. روت آپلود با sharp/WebP
+5. بازنویسی `src/lib/supabase.ts` به HTTP client (حفظ API)
+6. بازگرداندن `AuthContext`, `ProtectedRoute`, صفحات `/admin/*`
+7. به‌روزرسانی `Dockerfile`, `docker-compose.yml`, `nginx.conf`
+8. اسکریپت `migrate-from-supabase.mjs`
+9. حذف `@supabase/supabase-js`, `src/integrations/supabase/*`, متغیرهای `VITE_SUPABASE_*`
+10. به‌روزرسانی `README.md` و `DEPLOYMENT.md`
+
+## ریسک‌ها
+
+- نوع‌های `Database` فعلی از `src/integrations/supabase/types.ts` در جاهای زیادی استفاده می‌شوند — یک فایل `src/types/db.ts` جایگزین می‌سازیم با همان شکل.
+- پیش‌نمایش Lovable نمی‌تواند سرویس Node را اجرا کند؛ توسعه و تست واقعی روی ماشین لوکال یا کیوسک انجام می‌شود. در پیش‌نمایش، اگر `VITE_API_BASE_URL` ست نشود، fallback به snapshot لوکال فعال می‌ماند.
+- snapshot.json حالا از API می‌آید؛ اسکریپت `scripts/bundle-content.mjs` همچنان برای حالت کاملاً آفلاین در دسترس می‌ماند (اختیاری).
