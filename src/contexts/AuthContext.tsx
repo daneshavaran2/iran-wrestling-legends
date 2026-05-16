@@ -1,241 +1,39 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '@/lib/supabase';
-import { User, Session } from '@supabase/supabase-js';
+// Open kiosk mode: authentication has been removed.
+// This file remains as a no-op stub so existing imports keep compiling.
+import React, { createContext, useContext, ReactNode } from 'react';
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  isAdmin: boolean;
-  isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  user: null;
+  session: null;
+  isAdmin: true;
+  isLoading: false;
+  signIn: (email: string, password: string) => Promise<{ error: null }>;
+  signUp: (email: string, password: string) => Promise<{ error: null }>;
   signOut: () => Promise<void>;
-  makeAdmin: () => Promise<{ error: Error | null }>;
-  hasAnyAdmin: boolean;
+  makeAdmin: () => Promise<{ error: null }>;
+  hasAnyAdmin: true;
   checkAdminStatus: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const value: AuthContextType = {
+  user: null,
+  session: null,
+  isAdmin: true,
+  isLoading: false,
+  signIn: async () => ({ error: null }),
+  signUp: async () => ({ error: null }),
+  signOut: async () => {},
+  makeAdmin: async () => ({ error: null }),
+  hasAnyAdmin: true,
+  checkAdminStatus: async () => {},
+};
+
+const AuthContext = createContext<AuthContextType>(value);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasAnyAdmin, setHasAnyAdmin] = useState(false);
-
-  const checkAdminStatus = async () => {
-    if (!user) {
-      setIsAdmin(false);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('role', 'admin')
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error checking admin status:', error);
-        setIsAdmin(false);
-        return;
-      }
-
-      setIsAdmin(!!data);
-    } catch (err) {
-      console.error('Error checking admin status:', err);
-      setIsAdmin(false);
-    }
-  };
-
-  const checkAnyAdminExists = async () => {
-    try {
-      const { data, error } = await supabase.rpc('admin_exists');
-      
-      if (error) {
-        // Silently handle network errors - not critical for app functionality
-        setHasAnyAdmin(false);
-        return;
-      }
-
-      setHasAnyAdmin(!!data);
-    } catch {
-      // Network error - silently fail, not critical
-      setHasAnyAdmin(false);
-    }
-  };
-
-  useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        // Defer admin check to avoid deadlock
-        if (session?.user) {
-          setTimeout(() => {
-            checkAdminStatus();
-          }, 0);
-        } else {
-          setIsAdmin(false);
-        }
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setIsLoading(false);
-      
-      if (session?.user) {
-        checkAdminStatus();
-      }
-    });
-
-    // Check if any admin exists
-    checkAnyAdminExists();
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (user) {
-      // Defer admin check to idle time for faster initial load
-      if ('requestIdleCallback' in window) {
-        (window as any).requestIdleCallback(() => checkAdminStatus());
-      } else {
-        setTimeout(checkAdminStatus, 100);
-      }
-    }
-  }, [user]);
-
-  const signIn = async (email: string, password: string) => {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        return { error: new Error(error.message) };
-      }
-
-      return { error: null };
-    } catch (err) {
-      return { error: err as Error };
-    }
-  };
-
-  const signUp = async (email: string, password: string) => {
-    try {
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-        },
-      });
-
-      if (error) {
-        return { error: new Error(error.message) };
-      }
-
-      return { error: null };
-    } catch (err) {
-      return { error: err as Error };
-    }
-  };
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    setIsAdmin(false);
-  };
-
-  const makeAdmin = async () => {
-    if (!user) {
-      return { error: new Error('کاربر وارد نشده است') };
-    }
-
-    try {
-      // First check if role already exists to prevent duplicate key error
-      const { data: existingRole, error: checkError } = await supabase
-        .from('user_roles')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('role', 'admin')
-        .maybeSingle();
-
-      if (checkError) {
-        console.error('Error checking existing role:', checkError);
-        return { error: new Error('خطا در بررسی نقش کاربر') };
-      }
-
-      // If role already exists, just return success
-      if (existingRole) {
-        setIsAdmin(true);
-        setHasAnyAdmin(true);
-        return { error: null };
-      }
-
-      // Insert new role
-      const { error: insertError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: user.id,
-          role: 'admin',
-        });
-
-      if (insertError) {
-        // Handle duplicate key gracefully (race condition fallback)
-        if (insertError.code === '23505') {
-          setIsAdmin(true);
-          setHasAnyAdmin(true);
-          return { error: null };
-        }
-        console.error('Error making admin:', insertError);
-        return { error: new Error('خطا در ایجاد نقش مدیر') };
-      }
-
-      setIsAdmin(true);
-      setHasAnyAdmin(true);
-      return { error: null };
-    } catch (err) {
-      console.error('Unexpected error in makeAdmin:', err);
-      return { error: new Error('خطای غیرمنتظره در سیستم') };
-    }
-  };
-
-  return (
-    <AuthContext.Provider value={{
-      user,
-      session,
-      isAdmin,
-      isLoading,
-      signIn,
-      signUp,
-      signOut,
-      makeAdmin,
-      hasAnyAdmin,
-      checkAdminStatus,
-    }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  return useContext(AuthContext);
 }
