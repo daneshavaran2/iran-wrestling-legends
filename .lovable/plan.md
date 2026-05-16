@@ -1,52 +1,169 @@
-## مشکل
 
-در حالت آفلاین هیچ عکس و کارتی نمایش داده نمی‌شود چون:
+# پلن گزینه ۱ — حذف کامل بک‌اند، حالت آفلاین خالص
 
-1. **عکس‌ها بسته‌بندی نشده‌اند.** فایل `public/images/manifest.json` خالی است (`count: 0`)، یعنی اسکریپت `sync:content` تا حالا برای عکس‌ها اجرا نشده. بنابراین آدرس‌های داخل `snapshot.json` هنوز به Supabase اشاره می‌کنند و در حالت آفلاین، `LazyImage` همه‌ی آن‌ها را با `placeholder.svg` جایگزین می‌کند.
+## هدف
+حذف کامل وابستگی به Supabase. تمام محتوای موزه از فایل‌های استاتیک در خود build اپ سرو شود. صفر سرور، صفر دیتابیس، صفر API.
 
-2. **`getThumbnailUrl` آدرس‌ها را قبل از تبدیل محلی خراب می‌کند.** در `WrestlerCard` (و چند جای دیگر) آدرس Supabase اول از مسیر `/storage/v1/object/public/...` به `/storage/v1/render/image/public/...?width=...` تبدیل می‌شود، بعد به `LazyImage` می‌رود. در نتیجه `resolveBundledImage` نمی‌تواند آن کلید را در manifest پیدا کند چون manifest با کلید نسخه‌ی اصلی ساخته شده.
+## معماری نهایی
 
-3. **متن کارت‌ها هم دیده نمی‌شود** چون وقتی `image_url` به یک URL محلی غایب تبدیل می‌شود، grid placeholder های تمام‌قد نشان می‌دهد و چون snapshot واقعاً داده‌ی wrestlers/buildings/books دارد ولی media tables (wrestler_media, history_media, building_images, about_media) همه ۰ ردیف‌اند، صفحات گالری/جزئیات هم خالی به نظر می‌رسند.
+```text
+build/
+├── index.html
+├── assets/...               (JS/CSS فرانت‌اند)
+├── data/
+│   └── snapshot.json        ← تنها منبع داده (wrestlers, achievements, ...)
+├── images/
+│   └── {hash}.webp          ← همه عکس‌ها
+├── videos/
+│   └── {hash}.mp4           ← همه ویدیوها
+├── audio/
+│   └── {hash}.mp3           ← موسیقی پس‌زمینه
+└── sw.js                    ← service worker (همان فعلی)
 
-## راه‌حل
+content/                     ← منبع محتوا (در گیت، خارج از build)
+├── snapshot.json            ← قابل ویرایش با ادمین لوکال
+├── images/                  ← فایل‌های اصلی
+├── videos/
+└── audio/
+```
 
-### ۱. اصلاح `src/utils/imageOptimizer.ts`
+## بخش ۱ — حذف Supabase از کلاینت
 
-در حالت `isOfflineOnly()` تابع `getOptimizedImageUrl` آدرس Supabase را تبدیل نکند و عینا برگرداند تا lookup در `bundledImages` کار کند. همچنین اگر آدرس از قبل محلی (`/images/...`) باشد بدون تغییر برگردانده شود.
+### حذف
+- پکیج `@supabase/supabase-js` از `package.json`
+- فولدر `src/integrations/supabase/`
+- فایل `src/lib/supabase.ts`
+- فولدر `supabase/` (config.toml و functions)
+- متغیرهای `VITE_SUPABASE_*` از `.env`
 
-### ۲. اصلاح `src/lib/bundledImages.ts`
+### بازنویسی به `src/lib/dataStore.ts`
+یک ماژول ساده که فقط از `loadSnapshot()` می‌خواند. همان شکل API را نگه می‌دارد تا تغییرات در صفحات حداقلی باشد:
 
-تابع `lookup` علاوه بر URL خام، نسخه‌ی `render/image/public/` را هم به `object/public/` نرمالایز کند تا اگر کسی شکل بهینه‌شده‌ی آدرس را پاس داد باز هم فایل محلی پیدا شود. (به‌عنوان لایه‌ی دفاعی).
+```ts
+export const dataStore = {
+  wrestlers: { list, get },
+  achievements: { listByWrestler },
+  wrestlerMedia: { listByWrestler },
+  historySections: { list, get, getBySlug },
+  historyMedia: { listBySection },
+  buildings: { list, get },
+  buildingImages: { listByBuilding },
+  books: { list },
+  albums: { list, get },
+  albumPhotos: { listByAlbum },
+  aboutMedia: { list },
+  appSettings: { get },
+};
+```
 
-### ۳. اصلاح `src/components/ui/LazyImage.tsx`
+تمام call site های `supabase.from('...').select(...)` (در `WrestlerContext`, `OfflineDataContext`, تمام `pages/*` و `pages/admin/*`, `hooks/*`) به این جایگزین می‌شوند.
 
-اگر در حالت offline-only هستیم و آدرس remote است، **قبل از** fallback به placeholder یک‌بار `resolveBundledImage` را روی نسخه‌ی نرمالایز شده هم امتحان کند. اگر نه، به جای جایگزینی فوری با placeholder، هنوز سعی کند از Service Worker cache بخواند (با گذاشتن src اصلی، اجازه می‌دهیم `sw.js` اگر کش داشت پاسخ دهد).
+## بخش ۲ — حذف قابلیت‌های وابسته به سرور
 
-تغییر کوچک: حالت offline-only فقط وقتی به placeholder سقوط کند که هیچ نسخه‌ی محلی یا کش‌شده‌ای وجود نداشته باشد — یعنی onError همچنان کار کند.
+### قابلیت‌هایی که حذف می‌شوند
+| ویژگی | علت | جایگزین |
+|---|---|---|
+| پنل ادمین درون‌اپ (signup/login/CRUD) | بدون سرور ممکن نیست | ابزار ادمین جداگانه (بخش ۳) |
+| چت AI درون‌اپ | نیاز به Edge Function + API key | پاسخ‌های آماده آفلاین از `offlineAssistant.ts` (که از قبل وجود دارد) |
+| ترجمه پویا با Gemini | همان دلیل | فقط ترجمه‌های از پیش تولیدشده در `snapshot.json` |
+| TTS با Gemini | همان دلیل | استفاده از Web Speech API مرورگر (داخلی، آفلاین در ویندوز) |
+| Backup/Export از DB | DB وجود ندارد | دانلود `snapshot.json` فعلی |
+| Realtime / sync پس‌زمینه | DB وجود ندارد | حذف |
 
-### ۴. اجرای واقعی `npm run sync:content`
+### مسیرهای حذف‌شده در React Router
+- `/admin/*` (همه صفحات ادمین)
+- `/login`, `/signup`, `/reset-password`
 
-اسکریپت در سندباکس (که اینترنت دارد) اجرا می‌شود تا:
-- همه‌ی عکس‌های ارجاع‌شده در snapshot دانلود و در `public/images/` ذخیره شوند
-- `manifest.json` پر شود
-- آدرس‌های داخل `snapshot.json` به مسیرهای `/images/<file>` بازنویسی شوند
+### کامپوننت‌ها/هوک‌های حذف یا ساده‌شده
+- `AuthContext` → حذف
+- `ProtectedRoute` → حذف
+- `useChatAssistant` → فقط حالت آفلاین
+- `useTranslation` → فقط lookup در snapshot
+- `useTextToSpeech` → فقط Web Speech API
+- `useBackgroundSync`, `useAutoSync`, `useOfflineDownload`, `useOfflineTest` → حذف
+- `OfflineIndicator`, `SyncStatusIndicator`, `DownloadProgressCard` → حذف
+- `AdminLayout` و کل `pages/admin/*` → حذف
+- `useDataExport`, `useStorageStats`, `useMediaUpload`, `useBackgroundMusic` (قسمت آپلود) → ساده‌سازی
 
-این مرحله تضمین می‌کند برای دیپلوی بعدی همه‌ی عکس‌ها به‌صورت bundled داخل build بروند و در روز اول هم، بدون اینترنت بین‌الملل، روی کیوسک نمایش داده شوند.
+## بخش ۳ — ابزار ادمین آفلاین (Node.js CLI)
 
-### ۵. سرویس‌ورکر
+برای اینکه ادمین موزه بتواند محتوا را ویرایش کند، یک ابزار خط فرمان کوچک می‌سازیم:
 
-نسخه‌ی کش به `v9` بالا برده شود تا کلاینت‌های قدیمی (که snapshot قبلی با URL Supabase را دارند) بعد از به‌روزرسانی، snapshot جدید را بگیرند.
+```text
+tools/admin-cli/
+├── package.json
+├── server.mjs          ← Express لوکال روی http://localhost:5174
+├── web/                ← یک UI ساده React که فقط روی localhost باز می‌شود
+└── README.md
+```
 
-## چیزهایی که تغییر نمی‌کنند
+**کاربرد:**
+1. ادمین روی لپ‌تاپ خودش `npm run admin` می‌زند.
+2. مرورگر باز می‌شود روی `http://localhost:5174`.
+3. CRUD کامل روی `content/snapshot.json` + آپلود فایل به `content/images/...`.
+4. دکمه «Build & Deploy»: اسکریپت `scripts/bundle-content.mjs` را اجرا می‌کند که:
+   - فایل‌های `content/*` را به `public/data/`, `public/images/`, `public/videos/` کپی می‌کند
+   - تصاویر را با sharp به WebP فشرده می‌کند
+   - `npm run build` می‌زند
+   - خروجی `build/` را با rsync/scp به کیوسک‌ها push می‌کند
 
-- اسکریپت `bundle-content.mjs` (که از قبل کامل است)
-- ساختار صفحه‌های ادمین
-- منطق Supabase در حالت آنلاین (وقتی `offlineOnly=false` باشد همچنان تازه‌سازی می‌شود)
+این ابزار **هرگز در محیط کیوسک اجرا نمی‌شود** — فقط روی دستگاه ادمین.
 
-## فایل‌های دست‌خورده
+## بخش ۴ — اسکریپت مهاجرت یک‌باره
 
-- `src/utils/imageOptimizer.ts`
-- `src/lib/bundledImages.ts`
-- `src/components/ui/LazyImage.tsx`
-- `public/sw.js` (bump CACHE_VERSION)
-- اجرای دستی `npm run sync:content` برای پر کردن `public/images/` و بازنویسی `public/data/snapshot.json`
+`scripts/migrate-from-supabase.mjs` (یک‌بار اجرا می‌شود، سپس حذف):
+1. به Supabase فعلی وصل می‌شود (با همان anon key موجود).
+2. همه جدول‌های public را می‌خواند.
+3. همه فایل‌ها را از باکت‌های Storage دانلود می‌کند.
+4. URL ها را در snapshot به مسیرهای لوکال (`/images/{hash}.webp`) بازنویسی می‌کند.
+5. خروجی نهایی را در `content/snapshot.json` و `content/images/`, `content/videos/`, `content/audio/` ذخیره می‌کند.
+
+پس از اجرا، کل اتصال به Supabase قطع و حذف می‌شود.
+
+## بخش ۵ — استقرار
+
+### کیوسک
+- فقط فولدر `build/` روی Nginx یا حتی `python3 -m http.server` کافی است.
+- Service Worker فعلی (نسخه v11) همه چیز را precache می‌کند → بعد از اولین بارگذاری، هیچ نیازی به شبکه نیست.
+- بدون دیتابیس، بدون پورت باز، بدون فایروال پیچیده.
+
+### Docker (اختیاری، ساده‌تر از قبل)
+```yaml
+services:
+  museum-kiosk:
+    image: nginx:alpine
+    volumes:
+      - ./build:/usr/share/nginx/html:ro
+    ports: ["80:80"]
+```
+
+## بخش ۶ — مزایای امنیتی
+
+- **صفر surface حمله**: نه دیتابیسی هست که SQL injection شود، نه auth ای که bypass شود، نه API ای که rate-limit ندارد.
+- **صفر secret**: نیازی به `JWT_SECRET`, `DB_PASSWORD`, `API_KEY` نیست.
+- **CSP سخت‌گیر**: می‌توان `connect-src 'none'` گذاشت چون هیچ درخواست شبکه‌ای انجام نمی‌شود.
+- **PWA کاملاً self-contained**: حتی اگر کابل شبکه قطع شود، اپ کامل کار می‌کند.
+
+## مراحل اجرا (به ترتیب)
+
+1. اسکریپت `migrate-from-supabase.mjs` نوشته و یک‌بار اجرا شود → `content/` پر می‌شود.
+2. `src/lib/dataStore.ts` ساخته شود.
+3. تمام import های `@/lib/supabase` و `@/integrations/supabase/client` در سراسر کد جایگزین شوند با `dataStore`.
+4. صفحات/کامپوننت‌های وابسته به سرور حذف شوند (لیست بخش ۲).
+5. روت‌های `/admin/*`, `/login`, ... از `App.tsx` و router حذف شوند.
+6. `package.json`: حذف `@supabase/supabase-js`, `xlsx` (اگر فقط برای export بود).
+7. `.env` و `vite-env.d.ts` پاک‌سازی شوند.
+8. فولدر `supabase/` و `src/integrations/supabase/` حذف شوند.
+9. `scripts/bundle-content.mjs` بازنویسی شود (به‌جای Supabase، از `content/` بخواند).
+10. ابزار `tools/admin-cli/` ساخته شود.
+11. `README.md` و `DEPLOYMENT.md` بازنویسی شوند.
+12. تست E2E: کیوسک با `--offline` flag مرورگر باز شود و همه صفحات کار کنند.
+
+## ریسک‌ها / نکات
+
+- **تعداد فایل‌های فرانت‌اند که باید تغییر کنند زیاد است** (~30-40 فایل). من گام به گام پیش می‌روم.
+- **محتوای ادمین فقط روی دستگاه ادمین قابل ویرایش است** و باید هر بار اپ re-deploy شود به کیوسک‌ها. (این تعادل مناسبی برای موزه است که محتوا کم تغییر می‌کند.)
+- **چت AI واقعی از دست می‌رود** — فقط پاسخ‌های ثابت/الگو-محور باقی می‌ماند. اگر این مهم است، بگویید تا گزینه ترکیبی (آفلاین + یک Edge Function اختیاری برای چت) را پلن کنم.
+- **Lovable preview**: ابزار ادمین CLI در پیش‌نمایش Lovable اجرا نمی‌شود (نیاز به Node لوکال دارد). در Lovable فقط اپ کیوسک قابل مشاهده است.
+
+اگر تأیید می‌کنید، اجرا را شروع می‌کنم.

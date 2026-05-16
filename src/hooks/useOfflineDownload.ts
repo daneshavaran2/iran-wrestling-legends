@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useOfflineData } from '@/contexts/OfflineDataContext';
 import { useWrestlers } from '@/contexts/WrestlerContext';
 
