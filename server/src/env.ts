@@ -21,3 +21,8 @@ export const CORS_ORIGIN = (process.env.CORS_ORIGIN || '*')
   .map((s) => s.trim());
 
 export const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY || '';
+
+// Open admin mode — when true, all admin-only endpoints accept requests without a JWT.
+// Intended for closed local kiosks behind nginx. Defaults to true to keep deployment simple.
+export const OPEN_ADMIN =
+  (process.env.OPEN_ADMIN ?? 'true').toLowerCase() !== 'false';
