@@ -154,7 +154,7 @@ export default function MuseumHomePage() {
       {/* Admin Button with Sparks */}
       <div className="fixed bottom-6 left-6 z-50">
         <FloatingIconWithSparks
-          onClick={() => navigate('/admin/login')}
+          onClick={() => navigate('/admin')}
           title={t('home.adminAccess')}
           className="text-muted-foreground hover:text-primary"
         >
