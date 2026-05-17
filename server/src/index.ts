@@ -10,6 +10,7 @@ import authRoutes from './routes/auth.js';
 import crudRoutes from './routes/crud.js';
 import uploadRoutes from './routes/uploads.js';
 import aiRoutes from './routes/ai.js';
+import publicAssetRoutes from './routes/publicAssets.js';
 
 const app = Fastify({ logger: true, bodyLimit: 20 * 1024 * 1024 });
 
@@ -34,6 +35,7 @@ await app.register(authRoutes, { prefix: '/api' });
 await app.register(crudRoutes, { prefix: '/api' });
 await app.register(uploadRoutes, { prefix: '/api' });
 await app.register(aiRoutes, { prefix: '/api' });
+await app.register(publicAssetRoutes, { prefix: '/api' });
 
 app.listen({ port: PORT, host: HOST }).catch((err) => {
   app.log.error(err);
