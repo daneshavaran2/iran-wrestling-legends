@@ -7,7 +7,6 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
-    "migrate-from-supabase": "tsx scripts/migrate-from-supabase.mjs"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",
