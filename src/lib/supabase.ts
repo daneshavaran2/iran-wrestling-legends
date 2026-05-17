@@ -146,31 +146,25 @@ class QueryBuilder {
   }
 
   private async runSelect(): Promise<{ data: any; error: any; count: number | null }> {
-    const res = await apiFetch<any[]>(this.buildPath());
-    let rows: any[] | null = null;
-    if (!res.error && Array.isArray(res.data)) {
-      rows = res.data;
-    } else {
-      // Offline fallback: filter local snapshot in-memory.
-      await ensureSnapshotLoaded();
-      rows = getSnapshotRows(this.table);
-      for (const f of this.filters) rows = rows.filter(f);
-      for (const { col, asc } of this.orderings) {
-        rows.sort((a, b) => {
-          const av = a?.[col]; const bv = b?.[col];
-          if (av == null && bv == null) return 0;
-          if (av == null) return asc ? -1 : 1;
-          if (bv == null) return asc ? 1 : -1;
-          if (av < bv) return asc ? -1 : 1;
-          if (av > bv) return asc ? 1 : -1;
-          return 0;
-        });
-      }
-      if (this.rangeFrom != null && this.rangeTo != null) {
-        rows = rows.slice(this.rangeFrom, this.rangeTo + 1);
-      }
-      if (this.limitN != null) rows = rows.slice(0, this.limitN);
+    // Reads always come from the bundled offline snapshot — never the network.
+    await ensureSnapshotLoaded();
+    let rows: any[] = getSnapshotRows(this.table);
+    for (const f of this.filters) rows = rows.filter(f);
+    for (const { col, asc } of this.orderings) {
+      rows.sort((a, b) => {
+        const av = a?.[col]; const bv = b?.[col];
+        if (av == null && bv == null) return 0;
+        if (av == null) return asc ? -1 : 1;
+        if (bv == null) return asc ? 1 : -1;
+        if (av < bv) return asc ? -1 : 1;
+        if (av > bv) return asc ? 1 : -1;
+        return 0;
+      });
     }
+    if (this.rangeFrom != null && this.rangeTo != null) {
+      rows = rows.slice(this.rangeFrom, this.rangeTo + 1);
+    }
+    if (this.limitN != null) rows = rows.slice(0, this.limitN);
     const count = this.wantCount ? rows.length : null;
     if (this.wantSingle === 'single') {
       if (rows.length === 0) return { data: null, error: { message: 'No rows', code: 'PGRST116' }, count };
