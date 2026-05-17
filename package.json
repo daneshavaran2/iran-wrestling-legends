@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && rm -rf build && cp -R dist build",
+    "snapshot:build": "node scripts/build-snapshot.mjs",
+    "snapshot:update": "node scripts/build-snapshot.mjs --quick",
+    "prebuild": "node scripts/build-snapshot.mjs",
+    "build": "vite build && rm -rf build && cp -R dist build && node scripts/copy-public-media.mjs",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview"
