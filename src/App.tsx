@@ -53,7 +53,6 @@ const AdminAboutPage = lazy(() => import("./pages/admin/AdminAboutPage"));
 const AdminOfflineSettingsPage = lazy(() => import("./pages/admin/AdminOfflineSettingsPage"));
 const AdminGeneralSettingsPage = lazy(() => import("./pages/admin/AdminGeneralSettingsPage"));
 const AdminBackupPage = lazy(() => import("./pages/admin/AdminBackupPage"));
-const AdminMigratePage = lazy(() => import("./pages/admin/AdminMigratePage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -113,7 +112,6 @@ const App = () => {
                           <Route path="/admin/offline" element={<AdminOfflineSettingsPage />} />
                           <Route path="/admin/settings" element={<AdminGeneralSettingsPage />} />
                           <Route path="/admin/backup" element={<AdminBackupPage />} />
-                          <Route path="/admin/migrate" element={<AdminMigratePage />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </PageTransition>

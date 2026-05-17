@@ -17,7 +17,6 @@ import {
   Music,
   Download,
   Settings2,
-  UploadCloud,
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -39,7 +38,6 @@ const navItems = [
   { path: '/admin/offline', label: 'تنظیمات آفلاین', icon: Download },
   { path: '/admin/settings', label: 'تنظیمات عمومی', icon: Settings2 },
   { path: '/admin/backup', label: 'پشتیبان‌گیری', icon: Database },
-  { path: '/admin/migrate', label: 'مهاجرت داده', icon: UploadCloud },
 ];
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
